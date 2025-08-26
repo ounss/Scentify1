@@ -6,11 +6,14 @@ import {
   getParfumById,
   getParfumsByNote,
   getSimilarParfums,
-  getParfumsBySimilarity, // ✅ AJOUTÉ - était manquant
+  getParfumsBySimilarity,
   createParfum,
   updateParfum,
   deleteParfum,
   searchParfums,
+  getParfumsStats, // ✅ AJOUTÉ - était manquant
+  exportParfumsCSV,
+  importParfumsCSV,
 } from "../controllers/parfumController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 import {
@@ -56,10 +59,11 @@ const upload = multer({
 // Routes publiques
 router.get("/", getParfums);
 router.get("/search", searchParfums);
+router.get("/stats", getParfumsStats); // ✅ AJOUTÉ
 router.get("/:id", getParfumById);
 router.get("/:id/similar", getSimilarParfums);
 router.get("/note/:noteId", getParfumsByNote);
-router.post("/similarity", getParfumsBySimilarity); // ✅ Maintenant importé correctement
+router.post("/similarity", getParfumsBySimilarity);
 
 // Routes admin
 router.post(
@@ -73,5 +77,13 @@ router.post(
 );
 router.put("/:id", protect, admin, upload.single("photo"), updateParfum);
 router.delete("/:id", protect, admin, deleteParfum);
+router.get("/export/csv", protect, admin, exportParfumsCSV); // ✅ AJOUTÉ
+router.post(
+  "/import/csv",
+  protect,
+  admin,
+  upload.single("file"),
+  importParfumsCSV
+); // ✅ AJOUTÉ
 
 export default router;

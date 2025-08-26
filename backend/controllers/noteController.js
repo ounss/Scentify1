@@ -1,5 +1,6 @@
 import NoteOlfactive from "../models/NoteOlfactive.js";
 import Parfum from "../models/Parfum.js";
+import mongoose from "mongoose";
 
 // Obtenir toutes les notes olfactives
 export const getNotes = async (req, res) => {

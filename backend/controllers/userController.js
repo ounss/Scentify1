@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs";
 import emailService from "../services/emailService.js";
 import csvService from "../services/csvService.js";
 import crypto from "crypto";
+import mongoose from "mongoose";
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });

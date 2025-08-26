@@ -1,5 +1,15 @@
-import { body, validationResult } from "express-validator";
+import { body, param, validationResult } from "express-validator";
+import mongoose from "mongoose";
 
+// Validation ObjectId MongoDB
+export const validateObjectId = [
+  param("id").custom((value) => {
+    if (!mongoose.Types.ObjectId.isValid(value)) {
+      throw new Error("ID invalide");
+    }
+    return true;
+  }),
+];
 export const validateRegister = [
   body("username")
     .isLength({ min: 3, max: 20 })

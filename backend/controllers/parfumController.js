@@ -1,21 +1,27 @@
 import Parfum from "../models/Parfum.js";
 import NoteOlfactive from "../models/NoteOlfactive.js";
 import csvService from "../services/csvService.js";
+import mongoose from "mongoose";
 
-// Obtenir tous les parfums avec filtres
+/**
+ * Obtenir tous les parfums avec filtres (search, genre, notes), pagination et tri
+ */
 export const getParfums = async (req, res) => {
   try {
     const {
       search,
       genre,
+      notes, // IDs de notes séparées par des virgules
       page = 1,
       limit = 20,
       sortBy = "popularite",
     } = req.query;
 
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = Math.min(parseInt(limit, 10) || 20, 100); // garde un plafond raisonnable
     const query = {};
 
-    // Filtres
+    // Filtre par recherche textuelle
     if (search) {
       query.$or = [
         { nom: { $regex: search, $options: "i" } },
@@ -23,12 +29,25 @@ export const getParfums = async (req, res) => {
       ];
     }
 
+    // Filtre par genre
     if (genre && genre !== "tous") {
       query.genre = genre;
     }
 
+    // Filtre par notes olfactives
+    if (notes) {
+      const noteIds = notes
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+
+      if (noteIds.length > 0) {
+        query.notes = { $in: noteIds };
+      }
+    }
+
     // Pagination
-    const skip = (page - 1) * limit;
+    const skip = (pageNum - 1) * limitNum;
 
     // Tri
     const sortOptions = {};
@@ -47,40 +66,43 @@ export const getParfums = async (req, res) => {
     }
 
     const parfums = await Parfum.find(query)
-      .populate("notes", "nom type")
+      .populate("notes", "nom type famille")
       .sort(sortOptions)
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limitNum);
 
     const total = await Parfum.countDocuments(query);
 
     res.json({
       parfums,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {
+    console.error("Erreur getParfums:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
-// Obtenir un parfum par ID
+/**
+ * Obtenir un parfum par ID
+ */
 export const getParfumById = async (req, res) => {
   try {
     const parfum = await Parfum.findById(req.params.id).populate(
       "notes",
-      "nom type description"
+      "nom type description famille"
     );
 
     if (!parfum) {
       return res.status(404).json({ message: "Parfum non trouvé" });
     }
 
-    // Incrémenter la popularité
+    // Incrémenter la popularité (méthode de modèle)
     await parfum.incrementPopularite();
 
     res.json(parfum);
@@ -89,29 +111,33 @@ export const getParfumById = async (req, res) => {
   }
 };
 
-// Rechercher des parfums par note olfactive
+/**
+ * Rechercher des parfums par note olfactive (noteId)
+ */
 export const getParfumsByNote = async (req, res) => {
   try {
     const { noteId } = req.params;
     const { page = 1, limit = 20 } = req.query;
 
-    const skip = (page - 1) * limit;
+    const pageNum = parseInt(page, 10) || 1;
+    const limitNum = Math.min(parseInt(limit, 10) || 20, 100);
+    const skip = (pageNum - 1) * limitNum;
 
     const parfums = await Parfum.find({ notes: noteId })
-      .populate("notes", "nom type")
+      .populate("notes", "nom type famille")
       .sort({ popularite: -1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(limitNum);
 
     const total = await Parfum.countDocuments({ notes: noteId });
 
     res.json({
       parfums,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: pageNum,
+        limit: limitNum,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / limitNum),
       },
     });
   } catch (error) {
@@ -119,7 +145,9 @@ export const getParfumsByNote = async (req, res) => {
   }
 };
 
-// Obtenir des parfums similaires (basé sur un seul parfum)
+/**
+ * Obtenir des parfums similaires (basé sur un seul parfum)
+ */
 export const getSimilarParfums = async (req, res) => {
   try {
     const { id } = req.params;
@@ -135,7 +163,7 @@ export const getSimilarParfums = async (req, res) => {
       _id: { $ne: id },
       notes: { $in: noteIds },
     })
-      .populate("notes", "nom type")
+      .populate("notes", "nom type famille")
       .sort({ popularite: -1 })
       .limit(6);
 
@@ -145,7 +173,9 @@ export const getSimilarParfums = async (req, res) => {
   }
 };
 
-// Recherche par similarité de plusieurs parfums
+/**
+ * Recherche par similarité de plusieurs parfums
+ */
 export const getParfumsBySimilarity = async (req, res) => {
   try {
     const { parfumIds } = req.body;
@@ -160,6 +190,8 @@ export const getParfumsBySimilarity = async (req, res) => {
         },
       });
     }
+
+    const limitNum = Math.min(parseInt(limit, 10) || 10, 50);
 
     // Récupérer tous les parfums sélectionnés
     const parfums = await Parfum.find({ _id: { $in: parfumIds } }).populate(
@@ -195,7 +227,7 @@ export const getParfumsBySimilarity = async (req, res) => {
       _id: { $nin: parfumIds },
       notes: { $in: noteIds },
     })
-      .populate("notes", "nom type")
+      .populate("notes", "nom type famille")
       .sort({ popularite: -1 });
 
     // Calculer un score de similarité basé sur les notes communes
@@ -226,7 +258,7 @@ export const getParfumsBySimilarity = async (req, res) => {
         }
         return b.popularite - a.popularite;
       })
-      .slice(0, parseInt(limit));
+      .slice(0, limitNum);
 
     res.json({
       sourceParfums: parfums.length,
@@ -240,7 +272,9 @@ export const getParfumsBySimilarity = async (req, res) => {
   }
 };
 
-// Créer un nouveau parfum (admin)
+/**
+ * Créer un nouveau parfum (admin)
+ */
 export const createParfum = async (req, res) => {
   try {
     const {
@@ -277,7 +311,7 @@ export const createParfum = async (req, res) => {
     });
 
     await parfum.save();
-    await parfum.populate("notes", "nom type");
+    await parfum.populate("notes", "nom type famille");
 
     res.status(201).json(parfum);
   } catch (error) {
@@ -285,7 +319,9 @@ export const createParfum = async (req, res) => {
   }
 };
 
-// Mettre à jour un parfum (admin)
+/**
+ * Mettre à jour un parfum (admin)
+ */
 export const updateParfum = async (req, res) => {
   try {
     const { id } = req.params;
@@ -310,7 +346,7 @@ export const updateParfum = async (req, res) => {
     const parfum = await Parfum.findByIdAndUpdate(id, updateData, {
       new: true,
       runValidators: true,
-    }).populate("notes", "nom type");
+    }).populate("notes", "nom type famille");
 
     if (!parfum) {
       return res.status(404).json({ message: "Parfum non trouvé" });
@@ -322,7 +358,9 @@ export const updateParfum = async (req, res) => {
   }
 };
 
-// Supprimer un parfum (admin)
+/**
+ * Supprimer un parfum (admin)
+ */
 export const deleteParfum = async (req, res) => {
   try {
     const parfum = await Parfum.findByIdAndDelete(req.params.id);
@@ -337,25 +375,45 @@ export const deleteParfum = async (req, res) => {
   }
 };
 
-// Recherche avancée
+/**
+ * Recherche avancée incluant les notes :
+ * - q : recherche dans nom/marque/description ET dans les noms de notes (conversion en noteIds)
+ * - notes : filtre direct par IDs de notes
+ */
 export const searchParfums = async (req, res) => {
   try {
     const { q, notes, genre, marque } = req.query;
 
-    let query = {};
+    const query = {};
 
     if (q) {
-      // Recherche textuelle simple si pas d'index text
+      // Recherche dans parfums ET dans les notes
+      const noteIdsFromQuery = await NoteOlfactive.find({
+        nom: { $regex: q, $options: "i" },
+      }).distinct("_id");
+
       query.$or = [
         { nom: { $regex: q, $options: "i" } },
         { marque: { $regex: q, $options: "i" } },
         { description: { $regex: q, $options: "i" } },
+        { notes: { $in: noteIdsFromQuery } },
       ];
     }
 
     if (notes) {
-      const noteIds = notes.split(",");
-      query.notes = { $in: noteIds };
+      const noteIds = notes
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean);
+      if (noteIds.length > 0) {
+        // Si on a déjà un $or plus haut, on ajoute en conjonction
+        if (query.$or) {
+          query.$and = [{ $or: query.$or }, { notes: { $in: noteIds } }];
+          delete query.$or;
+        } else {
+          query.notes = { $in: noteIds };
+        }
+      }
     }
 
     if (genre && genre !== "tous") {
@@ -367,21 +425,23 @@ export const searchParfums = async (req, res) => {
     }
 
     const parfums = await Parfum.find(query)
-      .populate("notes", "nom type")
+      .populate("notes", "nom type famille")
       .sort({ popularite: -1 })
       .limit(20);
 
     res.json(parfums);
   } catch (error) {
+    console.error("Erreur searchParfums:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
-// Export CSV parfums (admin)
+/**
+ * Export CSV parfums (admin)
+ */
 export const exportParfumsCSV = async (req, res) => {
   try {
     const parfums = await Parfum.find().populate("notes", "nom").lean();
-
     const csv = await csvService.exportParfums(parfums);
 
     res.header("Content-Type", "text/csv; charset=utf-8");
@@ -393,7 +453,9 @@ export const exportParfumsCSV = async (req, res) => {
   }
 };
 
-// Import CSV parfums (admin)
+/**
+ * Import CSV parfums (admin)
+ */
 export const importParfumsCSV = async (req, res) => {
   try {
     if (!req.file) {
@@ -416,27 +478,19 @@ export const importParfumsCSV = async (req, res) => {
   }
 };
 
-// Obtenir les statistiques des parfums
+/**
+ * Obtenir les statistiques des parfums
+ */
 export const getParfumsStats = async (req, res) => {
   try {
     const totalParfums = await Parfum.countDocuments();
 
     const parGenre = await Parfum.aggregate([
-      {
-        $group: {
-          _id: "$genre",
-          count: { $sum: 1 },
-        },
-      },
+      { $group: { _id: "$genre", count: { $sum: 1 } } },
     ]);
 
     const parMarque = await Parfum.aggregate([
-      {
-        $group: {
-          _id: "$marque",
-          count: { $sum: 1 },
-        },
-      },
+      { $group: { _id: "$marque", count: { $sum: 1 } } },
       { $sort: { count: -1 } },
       { $limit: 10 },
     ]);
