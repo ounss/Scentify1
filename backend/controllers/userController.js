@@ -9,6 +9,28 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
+// Vérification email (fonction manquante ajoutée)
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    // Simple validation pour le moment - à développer selon vos besoins
+    if (!token) {
+      return res.status(400).json({ message: "Token requis" });
+    }
+
+    res.json({
+      message: "Email vérifié avec succès",
+      success: true,
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+    });
+  }
+};
+
 // Inscription simplifiée (auto-vérifiée)
 export const registerUser = async (req, res) => {
   try {
@@ -36,6 +58,7 @@ export const registerUser = async (req, res) => {
         username: user.username,
         email: user.email,
         isAdmin: user.isAdmin,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -67,6 +90,7 @@ export const loginUser = async (req, res) => {
         username: user.username,
         email: user.email,
         isAdmin: user.isAdmin,
+        createdAt: user.createdAt,
       },
     });
   } catch (error) {
@@ -74,7 +98,7 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Mot de passe oublié (garder)
+// Mot de passe oublié
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -97,7 +121,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// Reset mot de passe (garder)
+// Reset mot de passe
 export const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
@@ -122,10 +146,6 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// Mise à jour du profil utilisateur
-
-// ... Garder toutes les autres méthodes existantes
-// Conserver toutes les autres méthodes existantes...
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -146,6 +166,7 @@ export const getUserProfile = async (req, res) => {
         preferences: user.preferences,
         favoriCount: user.favoriCount,
         historiqueCount: user.historiqueCount,
+        createdAt: user.createdAt,
       });
     } else {
       res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -182,8 +203,9 @@ export const updateUserProfile = async (req, res) => {
         username: updatedUser.username,
         email: updatedUser.email,
         photo: updatedUser.photo,
+        isAdmin: updatedUser.isAdmin,
         preferences: updatedUser.preferences,
-        token: generateToken(updatedUser._id),
+        createdAt: updatedUser.createdAt,
       });
     } else {
       res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -281,14 +303,10 @@ export const getUserHistory = async (req, res) => {
     const { page = 1, limit = 20 } = req.query;
     const skip = (page - 1) * limit;
 
-    const user = await User.findById(req.user._id).populate({
-      path: "historique.parfum",
-      select: "nom marque photo genre popularite",
-      options: {
-        skip: skip,
-        limit: parseInt(limit),
-      },
-    });
+    const user = await User.findById(req.user._id).populate(
+      "historique.parfum",
+      "nom marque photo genre popularite"
+    );
 
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
@@ -296,16 +314,13 @@ export const getUserHistory = async (req, res) => {
 
     const historique = user.historique
       .slice(skip, skip + parseInt(limit))
-      .filter((h) => h.parfum);
+      .filter((h) => h.parfum)
+      .map((h) => ({
+        parfum: h.parfum,
+        viewedAt: h.dateVisite,
+      }));
 
-    res.json({
-      historique,
-      pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
-        total: user.historique.length,
-      },
-    });
+    res.json(historique);
   } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
@@ -362,7 +377,6 @@ export const getUserStats = async (req, res) => {
   }
 };
 
-// Nouvelles méthodes admin
 export const getAllUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;

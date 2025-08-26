@@ -6,6 +6,7 @@ import {
   getParfumById,
   getParfumsByNote,
   getSimilarParfums,
+  getParfumsBySimilarity, // ✅ AJOUTÉ - était manquant
   createParfum,
   updateParfum,
   deleteParfum,
@@ -58,7 +59,7 @@ router.get("/search", searchParfums);
 router.get("/:id", getParfumById);
 router.get("/:id/similar", getSimilarParfums);
 router.get("/note/:noteId", getParfumsByNote);
-router.post("/similarity", getParfumsBySimilarity);
+router.post("/similarity", getParfumsBySimilarity); // ✅ Maintenant importé correctement
 
 // Routes admin
 router.post(

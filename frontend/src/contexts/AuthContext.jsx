@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { authService } from "../services/api";
+import { authAPI } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -65,7 +65,7 @@ export function AuthProvider({ children }) {
 
       if (token) {
         try {
-          const response = await authService.getProfile();
+          const response = await authAPI.getProfile();
           dispatch({
             type: "LOGIN_SUCCESS",
             payload: {
@@ -89,7 +89,7 @@ export function AuthProvider({ children }) {
   const login = async (credentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
-      const response = await authService.login(credentials);
+      const response = await authAPI.login(credentials);
 
       dispatch({
         type: "LOGIN_SUCCESS",
@@ -107,7 +107,7 @@ export function AuthProvider({ children }) {
   const register = async (userData) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
-      const response = await authService.register(userData);
+      const response = await authAPI.register(userData);
 
       dispatch({
         type: "LOGIN_SUCCESS",

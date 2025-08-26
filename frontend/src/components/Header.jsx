@@ -10,7 +10,7 @@ import {
   X,
   Crown,
 } from "lucide-react";
-import { useAuth } from "../../contexts/AuthContext";
+import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 
 export default function Header() {

@@ -8,6 +8,8 @@ import {
   UserCheck,
   UserX,
   Crown,
+  User,
+  Settings,
 } from "lucide-react";
 import { adminAPI, parfumAPI, noteAPI } from "../services/api";
 import {

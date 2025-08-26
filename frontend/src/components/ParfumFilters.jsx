@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Filter, RotateCcw, Check } from "lucide-react";
-import { noteAPI } from "../../services/api";
+import { noteAPI } from "../services/api";
 
 export default function ParfumFilters({ show, filters, onApply, onClose }) {
   const [localFilters, setLocalFilters] = useState(filters);
