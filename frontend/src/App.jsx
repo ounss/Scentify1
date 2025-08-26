@@ -5,6 +5,7 @@ import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Header from "./components/Header";
 
 // Pages
+import Footer from "./components/Footer";
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Contact from "./pages/Contact";
@@ -155,6 +156,15 @@ function App() {
         </div>
       </AuthProvider>
     </BrowserRouter>
+  );
+
+  // Dans votre Layout component :
+  const Layout = ({ children }) => (
+    <div className="min-h-screen">
+      <Header />
+      <main className="flex-1">{children}</main>
+      <Footer />
+    </div>
   );
 }
 
