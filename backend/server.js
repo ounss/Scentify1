@@ -8,6 +8,7 @@ import { errorHandler } from "./middleware/errorHandler.js";
 import userRoutes from "./routes/userRoutes.js";
 import parfumRoutes from "./routes/parfumRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 dotenv.config();
 

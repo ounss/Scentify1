@@ -148,8 +148,10 @@ export default function Home() {
               )}
             </button>
           </div>
-        </div>
-      </section>
+              </div>
+              
+          </section>
+          
 
       {/* Résultats */}
       <section className="py-12">

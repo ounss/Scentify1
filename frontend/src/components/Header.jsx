@@ -4,7 +4,7 @@ import { Home, Clock, User } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 
 export default function Header() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isAdmin } = useAuth();
   const location = useLocation();
 
   const isActive = (path) => {
@@ -73,9 +73,16 @@ export default function Header() {
 
           <div className="desktop-auth">
             {isAuthenticated ? (
-              <Link to="/profile" className="btn btn-primary">
-                Profil
-              </Link>
+              <>
+                <Link to="/profile" className="btn btn-primary">
+                  Profil
+                </Link>
+                {isAdmin && (
+                  <Link to="/admin" className="btn btn-secondary">
+                    Admin
+                  </Link>
+                )}
+              </>
             ) : (
               <>
                 <Link to="/auth" className="btn btn-secondary">
