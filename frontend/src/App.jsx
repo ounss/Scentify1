@@ -1,17 +1,24 @@
+// frontend/src/App.jsx (Version mise à jour avec nouvelles routes)
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Header from "./components/Header";
-
-// Pages
 import Footer from "./components/Footer";
+
+// Pages existantes
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
 import ParfumDetail from "./components/ParfumDetail";
+
+// Nouvelles pages mobiles
+import ParfumForm from "./pages/ParfumForm";
+import UserMenu from "./pages/UserMenu";
+import FavoritesPage from "./pages/FavoritesPage";
+import HistoryPage from "./pages/HistoryPage";
 
 // Loading Component
 const LoadingSpinner = () => (
@@ -58,6 +65,14 @@ const Layout = ({ children }) => (
   <div className="min-h-screen bg-gray-50">
     <Header />
     <main className="flex-1">{children}</main>
+    <Footer />
+  </div>
+);
+
+// Layout mobile sans footer pour certaines pages
+const MobileLayout = ({ children }) => (
+  <div className="min-h-screen bg-gray-50">
+    <main className="flex-1">{children}</main>
   </div>
 );
 
@@ -90,7 +105,7 @@ function App() {
           />
 
           <Routes>
-            {/* Routes publiques avec layout */}
+            {/* Routes avec layout standard */}
             <Route
               path="/"
               element={
@@ -118,17 +133,6 @@ function App() {
               }
             />
 
-            {/* Route auth sans layout */}
-            <Route
-              path="/auth"
-              element={
-                <PublicRoute>
-                  <Auth />
-                </PublicRoute>
-              }
-            />
-
-            {/* Routes privées */}
             <Route
               path="/profile"
               element={
@@ -137,6 +141,70 @@ function App() {
                     <Profile />
                   </Layout>
                 </PrivateRoute>
+              }
+            />
+
+            {/* Routes mobiles avec layout mobile */}
+            <Route
+              path="/parfum/new"
+              element={
+                <PrivateRoute>
+                  <MobileLayout>
+                    <ParfumForm />
+                  </MobileLayout>
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/parfum/edit/:id"
+              element={
+                <PrivateRoute>
+                  <MobileLayout>
+                    <ParfumForm />
+                  </MobileLayout>
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/menu"
+              element={
+                <MobileLayout>
+                  <UserMenu />
+                </MobileLayout>
+              }
+            />
+
+            <Route
+              path="/favorites"
+              element={
+                <PrivateRoute>
+                  <MobileLayout>
+                    <FavoritesPage />
+                  </MobileLayout>
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/history"
+              element={
+                <PrivateRoute>
+                  <MobileLayout>
+                    <HistoryPage />
+                  </MobileLayout>
+                </PrivateRoute>
+              }
+            />
+
+            {/* Route auth sans layout */}
+            <Route
+              path="/auth"
+              element={
+                <PublicRoute>
+                  <Auth />
+                </PublicRoute>
               }
             />
 
@@ -156,15 +224,6 @@ function App() {
         </div>
       </AuthProvider>
     </BrowserRouter>
-  );
-
-  // Dans votre Layout component :
-  const Layout = ({ children }) => (
-    <div className="min-h-screen">
-      <Header />
-      <main className="flex-1">{children}</main>
-      <Footer />
-    </div>
   );
 }
 

@@ -30,6 +30,7 @@ app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use("/api/users", userRoutes);
 app.use("/api/parfums", parfumRoutes);
 app.use("/api/notes", noteRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Error handler middleware
 app.use(errorHandler);

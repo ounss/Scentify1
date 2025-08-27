@@ -1,14 +1,24 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom"; // AJOUT
 import { Heart } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { favoriAPI } from "../services/api";
 import toast from "react-hot-toast";
 
 export default function ParfumCard({ parfum }) {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate(); // AJOUT
+  const { isAuthenticated, user } = useAuth();
   const [isFavorite, setIsFavorite] = useState(false);
+
+  // Vérifier si le parfum est en favori au chargement
+  useEffect(() => {
+    if (user && user.favorisParfums) {
+      const isInFavorites = user.favorisParfums.some((fav) =>
+        typeof fav === "string" ? fav === parfum._id : fav._id === parfum._id
+      );
+      setIsFavorite(isInFavorites);
+    }
+  }, [user, parfum._id]);
 
   const handleFavoriteToggle = async (e) => {
     e.stopPropagation();
@@ -29,6 +39,7 @@ export default function ParfumCard({ parfum }) {
         toast.success("Ajouté aux favoris !");
       }
     } catch (error) {
+      console.error("Erreur favoris:", error);
       toast.error("Erreur lors de la modification");
     }
   };

@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { authAPI } from "../services/api";
+import { authAPI } from "../services/api"; // AJOUT
+import api from "../services/api"; // AJOUT pour la configuration axios
 
 const AuthContext = createContext();
 
@@ -65,6 +66,8 @@ export function AuthProvider({ children }) {
 
       if (token) {
         try {
+          // Configurer axios avec le token avant l'appel
+          api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           const response = await authAPI.getProfile();
           dispatch({
             type: "LOGIN_SUCCESS",
@@ -74,7 +77,9 @@ export function AuthProvider({ children }) {
             },
           });
         } catch (error) {
+          console.error("Token invalide:", error);
           localStorage.removeItem("token");
+          delete api.defaults.headers.common["Authorization"];
           dispatch({ type: "LOGOUT" });
         }
       } else {
@@ -123,6 +128,7 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
+    delete api.defaults.headers.common["Authorization"]; // AJOUT
     dispatch({ type: "LOGOUT" });
   };
 

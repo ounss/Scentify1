@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+// frontend/src/components/Header.jsx (Version mise à jour)
+import React from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Home, Clock, User } from "lucide-react";
+import { Home, Clock, User, Heart } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
+import ScentifyLogo from "./ScentifyLogo";
 
 export default function Header() {
   const { isAuthenticated, isAdmin } = useAuth();
@@ -19,7 +21,7 @@ export default function Header() {
       <div className="top-logo-bar">
         <div className="container">
           <Link to="/" className="logo-center">
-            <div className="logo-icon">S</div>
+            <ScentifyLogo size={32} className="text-white" />
             <span>Scentify</span>
           </Link>
         </div>
@@ -34,7 +36,7 @@ export default function Header() {
           </Link>
 
           <Link
-            to="/history"
+            to={isAuthenticated ? "/history" : "/auth"}
             className={`nav-item ${isActive("/history") ? "active" : ""}`}
           >
             <Clock className="nav-icon" />
@@ -60,11 +62,8 @@ export default function Header() {
             <Link to="/" className="nav-link">
               Découvrir
             </Link>
-            <Link to="#parfums" className="nav-link">
+            <Link to="/" className="nav-link">
               Parfums
-            </Link>
-            <Link to="#notes" className="nav-link">
-              Notes
             </Link>
             <Link to="/contact" className="nav-link">
               Contact

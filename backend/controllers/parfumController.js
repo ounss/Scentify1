@@ -477,7 +477,49 @@ export const importParfumsCSV = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+export const getParfumsBySimilarityMultiple = async (req, res) => {
+  try {
+    const { parfumIds, noteIds, genre, limit = 10 } = req.body;
 
+    let baseQuery = {};
+
+    // Filtres par notes ou parfums de référence
+    if (noteIds && noteIds.length > 0) {
+      baseQuery.notes = { $in: noteIds };
+    }
+
+    if (parfumIds && parfumIds.length > 0) {
+      // Récupérer les notes des parfums de référence
+      const referenceParfums = await Parfum.find({
+        _id: { $in: parfumIds },
+      }).populate("notes");
+      const referenceNoteIds = [
+        ...new Set(
+          referenceParfums.flatMap((p) => p.notes.map((n) => n._id.toString()))
+        ),
+      ];
+
+      baseQuery.notes = { $in: referenceNoteIds };
+      baseQuery._id = { $nin: parfumIds }; // Exclure les parfums de référence
+    }
+
+    if (genre && genre !== "tous") {
+      baseQuery.genre = genre;
+    }
+
+    const similaires = await Parfum.find(baseQuery)
+      .populate("notes", "nom type famille")
+      .sort({ popularite: -1 })
+      .limit(parseInt(limit));
+
+    res.json({
+      parfums: similaires,
+      total: similaires.length,
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
 /**
  * Obtenir les statistiques des parfums
  */

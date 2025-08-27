@@ -11,6 +11,7 @@ import {
   updateUserProfile,
   addFavoriteParfum,
   removeFavoriteParfum,
+  removeFavoriteNote,
   addFavoriteNote,
   getUserFavorites,
   addToHistory,
@@ -85,6 +86,7 @@ router.delete("/profile", protect, deleteUser);
 router.post("/favorites/parfum/:id", protect, addFavoriteParfum);
 router.delete("/favorites/parfum/:id", protect, removeFavoriteParfum);
 router.post("/favorites/note/:id", protect, addFavoriteNote);
+router.delete("/favorites/note/:id", protect, removeFavoriteNote);
 router.get("/favorites", protect, getUserFavorites);
 
 // Historique

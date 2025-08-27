@@ -108,7 +108,11 @@ UserSchema.methods.addFavoriNote = async function (noteId) {
   }
   return this;
 };
-
+UserSchema.methods.removeFavoriNote = async function (noteId) {
+  this.favorisNotes = this.favorisNotes.filter((id) => !id.equals(noteId));
+  await this.save();
+  return this;
+};
 UserSchema.methods.addToHistorique = async function (parfumId) {
   this.historique = this.historique.filter((h) => !h.parfum.equals(parfumId));
   this.historique.unshift({

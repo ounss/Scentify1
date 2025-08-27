@@ -1,11 +1,23 @@
+// frontend/src/pages/Home.jsx (Version mise à jour avec suggestions populaires)
 import React, { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
-import { Search, Filter, Sparkles, TrendingUp } from "lucide-react";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import {
+  Search,
+  Filter,
+  Sparkles,
+  TrendingUp,
+  Heart,
+  Clock,
+} from "lucide-react";
 import { parfumAPI } from "../services/api";
+import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "../components/ParfumCard";
 import ParfumFilters from "../components/ParfumFilters";
+import ScentifyLogo from "../components/ScentifyLogo";
 
 export default function Home() {
+  const { isAuthenticated } = useAuth();
+  const navigate = useNavigate();
   const [parfums, setParfums] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -18,7 +30,49 @@ export default function Home() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Charger les parfums au démarrage et à chaque changement de filtres
+  // Suggestions populaires
+  const popularSuggestions = [
+    {
+      id: 1,
+      name: "Sauvage",
+      brand: "Dior",
+      image:
+        "https://images.unsplash.com/photo-1541643600914-78b084683601?w=100&h=100&fit=crop",
+    },
+    {
+      id: 2,
+      name: "Black Orchid",
+      brand: "Tom Ford",
+      image:
+        "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=100&h=100&fit=crop",
+    },
+    {
+      id: 3,
+      name: "La Vie Est Belle",
+      brand: "Lancôme",
+      image:
+        "https://images.unsplash.com/photo-1588405748880-12d1d2a59d75?w=100&h=100&fit=crop",
+    },
+  ];
+
+  const faqItems = [
+    {
+      question: "Comment fonctionne Scentify ?",
+      answer:
+        "Scentify analyse les notes olfactives de vos parfums préférés pour vous recommander des fragrances similaires basées sur des algorithmes de correspondance.",
+    },
+    {
+      question: "Les parfums recommandés sont-ils fiables ?",
+      answer:
+        "Nos recommandations sont basées sur l'analyse scientifique des notes olfactives et les retours de notre communauté d'utilisateurs.",
+    },
+    {
+      question: "Comment puis-je acheter un parfum ?",
+      answer:
+        "Scentify vous redirige vers nos partenaires marchands de confiance où vous pouvez acheter les parfums en toute sécurité.",
+    },
+  ];
+
   useEffect(() => {
     loadParfums();
   }, [filters, searchParams]);
@@ -36,7 +90,6 @@ export default function Home() {
         limit: 20,
       };
 
-      // Nettoyer les paramètres undefined
       Object.keys(params).forEach(
         (key) => params[key] === undefined && delete params[key]
       );
@@ -77,86 +130,147 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section */}
-      <section className="relative bg-gradient-to-br from-amber-50 via-orange-50 to-pink-50 py-16">
-        <div className="container mx-auto px-4">
-          <div className="text-center mb-12">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Sparkles className="w-8 h-8 text-red-500" />
-              <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                Scentify
-              </h1>
+      {/* Hero Section Mobile-First */}
+      <section className="bg-white pt-4 pb-8">
+        <div className="max-w-md mx-auto px-4">
+          {/* Logo centré */}
+          <div className="text-center mb-6">
+            <div className="flex items-center justify-center space-x-3">
+              <ScentifyLogo size={40} className="text-red-500" />
+              <h1 className="text-3xl font-bold text-gray-800">Scentify</h1>
             </div>
-            <p className="text-xl md:text-2xl text-gray-600 mb-8 max-w-3xl mx-auto">
-              Découvrez votre parfum idéal grâce à l'analyse des notes
-              olfactives
-            </p>
+            <p className="text-gray-600 mt-2">Découvrez votre parfum idéal</p>
+          </div>
 
-            {/* Barre de recherche */}
-            <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-8">
-              <div className="relative bg-white rounded-2xl shadow-lg border border-gray-200 overflow-hidden">
-                <div className="flex items-center">
-                  <Search className="w-6 h-6 text-gray-400 ml-6" />
-                  <input
-                    type="text"
-                    className="flex-1 px-4 py-4 text-lg placeholder-gray-500 bg-transparent border-none outline-none"
-                    placeholder="Rechercher un parfum, une marque, une note..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                  />
-                  <button
-                    type="submit"
-                    className="bg-red-600 hover:bg-red-700 text-white px-8 py-4 font-semibold transition-colors duration-300"
-                  >
-                    Rechercher
-                  </button>
-                </div>
+          {/* Barre de recherche */}
+          <form onSubmit={handleSearch} className="mb-6">
+            <div className="relative bg-gray-50 rounded-2xl border border-gray-200">
+              <div className="flex items-center">
+                <Search className="w-5 h-5 text-gray-400 ml-4" />
+                <input
+                  type="text"
+                  className="flex-1 px-4 py-4 bg-transparent border-none outline-none placeholder-gray-500"
+                  placeholder="Rechercher un parfum..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
               </div>
-            </form>
-
-            {/* Filtres rapides */}
-            <div className="flex flex-wrap justify-center gap-3 mb-6">
-              {quickFilters.map((filter) => (
-                <button
-                  key={filter}
-                  onClick={() => handleQuickFilter(filter)}
-                  className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
-                    (filter === "Tous" && filters.genre === "tous") ||
-                    filter.toLowerCase() === filters.genre
-                      ? "bg-red-600 text-white shadow-lg transform scale-105"
-                      : "bg-white text-gray-700 hover:bg-gray-100 shadow-md hover:shadow-lg"
-                  }`}
-                >
-                  {filter}
-                </button>
-              ))}
             </div>
+          </form>
 
-            {/* Bouton filtres avancés */}
+          {/* Tabs Historique/Favoris */}
+          <div className="flex bg-gray-100 rounded-2xl p-1 mb-6">
             <button
-              onClick={() => setShowFilters(true)}
-              className="inline-flex items-center space-x-2 bg-white text-gray-700 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300"
+              onClick={() => navigate(isAuthenticated ? "/history" : "/auth")}
+              className="flex-1 flex items-center justify-center py-3 rounded-xl text-gray-600 hover:bg-white hover:shadow-sm transition-all"
             >
-              <Filter className="w-5 h-5" />
-              <span>Filtres avancés</span>
-              {(filters.notes.length > 0 ||
-                filters.sortBy !== "popularite") && (
-                <span className="bg-red-100 text-red-800 text-sm px-2 py-1 rounded-full">
-                  {filters.notes.length +
-                    (filters.sortBy !== "popularite" ? 1 : 0)}
-                </span>
-              )}
+              <Clock className="w-4 h-4 mr-2" />
+              <span className="text-sm font-medium">Historique</span>
+            </button>
+            <button
+              onClick={() => navigate(isAuthenticated ? "/favorites" : "/auth")}
+              className="flex-1 flex items-center justify-center py-3 rounded-xl text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+            >
+              <Heart className="w-4 h-4 mr-2" />
+              <span className="text-sm font-medium">Favoris</span>
             </button>
           </div>
-              </div>
-              
-          </section>
-          
+        </div>
+      </section>
 
-      {/* Résultats */}
-      <section className="py-12">
+      {/* Suggestions populaires */}
+      <section className="py-6">
+        <div className="max-w-md mx-auto px-4">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">
+            Suggestions populaires
+          </h2>
+          <div className="grid grid-cols-3 gap-3 mb-6">
+            {popularSuggestions.map((suggestion) => (
+              <div
+                key={suggestion.id}
+                className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all"
+                onClick={() => navigate(`/parfum/${suggestion.id}`)}
+              >
+                <div className="aspect-square bg-gray-100 rounded-lg mb-2">
+                  <img
+                    src={suggestion.image}
+                    alt={suggestion.name}
+                    className="w-full h-full object-cover rounded-lg"
+                  />
+                </div>
+                <h3 className="font-medium text-sm text-gray-800 truncate">
+                  {suggestion.name}
+                </h3>
+                <p className="text-xs text-gray-500 truncate">
+                  {suggestion.brand}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* FAQ Section */}
+      <section className="py-6">
+        <div className="max-w-md mx-auto px-4">
+          <h2 className="text-lg font-bold text-gray-800 mb-4">FAQ</h2>
+          <div className="space-y-3">
+            {faqItems.map((item, index) => (
+              <details
+                key={index}
+                className="bg-white rounded-xl shadow-sm border border-gray-100"
+              >
+                <summary className="p-4 cursor-pointer font-medium text-gray-800">
+                  {item.question}
+                </summary>
+                <div className="px-4 pb-4 text-sm text-gray-600">
+                  {item.answer}
+                </div>
+              </details>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Filtres rapides - Desktop/Tablet */}
+      <section className="hidden md:block py-6 bg-white">
         <div className="container mx-auto px-4">
-          {/* Header des résultats */}
+          <div className="flex flex-wrap justify-center gap-3 mb-6">
+            {quickFilters.map((filter) => (
+              <button
+                key={filter}
+                onClick={() => handleQuickFilter(filter)}
+                className={`px-6 py-3 rounded-xl font-semibold transition-all duration-300 ${
+                  (filter === "Tous" && filters.genre === "tous") ||
+                  filter.toLowerCase() === filters.genre
+                    ? "bg-red-600 text-white shadow-lg transform scale-105"
+                    : "bg-white text-gray-700 hover:bg-gray-100 shadow-md hover:shadow-lg"
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+
+          <button
+            onClick={() => setShowFilters(true)}
+            className="inline-flex items-center space-x-2 bg-white text-gray-700 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 mx-auto block"
+          >
+            <Filter className="w-5 h-5" />
+            <span>Filtres avancés</span>
+            {(filters.notes.length > 0 || filters.sortBy !== "popularite") && (
+              <span className="bg-red-100 text-red-800 text-sm px-2 py-1 rounded-full">
+                {filters.notes.length +
+                  (filters.sortBy !== "popularite" ? 1 : 0)}
+              </span>
+            )}
+          </button>
+        </div>
+      </section>
+
+      {/* Résultats parfums - Desktop/Tablet */}
+      <section className="hidden md:block py-12">
+        <div className="container mx-auto px-4">
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold text-gray-800 mb-2">
@@ -173,7 +287,6 @@ export default function Home() {
               </p>
             </div>
 
-            {/* Tri */}
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-gray-500" />
               <select
@@ -191,7 +304,6 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Grille des parfums */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
@@ -219,9 +331,7 @@ export default function Home() {
             </div>
           ) : (
             <div className="text-center py-16">
-              <div className="text-gray-400 mb-6">
-                <Search className="w-20 h-20 mx-auto mb-4" />
-              </div>
+              <Search className="w-20 h-20 text-gray-400 mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-gray-600 mb-4">
                 Aucun parfum trouvé
               </h3>

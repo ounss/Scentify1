@@ -53,6 +53,10 @@ export const parfumAPI = {
   update: (id, data) => api.put(`/parfums/${id}`, data),
   delete: (id) => api.delete(`/parfums/${id}`),
   getStats: () => api.get("/parfums/stats"),
+  getBySimilarity: (parfumIds, params = {}) =>
+    api.post("/parfums/similarity", { parfumIds }, { params }),
+  getByNotes: (noteIds, params = {}) =>
+    api.get("/parfums", { params: { notes: noteIds.join(","), ...params } }),
 };
 
 // 🏷️ NOTE SERVICES
@@ -109,4 +113,3 @@ export const uploadAPI = {
   },
 };
 export default api;
-

@@ -263,6 +263,21 @@ export const addFavoriteNote = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+export const removeFavoriteNote = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id);
+    const noteId = req.params.id;
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    await user.removeFavoriNote(noteId);
+    res.json({ message: "Note retirée des favoris" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
 
 export const getUserFavorites = async (req, res) => {
   try {

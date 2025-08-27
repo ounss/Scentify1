@@ -15,9 +15,12 @@ import { getNotesStats } from "../controllers/noteController.js";
 const router = express.Router();
 
 // Stats globales
+router.use(protect, admin); // Appliquer à toutes les routes
 router.get("/stats/users", protect, admin, getUserStats);
 router.get("/stats/parfums", protect, admin, getParfumsStats);
 router.get("/stats/notes", protect, admin, getNotesStats);
+router.get("/stats/users", getUserStats);
+router.get("/stats/parfums", getParfumsStats);
 
 // Gestion utilisateurs
 router.get("/users", protect, admin, getAllUsers);
