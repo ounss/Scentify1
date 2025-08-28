@@ -93,21 +93,64 @@ export const getParfums = async (req, res) => {
  */
 export const getParfumById = async (req, res) => {
   try {
-    const parfum = await Parfum.findById(req.params.id).populate(
-      "notes",
-      "nom type description famille"
-    );
+    const { id } = req.params;
+
+    // ✅ Validation de l'ObjectId MongoDB
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      console.log("ID invalide:", id);
+      return res.status(400).json({
+        message: "ID de parfum invalide",
+        receivedId: id,
+      });
+    }
+
+    console.log("Recherche du parfum avec ID:", id); // ✅ Debug
+
+    const parfum = await Parfum.findById(id)
+      .populate("notes", "nom type description famille")
+      .lean(); // ✅ Plus performant pour la lecture seule
 
     if (!parfum) {
+      console.log("Parfum non trouvé pour ID:", id);
       return res.status(404).json({ message: "Parfum non trouvé" });
     }
 
-    // Incrémenter la popularité (méthode de modèle)
-    await parfum.incrementPopularite();
+    console.log("Parfum trouvé:", parfum.nom); // ✅ Debug
 
-    res.json(parfum);
+    // ✅ Incrémenter la popularité uniquement si parfum trouvé
+    try {
+      await Parfum.findByIdAndUpdate(id, { $inc: { popularite: 1 } });
+      console.log("Popularité incrémentée");
+    } catch (popError) {
+      console.warn("Erreur incrémentation popularité:", popError);
+      // Ne pas faire échouer la requête pour ça
+    }
+
+    // ✅ Structurer la réponse avec toutes les données nécessaires
+    const response = {
+      _id: parfum._id,
+      nom: parfum.nom,
+      marque: parfum.marque,
+      genre: parfum.genre,
+      description: parfum.description || null,
+      notes: parfum.notes || [],
+      photo: parfum.photo || null,
+      popularite: parfum.popularite || 0,
+      liensMarchands: parfum.liensMarchands || [],
+      prix: parfum.prix || null,
+      createdAt: parfum.createdAt,
+      updatedAt: parfum.updatedAt,
+    };
+
+    res.json(response);
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    console.error("Erreur getParfumById:", error);
+    console.error("Stack:", error.stack);
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+      receivedId: req.params.id,
+    });
   }
 };
 
@@ -118,6 +161,11 @@ export const getParfumsByNote = async (req, res) => {
   try {
     const { noteId } = req.params;
     const { page = 1, limit = 20 } = req.query;
+
+    // ✅ Validation ObjectId
+    if (!mongoose.Types.ObjectId.isValid(noteId)) {
+      return res.status(400).json({ message: "ID de note invalide" });
+    }
 
     const pageNum = parseInt(page, 10) || 1;
     const limitNum = Math.min(parseInt(limit, 10) || 20, 100);
@@ -141,6 +189,7 @@ export const getParfumsByNote = async (req, res) => {
       },
     });
   } catch (error) {
+    console.error("Erreur getParfumsByNote:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
@@ -151,6 +200,12 @@ export const getParfumsByNote = async (req, res) => {
 export const getSimilarParfums = async (req, res) => {
   try {
     const { id } = req.params;
+
+    // ✅ Validation ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID de parfum invalide" });
+    }
+
     const parfum = await Parfum.findById(id).populate("notes");
 
     if (!parfum) {
@@ -169,6 +224,7 @@ export const getSimilarParfums = async (req, res) => {
 
     res.json(similaires);
   } catch (error) {
+    console.error("Erreur getSimilarParfums:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
@@ -188,6 +244,17 @@ export const getParfumsBySimilarity = async (req, res) => {
         exemple: {
           parfumIds: ["64f1234567890abcdef12345", "64f1234567890abcdef12346"],
         },
+      });
+    }
+
+    // ✅ Validation de tous les ObjectIds
+    const invalidIds = parfumIds.filter(
+      (id) => !mongoose.Types.ObjectId.isValid(id)
+    );
+    if (invalidIds.length > 0) {
+      return res.status(400).json({
+        message: "IDs de parfums invalides",
+        invalidIds,
       });
     }
 
@@ -290,6 +357,17 @@ export const createParfum = async (req, res) => {
 
     // Vérifier que les notes existent
     if (notes && notes.length > 0) {
+      // ✅ Validation ObjectIds pour les notes
+      const invalidNoteIds = notes.filter(
+        (id) => !mongoose.Types.ObjectId.isValid(id)
+      );
+      if (invalidNoteIds.length > 0) {
+        return res.status(400).json({
+          message: "IDs de notes invalides",
+          invalidIds: invalidNoteIds,
+        });
+      }
+
       const notesExistantes = await NoteOlfactive.find({ _id: { $in: notes } });
       if (notesExistantes.length !== notes.length) {
         return res
@@ -315,6 +393,7 @@ export const createParfum = async (req, res) => {
 
     res.status(201).json(parfum);
   } catch (error) {
+    console.error("Erreur createParfum:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
@@ -327,8 +406,23 @@ export const updateParfum = async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
 
+    // ✅ Validation ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID de parfum invalide" });
+    }
+
     // Vérifier que les notes existent si elles sont fournies
     if (updateData.notes && updateData.notes.length > 0) {
+      const invalidNoteIds = updateData.notes.filter(
+        (noteId) => !mongoose.Types.ObjectId.isValid(noteId)
+      );
+      if (invalidNoteIds.length > 0) {
+        return res.status(400).json({
+          message: "IDs de notes invalides",
+          invalidIds: invalidNoteIds,
+        });
+      }
+
       const notesExistantes = await NoteOlfactive.find({
         _id: { $in: updateData.notes },
       });
@@ -354,6 +448,7 @@ export const updateParfum = async (req, res) => {
 
     res.json(parfum);
   } catch (error) {
+    console.error("Erreur updateParfum:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
@@ -363,7 +458,14 @@ export const updateParfum = async (req, res) => {
  */
 export const deleteParfum = async (req, res) => {
   try {
-    const parfum = await Parfum.findByIdAndDelete(req.params.id);
+    const { id } = req.params;
+
+    // ✅ Validation ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "ID de parfum invalide" });
+    }
+
+    const parfum = await Parfum.findByIdAndDelete(id);
 
     if (!parfum) {
       return res.status(404).json({ message: "Parfum non trouvé" });
@@ -371,6 +473,7 @@ export const deleteParfum = async (req, res) => {
 
     res.json({ message: "Parfum supprimé avec succès" });
   } catch (error) {
+    console.error("Erreur deleteParfum:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
@@ -405,13 +508,19 @@ export const searchParfums = async (req, res) => {
         .split(",")
         .map((id) => id.trim())
         .filter(Boolean);
-      if (noteIds.length > 0) {
+
+      // ✅ Validation ObjectIds pour les notes
+      const validNoteIds = noteIds.filter((id) =>
+        mongoose.Types.ObjectId.isValid(id)
+      );
+
+      if (validNoteIds.length > 0) {
         // Si on a déjà un $or plus haut, on ajoute en conjonction
         if (query.$or) {
-          query.$and = [{ $or: query.$or }, { notes: { $in: noteIds } }];
+          query.$and = [{ $or: query.$or }, { notes: { $in: validNoteIds } }];
           delete query.$or;
         } else {
-          query.notes = { $in: noteIds };
+          query.notes = { $in: validNoteIds };
         }
       }
     }
@@ -477,6 +586,7 @@ export const importParfumsCSV = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+
 export const getParfumsBySimilarityMultiple = async (req, res) => {
   try {
     const { parfumIds, noteIds, genre, limit = 10 } = req.body;
@@ -485,22 +595,38 @@ export const getParfumsBySimilarityMultiple = async (req, res) => {
 
     // Filtres par notes ou parfums de référence
     if (noteIds && noteIds.length > 0) {
-      baseQuery.notes = { $in: noteIds };
+      // ✅ Validation ObjectIds
+      const validNoteIds = noteIds.filter((id) =>
+        mongoose.Types.ObjectId.isValid(id)
+      );
+      if (validNoteIds.length > 0) {
+        baseQuery.notes = { $in: validNoteIds };
+      }
     }
 
     if (parfumIds && parfumIds.length > 0) {
-      // Récupérer les notes des parfums de référence
-      const referenceParfums = await Parfum.find({
-        _id: { $in: parfumIds },
-      }).populate("notes");
-      const referenceNoteIds = [
-        ...new Set(
-          referenceParfums.flatMap((p) => p.notes.map((n) => n._id.toString()))
-        ),
-      ];
+      // ✅ Validation ObjectIds
+      const validParfumIds = parfumIds.filter((id) =>
+        mongoose.Types.ObjectId.isValid(id)
+      );
 
-      baseQuery.notes = { $in: referenceNoteIds };
-      baseQuery._id = { $nin: parfumIds }; // Exclure les parfums de référence
+      if (validParfumIds.length > 0) {
+        // Récupérer les notes des parfums de référence
+        const referenceParfums = await Parfum.find({
+          _id: { $in: validParfumIds },
+        }).populate("notes");
+
+        const referenceNoteIds = [
+          ...new Set(
+            referenceParfums.flatMap((p) =>
+              p.notes.map((n) => n._id.toString())
+            )
+          ),
+        ];
+
+        baseQuery.notes = { $in: referenceNoteIds };
+        baseQuery._id = { $nin: validParfumIds }; // Exclure les parfums de référence
+      }
     }
 
     if (genre && genre !== "tous") {
@@ -517,9 +643,11 @@ export const getParfumsBySimilarityMultiple = async (req, res) => {
       total: similaires.length,
     });
   } catch (error) {
+    console.error("Erreur getParfumsBySimilarityMultiple:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+
 /**
  * Obtenir les statistiques des parfums
  */
@@ -549,6 +677,7 @@ export const getParfumsStats = async (req, res) => {
       plusPopulaires,
     });
   } catch (error) {
+    console.error("Erreur getParfumsStats:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };

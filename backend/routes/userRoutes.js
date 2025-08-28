@@ -65,7 +65,7 @@ const upload = multer({
   },
 });
 
-// Routes publiques
+// ✅ Routes publiques
 router.post(
   "/register",
   validateRegister,
@@ -77,27 +77,29 @@ router.post("/verify-email", verifyEmail);
 router.post("/forgot-password", forgotPassword);
 router.post("/reset-password", resetPassword);
 
-// Routes privées
+// ✅ Routes privées - ORDRE IMPORTANT !
 router.get("/profile", protect, getUserProfile);
 router.put("/profile", protect, upload.single("photo"), updateUserProfile);
 router.delete("/profile", protect, deleteUser);
 
-// Favoris
+// ✅ Routes favoris - CORRECTION URGENTE
+router.get("/favorites", protect, getUserFavorites);
 router.post("/favorites/parfum/:id", protect, addFavoriteParfum);
 router.delete("/favorites/parfum/:id", protect, removeFavoriteParfum);
 router.post("/favorites/note/:id", protect, addFavoriteNote);
 router.delete("/favorites/note/:id", protect, removeFavoriteNote);
-router.get("/favorites", protect, getUserFavorites);
 
-// Historique
-router.post("/history/:id", protect, addToHistory);
+// ✅ Routes historique - CORRECTION URGENTE
 router.get("/history", protect, getUserHistory);
+router.post("/history/:id", protect, addToHistory);
 router.delete("/history", protect, clearHistory);
 
-// Routes admin
+// ✅ Routes admin - APRÈS les routes user spécifiques
 router.get("/stats", protect, admin, getUserStats);
-router.get("/", protect, admin, getAllUsers);
 router.get("/export", protect, admin, exportUsersCSV);
 router.patch("/:id/admin", protect, admin, toggleAdminStatus);
+
+// ✅ Route pour lister tous les users (DOIT ÊTRE APRÈS les routes spécifiques)
+router.get("/", protect, admin, getAllUsers);
 
 export default router;

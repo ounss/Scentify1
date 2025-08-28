@@ -9,25 +9,39 @@ const api = axios.create({
   },
 });
 
-// Intercepteur requête - JWT automatique
+// ✅ Intercepteur requête - JWT automatique CORRIGÉ
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log("📡 Token ajouté à la requête:", config.url);
+    } else {
+      console.log("⚠️ Pas de token pour la requête:", config.url);
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("❌ Erreur intercepteur requête:", error);
+    return Promise.reject(error);
+  }
 );
 
-// Intercepteur réponse - Gestion erreurs
+// ✅ Intercepteur réponse - Gestion erreurs CORRIGÉ
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    console.log("✅ Réponse API:", response.config.url, response.status);
+    return response;
+  },
   (error) => {
+    console.error("❌ Erreur API:", error.config?.url, error.response?.status);
+    console.error("❌ Détails erreur:", error.response?.data);
+
     if (error.response?.status === 401) {
+      console.log("🚪 Token invalide/expiré, suppression...");
       localStorage.removeItem("token");
-      window.location.href = "/auth";
+      // Ne pas rediriger automatiquement, laisser l'app gérer
+      // window.location.href = "/auth";
     }
     return Promise.reject(error);
   }
@@ -71,20 +85,44 @@ export const noteAPI = {
   getStats: () => api.get("/notes/stats"),
 };
 
-// ❤️ FAVORIS SERVICES
+// ❤️ FAVORIS SERVICES - CORRIGÉ URGENCE
 export const favoriAPI = {
-  getFavorites: () => api.get("/users/favorites"),
-  addParfum: (id) => api.post(`/users/favorites/parfum/${id}`),
-  removeParfum: (id) => api.delete(`/users/favorites/parfum/${id}`),
-  addNote: (id) => api.post(`/users/favorites/note/${id}`),
-  removeNote: (id) => api.delete(`/users/favorites/note/${id}`),
+  getFavorites: () => {
+    console.log("📡 Appel getFavorites...");
+    return api.get("/users/favorites");
+  },
+  addParfum: (id) => {
+    console.log("📡 Appel addParfum:", id);
+    return api.post(`/users/favorites/parfum/${id}`);
+  },
+  removeParfum: (id) => {
+    console.log("📡 Appel removeParfum:", id);
+    return api.delete(`/users/favorites/parfum/${id}`);
+  },
+  addNote: (id) => {
+    console.log("📡 Appel addNote:", id);
+    return api.post(`/users/favorites/note/${id}`);
+  },
+  removeNote: (id) => {
+    console.log("📡 Appel removeNote:", id);
+    return api.delete(`/users/favorites/note/${id}`);
+  },
 };
 
-// 📚 HISTORIQUE SERVICES
+// 📚 HISTORIQUE SERVICES - CORRIGÉ URGENCE
 export const historyAPI = {
-  getHistory: (params = {}) => api.get("/users/history", { params }),
-  addToHistory: (id) => api.post(`/users/history/${id}`),
-  clearHistory: () => api.delete("/users/history"),
+  getHistory: (params = {}) => {
+    console.log("📡 Appel getHistory...");
+    return api.get("/users/history", { params });
+  },
+  addToHistory: (id) => {
+    console.log("📡 Appel addToHistory:", id);
+    return api.post(`/users/history/${id}`);
+  },
+  clearHistory: () => {
+    console.log("📡 Appel clearHistory...");
+    return api.delete("/users/history");
+  },
 };
 
 // 👨‍💼 ADMIN SERVICES
@@ -112,4 +150,11 @@ export const uploadAPI = {
     });
   },
 };
+
+// ✅ Test de connectivité
+export const testAPI = {
+  health: () => api.get("/health"),
+  testAuth: () => api.get("/users/profile"),
+};
+
 export default api;

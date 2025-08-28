@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { authAPI } from "../services/api"; // AJOUT
-import api from "../services/api"; // AJOUT pour la configuration axios
+import { authAPI } from "../services/api";
+import api from "../services/api";
 
 const AuthContext = createContext();
 
@@ -13,6 +13,10 @@ const authReducer = (state, action) => {
       };
     case "LOGIN_SUCCESS":
       localStorage.setItem("token", action.payload.token);
+      // ✅ Configure axios immédiatement
+      api.defaults.headers.common[
+        "Authorization"
+      ] = `Bearer ${action.payload.token}`;
       return {
         ...state,
         user: action.payload.user,
@@ -28,6 +32,7 @@ const authReducer = (state, action) => {
       };
     case "LOGOUT":
       localStorage.removeItem("token");
+      delete api.defaults.headers.common["Authorization"];
       return {
         user: null,
         token: null,
@@ -38,6 +43,11 @@ const authReducer = (state, action) => {
       return {
         ...state,
         user: { ...state.user, ...action.payload },
+      };
+    case "REFRESH_USER": // ✅ Nouveau pour recharger les données utilisateur
+      return {
+        ...state,
+        user: action.payload,
       };
     case "CLEAR_ERROR":
       return {
@@ -59,7 +69,7 @@ const initialState = {
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // Vérifier le token au chargement
+  // ✅ Vérifier le token au chargement
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
@@ -69,6 +79,9 @@ export function AuthProvider({ children }) {
           // Configurer axios avec le token avant l'appel
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           const response = await authAPI.getProfile();
+
+          console.log("✅ Utilisateur chargé:", response.data); // Debug
+
           dispatch({
             type: "LOGIN_SUCCESS",
             payload: {
@@ -77,7 +90,7 @@ export function AuthProvider({ children }) {
             },
           });
         } catch (error) {
-          console.error("Token invalide:", error);
+          console.error("❌ Token invalide:", error);
           localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
           dispatch({ type: "LOGOUT" });
@@ -90,11 +103,13 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
-  // Actions
+  // ✅ Actions
   const login = async (credentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.login(credentials);
+
+      console.log("✅ Login réussie:", response.data); // Debug
 
       dispatch({
         type: "LOGIN_SUCCESS",
@@ -104,6 +119,7 @@ export function AuthProvider({ children }) {
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || "Erreur de connexion";
+      console.error("❌ Erreur login:", message);
       dispatch({ type: "LOGIN_ERROR", payload: message });
       return { success: false, error: message };
     }
@@ -114,6 +130,8 @@ export function AuthProvider({ children }) {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.register(userData);
 
+      console.log("✅ Registration réussie:", response.data); // Debug
+
       dispatch({
         type: "LOGIN_SUCCESS",
         payload: response.data,
@@ -122,18 +140,34 @@ export function AuthProvider({ children }) {
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || "Erreur d'inscription";
+      console.error("❌ Erreur register:", message);
       dispatch({ type: "LOGIN_ERROR", payload: message });
       return { success: false, error: message };
     }
   };
 
   const logout = () => {
-    delete api.defaults.headers.common["Authorization"]; // AJOUT
+    console.log("🚪 Déconnexion"); // Debug
+    delete api.defaults.headers.common["Authorization"];
     dispatch({ type: "LOGOUT" });
   };
 
   const updateUser = (userData) => {
+    console.log("🔄 Mise à jour utilisateur:", userData); // Debug
     dispatch({ type: "UPDATE_USER", payload: userData });
+  };
+
+  // ✅ Nouvelle fonction pour recharger le profil complet
+  const refreshUser = async () => {
+    try {
+      const response = await authAPI.getProfile();
+      console.log("🔄 Profil rechargé:", response.data); // Debug
+      dispatch({ type: "REFRESH_USER", payload: response.data });
+      return response.data;
+    } catch (error) {
+      console.error("❌ Erreur refresh user:", error);
+      return null;
+    }
   };
 
   const clearError = () => {
@@ -151,6 +185,7 @@ export function AuthProvider({ children }) {
     register,
     logout,
     updateUser,
+    refreshUser, // ✅ Nouvelle fonction
     clearError,
   };
 

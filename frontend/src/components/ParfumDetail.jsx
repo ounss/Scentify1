@@ -18,77 +18,152 @@ import toast from "react-hot-toast";
 export default function ParfumDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, refreshUser } = useAuth(); // ✅ Ajout refreshUser
 
   const [parfum, setParfum] = useState(null);
   const [similarParfums, setSimilarParfums] = useState([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  // Charger les données du parfum
+  console.log("🔍 ParfumDetail ID:", id);
+
+  // ✅ Charger les données du parfum
   useEffect(() => {
     const loadParfumData = async () => {
+      if (!id) {
+        setError("ID de parfum manquant");
+        setLoading(false);
+        return;
+      }
+
       try {
         setLoading(true);
         setError(null);
 
+        console.log("📦 Chargement du parfum:", id);
+
         // Charger le parfum principal
         const parfumResponse = await parfumAPI.getById(id);
+        console.log("✅ Parfum reçu:", parfumResponse.data);
         setParfum(parfumResponse.data);
 
-        // Charger les parfums similaires
+        // ✅ Ajouter à l'historique IMMÉDIATEMENT après avoir récupéré le parfum
+        if (isAuthenticated) {
+          try {
+            console.log("📖 Ajout à l'historique...");
+            await historyAPI.addToHistory(id);
+            console.log("✅ Ajouté à l'historique");
+
+            // ✅ Recharger le profil pour mettre à jour l'historique
+            await refreshUser();
+          } catch (histErr) {
+            console.warn("⚠️ Erreur ajout historique:", histErr);
+            // Ne pas faire échouer le chargement pour ça
+          }
+        }
+
+        // Charger les parfums similaires (optionnel)
         try {
           const similarResponse = await parfumAPI.getSimilar(id);
           setSimilarParfums(similarResponse.data || []);
+          console.log(
+            "🔗 Parfums similaires:",
+            similarResponse.data?.length || 0
+          );
         } catch (err) {
-          console.warn("Parfums similaires non disponibles");
-        }
-
-        // Ajouter à l'historique si connecté
-        if (isAuthenticated) {
-          try {
-            await historyAPI.addToHistory(id);
-          } catch (err) {
-            console.warn("Erreur ajout historique");
-          }
+          console.warn("⚠️ Parfums similaires non disponibles:", err);
         }
       } catch (err) {
+        console.error("❌ Erreur chargement parfum:", err);
         setError(err.response?.data?.message || "Parfum non trouvé");
       } finally {
         setLoading(false);
       }
     };
 
-    if (id) {
-      loadParfumData();
-    }
-  }, [id, isAuthenticated]);
+    loadParfumData();
+  }, [id, isAuthenticated, refreshUser]);
 
-  // Gérer les favoris
+  // ✅ Vérifier si le parfum est en favori
+  useEffect(() => {
+    if (user?.favorisParfums && parfum?._id) {
+      const isInFavorites = user.favorisParfums.some((fav) => {
+        const favId = typeof fav === "string" ? fav : fav?._id;
+        return favId === parfum._id;
+      });
+
+      console.log("💝 Vérification favori:", {
+        parfumId: parfum._id,
+        isInFavorites,
+        userFavoris: user.favorisParfums?.length || 0,
+      });
+
+      setIsFavorite(isInFavorites);
+    } else {
+      setIsFavorite(false);
+    }
+  }, [user?.favorisParfums, parfum?._id]);
+
+  // ✅ Gérer les favoris
   const toggleFavorite = async () => {
     if (!isAuthenticated) {
       toast.error("Connectez-vous pour ajouter des favoris");
+      navigate("/auth");
       return;
     }
 
+    if (!parfum?._id) {
+      toast.error("Erreur: données du parfum manquantes");
+      return;
+    }
+
+    if (favoriteLoading) return;
+
+    setFavoriteLoading(true);
+
     try {
+      console.log(
+        `💝 ${isFavorite ? "Suppression" : "Ajout"} favori:`,
+        parfum.nom
+      );
+
       if (isFavorite) {
-        await favoriAPI.removeParfum(id);
+        await favoriAPI.removeParfum(parfum._id);
         setIsFavorite(false);
-        toast.success("Retiré des favoris");
+        toast.success(`${parfum.nom} retiré des favoris`);
       } else {
-        await favoriAPI.addParfum(id);
+        await favoriAPI.addParfum(parfum._id);
         setIsFavorite(true);
-        toast.success("Ajouté aux favoris !");
+        toast.success(`${parfum.nom} ajouté aux favoris !`);
       }
+
+      // ✅ Recharger le profil utilisateur
+      await refreshUser();
     } catch (error) {
-      toast.error("Erreur lors de la modification");
+      console.error("❌ Erreur favoris:", error);
+
+      if (error.response?.status === 401) {
+        toast.error("Session expirée, reconnectez-vous");
+        navigate("/auth");
+      } else {
+        const message =
+          error.response?.data?.message || "Erreur lors de la modification";
+        toast.error(message);
+      }
+
+      // Revenir à l'état précédent
+      setIsFavorite(!isFavorite);
+    } finally {
+      setFavoriteLoading(false);
     }
   };
 
-  // Partager le parfum
+  // ✅ Partager le parfum
   const handleShare = async () => {
+    if (!parfum) return;
+
     if (navigator.share) {
       try {
         await navigator.share({
@@ -109,7 +184,7 @@ export default function ParfumDetail() {
     toast.success("Lien copié dans le presse-papiers");
   };
 
-  // Utilitaires
+  // Utilitaires pour les couleurs
   const getGenreColor = (genre) => {
     switch (genre) {
       case "homme":
@@ -136,6 +211,7 @@ export default function ParfumDetail() {
     }
   };
 
+  // ✅ État de chargement
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -147,6 +223,7 @@ export default function ParfumDetail() {
     );
   }
 
+  // ✅ État d'erreur
   if (error || !parfum) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -174,7 +251,7 @@ export default function ParfumDetail() {
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
       {/* Header avec navigation */}
-      <div className="bg-white shadow-sm border-b sticky top-20 z-30">
+      <div className="bg-white shadow-sm border-b sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
@@ -189,20 +266,27 @@ export default function ParfumDetail() {
               <button
                 onClick={handleShare}
                 className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
+                title="Partager"
               >
                 <Share2 className="w-5 h-5 text-gray-600" />
               </button>
 
               <button
                 onClick={toggleFavorite}
+                disabled={favoriteLoading}
                 className={`p-3 rounded-xl transition-all ${
                   isFavorite
                     ? "bg-red-50 text-red-600"
                     : "hover:bg-gray-100 text-gray-600"
-                }`}
+                } ${favoriteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
+                title={
+                  isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
+                }
               >
                 <Heart
-                  className={`w-5 h-5 ${isFavorite ? "fill-current" : ""}`}
+                  className={`w-5 h-5 ${isFavorite ? "fill-current" : ""} ${
+                    favoriteLoading ? "animate-pulse" : ""
+                  }`}
                 />
               </button>
             </div>
@@ -223,6 +307,10 @@ export default function ParfumDetail() {
                 }
                 alt={parfum.nom}
                 className="w-full max-w-sm h-96 object-cover rounded-2xl mx-auto shadow-lg"
+                onError={(e) => {
+                  e.target.src =
+                    "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop";
+                }}
               />
 
               {/* Badge genre */}
@@ -277,42 +365,47 @@ export default function ParfumDetail() {
             </div>
 
             {/* Notes olfactives */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg">
-              <div className="flex items-center space-x-2 mb-6">
-                <Sparkles className="w-6 h-6 text-red-500" />
-                <h2 className="text-2xl font-bold text-gray-800">
-                  Notes olfactives
-                </h2>
-              </div>
+            {parfum.notes && parfum.notes.length > 0 && (
+              <div className="bg-white rounded-2xl p-6 shadow-lg">
+                <div className="flex items-center space-x-2 mb-6">
+                  <Sparkles className="w-6 h-6 text-red-500" />
+                  <h2 className="text-2xl font-bold text-gray-800">
+                    Notes olfactives
+                  </h2>
+                </div>
 
-              <div className="space-y-6">
-                {["tête", "cœur", "fond"].map((type) => {
-                  const notesDeType =
-                    parfum.notes?.filter((note) => note.type === type) || [];
-                  if (notesDeType.length === 0) return null;
+                <div className="space-y-6">
+                  {["tête", "cœur", "fond"].map((type) => {
+                    const notesDeType =
+                      parfum.notes?.filter((note) => note.type === type) || [];
+                    if (notesDeType.length === 0) return null;
 
-                  return (
-                    <div key={type} className="border-l-4 border-red-200 pl-4">
-                      <h3 className="font-bold text-lg text-gray-800 capitalize mb-3">
-                        Notes de {type}
-                      </h3>
-                      <div className="flex flex-wrap gap-2">
-                        {notesDeType.map((note, index) => (
-                          <span
-                            key={index}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium border ${getNoteTypeColor(
-                              type
-                            )}`}
-                          >
-                            {note.nom}
-                          </span>
-                        ))}
+                    return (
+                      <div
+                        key={type}
+                        className="border-l-4 border-red-200 pl-4"
+                      >
+                        <h3 className="font-bold text-lg text-gray-800 capitalize mb-3">
+                          Notes de {type}
+                        </h3>
+                        <div className="flex flex-wrap gap-2">
+                          {notesDeType.map((note, index) => (
+                            <span
+                              key={note._id || index}
+                              className={`px-4 py-2 rounded-xl text-sm font-medium border ${getNoteTypeColor(
+                                type
+                              )}`}
+                            >
+                              {note.nom}
+                            </span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
 
             {/* Liens marchands */}
             {parfum.liensMarchands && parfum.liensMarchands.length > 0 && (
@@ -340,9 +433,11 @@ export default function ParfumDetail() {
                       </div>
 
                       <div className="flex items-center space-x-4">
-                        <span className="text-2xl font-bold text-gray-800">
-                          {marchand.prix}€
-                        </span>
+                        {marchand.prix && (
+                          <span className="text-2xl font-bold text-gray-800">
+                            {marchand.prix}€
+                          </span>
+                        )}
                         <a
                           href={marchand.url}
                           target="_blank"

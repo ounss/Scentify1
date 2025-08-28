@@ -14,20 +14,20 @@ import { getNotesStats } from "../controllers/noteController.js";
 
 const router = express.Router();
 
-// Stats globales
-router.use(protect, admin); // Appliquer à toutes les routes
-router.get("/stats/users", protect, admin, getUserStats);
-router.get("/stats/parfums", protect, admin, getParfumsStats);
-router.get("/stats/notes", protect, admin, getNotesStats);
+// ✅ PROTECTION: Appliquer middleware à toutes les routes
+router.use(protect, admin);
+
+// ✅ ROUTES STATS - URLs cohérentes
 router.get("/stats/users", getUserStats);
 router.get("/stats/parfums", getParfumsStats);
+router.get("/stats/notes", getNotesStats);
 
-// Gestion utilisateurs
-router.get("/users", protect, admin, getAllUsers);
-router.patch("/users/:id/admin", protect, admin, toggleAdminStatus);
-router.get("/users/export", protect, admin, exportUsersCSV);
+// ✅ ROUTES GESTION UTILISATEURS
+router.get("/users", getAllUsers);
+router.patch("/users/:id/admin", toggleAdminStatus);
+router.get("/users/export", exportUsersCSV);
 
-// Export parfums
-router.get("/parfums/export", protect, admin, exportParfumsCSV);
+// ✅ ROUTES PARFUMS
+router.get("/parfums/export", exportParfumsCSV);
 
 export default router;

@@ -14,22 +14,24 @@ export default function Auth() {
   });
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login, register, error, clearError, isAuthenticated } = useAuth();
+  const { login, register, error, clearError, isAuthenticated, loading } =
+    useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Redirection si déjà connecté
+  // ✅ FIX BOUCLE INFINIE - Vérifier seulement si pas en loading
   useEffect(() => {
-    if (isAuthenticated) {
+    if (!loading && isAuthenticated) {
       const from = location.state?.from?.pathname || "/";
+      console.log("🔄 Redirection utilisateur connecté vers:", from);
       navigate(from, { replace: true });
     }
-  }, [isAuthenticated, navigate, location]);
+  }, [isAuthenticated, loading, navigate, location.state?.from?.pathname]);
 
-  // Nettoyer les erreurs au changement de mode
+  // ✅ Nettoyer les erreurs au changement de mode (avec dépendance correcte)
   useEffect(() => {
     clearError();
-  }, [isLogin, clearError]);
+  }, [isLogin]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -44,8 +46,7 @@ export default function Auth() {
         toast.success(
           isLogin ? "Connexion réussie !" : "Compte créé avec succès !"
         );
-        const from = location.state?.from?.pathname || "/";
-        navigate(from, { replace: true });
+        // La redirection se fera automatiquement via useEffect
       } else {
         toast.error(result.error);
       }
@@ -62,6 +63,18 @@ export default function Auth() {
       [e.target.name]: e.target.value,
     });
   };
+
+  // ✅ Afficher loading pendant la vérification auth
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600">Vérification...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
@@ -97,6 +110,7 @@ export default function Auth() {
                   value={formData.username}
                   onChange={handleChange}
                   required={!isLogin}
+                  autoComplete="username"
                   className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                 />
               </div>
@@ -111,6 +125,7 @@ export default function Auth() {
                 value={formData.email}
                 onChange={handleChange}
                 required
+                autoComplete="email"
                 className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
               />
             </div>
@@ -124,6 +139,7 @@ export default function Auth() {
                 value={formData.password}
                 onChange={handleChange}
                 required
+                autoComplete={isLogin ? "current-password" : "new-password"}
                 className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
               />
               <button
