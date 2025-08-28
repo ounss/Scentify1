@@ -1,3 +1,4 @@
+// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
 import api from "../services/api";
@@ -7,13 +8,10 @@ const AuthContext = createContext();
 const authReducer = (state, action) => {
   switch (action.type) {
     case "SET_LOADING":
-      return {
-        ...state,
-        loading: action.payload,
-      };
+      return { ...state, loading: action.payload };
+
     case "LOGIN_SUCCESS":
       localStorage.setItem("token", action.payload.token);
-      // ✅ Configure axios immédiatement
       api.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${action.payload.token}`;
@@ -24,36 +22,89 @@ const authReducer = (state, action) => {
         loading: false,
         error: null,
       };
+
     case "LOGIN_ERROR":
-      return {
-        ...state,
-        error: action.payload,
-        loading: false,
-      };
+      return { ...state, error: action.payload, loading: false };
+
     case "LOGOUT":
       localStorage.removeItem("token");
       delete api.defaults.headers.common["Authorization"];
-      return {
-        user: null,
-        token: null,
-        loading: false,
-        error: null,
-      };
+      return { user: null, token: null, loading: false, error: null };
+
     case "UPDATE_USER":
+      return { ...state, user: { ...state.user, ...action.payload } };
+
+    case "REFRESH_USER":
+      return { ...state, user: action.payload };
+
+    // ✅ NOUVEAUX ACTIONS POUR FAVORIS OPTIMISÉES
+    case "ADD_FAVORI_PARFUM":
       return {
         ...state,
-        user: { ...state.user, ...action.payload },
+        user: {
+          ...state.user,
+          favorisParfums: [
+            ...(state.user?.favorisParfums || []),
+            action.payload,
+          ],
+        },
       };
-    case "REFRESH_USER": // ✅ Nouveau pour recharger les données utilisateur
+
+    case "REMOVE_FAVORI_PARFUM":
       return {
         ...state,
-        user: action.payload,
+        user: {
+          ...state.user,
+          favorisParfums: (state.user?.favorisParfums || []).filter(
+            (fav) =>
+              (typeof fav === "string" ? fav : fav._id) !== action.payload
+          ),
+        },
       };
+
+    case "ADD_FAVORI_NOTE":
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          favorisNotes: [...(state.user?.favorisNotes || []), action.payload],
+        },
+      };
+
+    case "REMOVE_FAVORI_NOTE":
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          favorisNotes: (state.user?.favorisNotes || []).filter(
+            (fav) =>
+              (typeof fav === "string" ? fav : fav._id) !== action.payload
+          ),
+        },
+      };
+
+    case "ADD_TO_HISTORY":
+      const newHistoryItem = {
+        parfum: action.payload.parfum,
+        dateVisite: new Date().toISOString(),
+      };
+
+      // Supprimer l'existant et ajouter au début
+      const filteredHistory = (state.user?.historique || []).filter(
+        (h) => h.parfum._id !== action.payload.parfum._id
+      );
+
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          historique: [newHistoryItem, ...filteredHistory].slice(0, 50), // Limiter à 50
+        },
+      };
+
     case "CLEAR_ERROR":
-      return {
-        ...state,
-        error: null,
-      };
+      return { ...state, error: null };
+
     default:
       return state;
   }
@@ -76,18 +127,14 @@ export function AuthProvider({ children }) {
 
       if (token) {
         try {
-          // Configurer axios avec le token avant l'appel
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           const response = await authAPI.getProfile();
 
-          console.log("✅ Utilisateur chargé:", response.data); // Debug
+          console.log("✅ Utilisateur chargé:", response.data);
 
           dispatch({
             type: "LOGIN_SUCCESS",
-            payload: {
-              user: response.data,
-              token,
-            },
+            payload: { user: response.data, token },
           });
         } catch (error) {
           console.error("❌ Token invalide:", error);
@@ -103,19 +150,39 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
-  // ✅ Actions
+  // ✅ ÉCOUTER LES ÉVÉNEMENTS FAVORIS POUR MISE À JOUR OPTIMISÉE
+  useEffect(() => {
+    const handleFavorisUpdate = (event) => {
+      const { parfumId, action } = event.detail;
+
+      if (action === "add") {
+        dispatch({ type: "ADD_FAVORI_PARFUM", payload: parfumId });
+      } else if (action === "remove") {
+        dispatch({ type: "REMOVE_FAVORI_PARFUM", payload: parfumId });
+      }
+    };
+
+    const handleHistoryUpdate = (event) => {
+      const { parfum } = event.detail;
+      dispatch({ type: "ADD_TO_HISTORY", payload: { parfum } });
+    };
+
+    window.addEventListener("favorisUpdated", handleFavorisUpdate);
+    window.addEventListener("historyUpdated", handleHistoryUpdate);
+
+    return () => {
+      window.removeEventListener("favorisUpdated", handleFavorisUpdate);
+      window.removeEventListener("historyUpdated", handleHistoryUpdate);
+    };
+  }, []);
+
+  // ✅ ACTIONS
   const login = async (credentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.login(credentials);
-
-      console.log("✅ Login réussie:", response.data); // Debug
-
-      dispatch({
-        type: "LOGIN_SUCCESS",
-        payload: response.data,
-      });
-
+      console.log("✅ Login réussie:", response.data);
+      dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || "Erreur de connexion";
@@ -129,14 +196,8 @@ export function AuthProvider({ children }) {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.register(userData);
-
-      console.log("✅ Registration réussie:", response.data); // Debug
-
-      dispatch({
-        type: "LOGIN_SUCCESS",
-        payload: response.data,
-      });
-
+      console.log("✅ Registration réussie:", response.data);
+      dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
       return { success: true };
     } catch (error) {
       const message = error.response?.data?.message || "Erreur d'inscription";
@@ -147,27 +208,41 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    console.log("🚪 Déconnexion"); // Debug
+    console.log("🚪 Déconnexion");
     delete api.defaults.headers.common["Authorization"];
     dispatch({ type: "LOGOUT" });
   };
 
   const updateUser = (userData) => {
-    console.log("🔄 Mise à jour utilisateur:", userData); // Debug
+    console.log("🔄 Mise à jour utilisateur:", userData);
     dispatch({ type: "UPDATE_USER", payload: userData });
   };
 
-  // ✅ Nouvelle fonction pour recharger le profil complet
+  // ✅ FONCTION REFRESH OPTIMISÉE - Utilisée seulement quand nécessaire
   const refreshUser = async () => {
     try {
       const response = await authAPI.getProfile();
-      console.log("🔄 Profil rechargé:", response.data); // Debug
+      console.log("🔄 Profil rechargé:", response.data);
       dispatch({ type: "REFRESH_USER", payload: response.data });
       return response.data;
     } catch (error) {
       console.error("❌ Erreur refresh user:", error);
+      // ✅ Ne pas déconnecter automatiquement sur erreur refresh
       return null;
     }
+  };
+
+  // ✅ NOUVELLES FONCTIONS OPTIMISÉES POUR FAVORIS
+  const addFavoriParfum = (parfumId) => {
+    dispatch({ type: "ADD_FAVORI_PARFUM", payload: parfumId });
+  };
+
+  const removeFavoriParfum = (parfumId) => {
+    dispatch({ type: "REMOVE_FAVORI_PARFUM", payload: parfumId });
+  };
+
+  const addToHistory = (parfum) => {
+    dispatch({ type: "ADD_TO_HISTORY", payload: { parfum } });
   };
 
   const clearError = () => {
@@ -181,11 +256,18 @@ export function AuthProvider({ children }) {
     error: state.error,
     isAuthenticated: !!state.user,
     isAdmin: state.user?.isAdmin || false,
+
+    // Actions
     login,
     register,
     logout,
     updateUser,
-    refreshUser, // ✅ Nouvelle fonction
+    refreshUser,
+
+    // ✅ Nouvelles actions optimisées
+    addFavoriParfum,
+    removeFavoriParfum,
+    addToHistory,
     clearError,
   };
 

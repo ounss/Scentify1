@@ -1,3 +1,4 @@
+// backend/routes/adminRoutes.js - CORRECTION ROUTES ADMIN
 import express from "express";
 import { protect, admin } from "../middleware/authMiddleware.js";
 import {
@@ -17,7 +18,7 @@ const router = express.Router();
 // ✅ PROTECTION: Appliquer middleware à toutes les routes
 router.use(protect, admin);
 
-// ✅ ROUTES STATS - URLs cohérentes
+// ✅ ROUTES STATS - URLs cohérentes avec le frontend
 router.get("/stats/users", getUserStats);
 router.get("/stats/parfums", getParfumsStats);
 router.get("/stats/notes", getNotesStats);

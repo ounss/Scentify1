@@ -1,4 +1,5 @@
-import express from "express";
+// backend/routes/parfumRoutes.js - CORRECTION ORDRE DES ROUTES
+import express from "multer";
 import multer from "multer";
 import path from "path";
 import {
@@ -11,7 +12,7 @@ import {
   updateParfum,
   deleteParfum,
   searchParfums,
-  getParfumsStats, // ✅ AJOUTÉ - était manquant
+  getParfumsStats,
   exportParfumsCSV,
   importParfumsCSV,
 } from "../controllers/parfumController.js";
@@ -23,7 +24,7 @@ import {
 
 const router = express.Router();
 
-// Configuration multer pour upload d'images
+// Configuration multer (identique)
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/parfums/");
@@ -40,7 +41,7 @@ const storage = multer.diskStorage({
 
 const upload = multer({
   storage,
-  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
+  limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|webp/;
     const extname = allowedTypes.test(
@@ -56,16 +57,18 @@ const upload = multer({
   },
 });
 
-// Routes publiques
+// ✅ ROUTES PUBLIQUES - ORDRE CRITIQUE CORRIGÉ
 router.get("/", getParfums);
-router.get("/search", searchParfums);
-router.get("/stats", getParfumsStats); // ✅ AJOUTÉ
-router.get("/:id", getParfumById);
-router.get("/:id/similar", getSimilarParfums);
-router.get("/note/:noteId", getParfumsByNote);
-router.post("/similarity", getParfumsBySimilarity);
+router.get("/search", searchParfums); // ✅ AVANT /:id
+router.get("/stats", getParfumsStats); // ✅ AVANT /:id
+router.get("/note/:noteId", getParfumsByNote); // ✅ AVANT /:id - FIX PRINCIPAL
+router.post("/similarity", getParfumsBySimilarity); // ✅ AVANT /:id
 
-// Routes admin
+// ✅ ROUTES AVEC PARAMÈTRES - APRÈS LES ROUTES SPÉCIFIQUES
+router.get("/:id", getParfumById); // ✅ APRÈS les routes spécifiques
+router.get("/:id/similar", getSimilarParfums); // ✅ APRÈS /:id
+
+// ✅ ROUTES ADMIN
 router.post(
   "/",
   protect,
@@ -77,13 +80,13 @@ router.post(
 );
 router.put("/:id", protect, admin, upload.single("photo"), updateParfum);
 router.delete("/:id", protect, admin, deleteParfum);
-router.get("/export/csv", protect, admin, exportParfumsCSV); // ✅ AJOUTÉ
+router.get("/export/csv", protect, admin, exportParfumsCSV);
 router.post(
   "/import/csv",
   protect,
   admin,
   upload.single("file"),
   importParfumsCSV
-); // ✅ AJOUTÉ
+);
 
 export default router;

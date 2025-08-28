@@ -1,3 +1,4 @@
+// frontend/src/components/ParfumCard.jsx - CORRECTION FAVORIS
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
@@ -7,22 +8,21 @@ import toast from "react-hot-toast";
 
 export default function ParfumCard({ parfum }) {
   const navigate = useNavigate();
-  const { isAuthenticated, user, refreshUser } = useAuth(); // ✅ Ajout refreshUser
+  const { isAuthenticated, user } = useAuth(); // ✅ RETIRÉ refreshUser
   const [isFavorite, setIsFavorite] = useState(false);
-  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false); // ✅ État de chargement
+  const [isLoadingFavorite, setIsLoadingFavorite] = useState(false);
 
-  // ✅ Vérifier si le parfum est en favori avec une logique plus robuste
+  // ✅ CORRECTION CRITIQUE - Sans refreshUser dans les dépendances
   useEffect(() => {
     if (user?.favorisParfums && parfum?._id) {
       const isInFavorites = user.favorisParfums.some((fav) => {
-        // Gérer les cas où fav peut être un string ou un objet
         const favId = typeof fav === "string" ? fav : fav?._id;
         return favId === parfum._id;
       });
 
       console.log(`🔍 Vérification favori pour ${parfum.nom}:`, {
         parfumId: parfum._id,
-        userFavoris: user.favorisParfums,
+        userFavoris: user.favorisParfums.length,
         isInFavorites,
       });
 
@@ -30,7 +30,7 @@ export default function ParfumCard({ parfum }) {
     } else {
       setIsFavorite(false);
     }
-  }, [user?.favorisParfums, parfum?._id]);
+  }, [user?.favorisParfums, parfum?._id]); // ✅ SANS refreshUser
 
   const handleFavoriteToggle = async (e) => {
     e.stopPropagation();
@@ -46,11 +46,13 @@ export default function ParfumCard({ parfum }) {
       return;
     }
 
-    if (isLoadingFavorite) {
-      return; // ✅ Empêcher les clics multiples
-    }
+    if (isLoadingFavorite) return;
 
     setIsLoadingFavorite(true);
+
+    // ✅ OPTIMISATION - Mise à jour optimiste de l'UI
+    const previousState = isFavorite;
+    setIsFavorite(!isFavorite);
 
     try {
       console.log(
@@ -58,24 +60,31 @@ export default function ParfumCard({ parfum }) {
         parfum.nom
       );
 
-      if (isFavorite) {
+      if (previousState) {
         await favoriAPI.removeParfum(parfum._id);
-        setIsFavorite(false);
         toast.success(`${parfum.nom} retiré des favoris`);
-        console.log("✅ Parfum retiré des favoris");
       } else {
         await favoriAPI.addParfum(parfum._id);
-        setIsFavorite(true);
         toast.success(`${parfum.nom} ajouté aux favoris !`);
-        console.log("✅ Parfum ajouté aux favoris");
       }
 
-      // ✅ Recharger le profil utilisateur pour mettre à jour les favoris
-      await refreshUser();
+      console.log("✅ Action favori réussie");
+
+      // ✅ AMÉLIORATION - Déclencher un événement custom pour mettre à jour le contexte
+      window.dispatchEvent(
+        new CustomEvent("favorisUpdated", {
+          detail: {
+            parfumId: parfum._id,
+            action: previousState ? "remove" : "add",
+          },
+        })
+      );
     } catch (error) {
       console.error("❌ Erreur favoris:", error);
 
-      // ✅ Gestion d'erreur plus spécifique
+      // ✅ ROLLBACK - Revenir à l'état précédent en cas d'erreur
+      setIsFavorite(previousState);
+
       if (error.response?.status === 401) {
         toast.error("Session expirée, reconnectez-vous");
         navigate("/auth");
@@ -86,9 +95,6 @@ export default function ParfumCard({ parfum }) {
           error.response?.data?.message || "Erreur lors de la modification";
         toast.error(message);
       }
-
-      // ✅ Revenir à l'état précédent en cas d'erreur
-      setIsFavorite(!isFavorite);
     } finally {
       setIsLoadingFavorite(false);
     }
@@ -106,7 +112,7 @@ export default function ParfumCard({ parfum }) {
     navigate(`/parfum/${parfum._id}`);
   };
 
-  // ✅ Vérification des données du parfum
+  // ✅ Guard clause
   if (!parfum) {
     console.warn("⚠️ ParfumCard: parfum data missing");
     return null;
@@ -147,17 +153,17 @@ export default function ParfumCard({ parfum }) {
         <div className="flex-between mt-1">
           <button
             className={`btn btn-icon btn-secondary ${
-              isLoadingFavorite ? "opacity-50" : ""
+              isLoadingFavorite ? "opacity-50 cursor-not-allowed" : ""
             }`}
             onClick={handleFavoriteToggle}
-            disabled={isLoadingFavorite} // ✅ Désactiver pendant le chargement
+            disabled={isLoadingFavorite}
             type="button"
             title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
           >
             <Heart
-              className={`w-5 h-5 transition-all ${
+              className={`w-5 h-5 transition-all duration-200 ${
                 isFavorite
-                  ? "fill-current text-red-500"
+                  ? "fill-current text-red-500 scale-110"
                   : "text-gray-400 hover:text-red-400"
               } ${isLoadingFavorite ? "animate-pulse" : ""}`}
             />

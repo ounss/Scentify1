@@ -1,4 +1,4 @@
-// frontend/src/pages/Home.jsx (Version mise à jour avec suggestions populaires)
+// frontend/src/pages/Home.jsx - INTÉGRATION RECHERCHE AVANCÉE
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
@@ -8,11 +8,13 @@ import {
   TrendingUp,
   Heart,
   Clock,
+  Wand2,
 } from "lucide-react";
 import { parfumAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "../components/ParfumCard";
 import ParfumFilters from "../components/ParfumFilters";
+import AdvancedSearch from "../components/AdvancedSearch"; // ✅ IMPORT NOUVEAU COMPOSANT
 import ScentifyLogo from "../components/ScentifyLogo";
 
 export default function Home() {
@@ -22,6 +24,7 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false); // ✅ NOUVEAU STATE
   const [filters, setFilters] = useState({
     genre: "tous",
     sortBy: "popularite",
@@ -158,21 +161,31 @@ export default function Home() {
             </div>
           </form>
 
-          {/* Tabs Historique/Favoris */}
-          <div className="flex bg-gray-100 rounded-2xl p-1 mb-6">
+          {/* ✅ NOUVEAUX BOUTONS - Historique/Favoris/Recherche Avancée */}
+          <div className="grid grid-cols-3 gap-3 mb-6">
             <button
               onClick={() => navigate(isAuthenticated ? "/history" : "/auth")}
-              className="flex-1 flex items-center justify-center py-3 rounded-xl text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+              className="flex flex-col items-center justify-center py-4 bg-gray-100 rounded-2xl text-gray-600 hover:bg-white hover:shadow-sm transition-all"
             >
-              <Clock className="w-4 h-4 mr-2" />
-              <span className="text-sm font-medium">Historique</span>
+              <Clock className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Historique</span>
             </button>
+
             <button
               onClick={() => navigate(isAuthenticated ? "/favorites" : "/auth")}
-              className="flex-1 flex items-center justify-center py-3 rounded-xl text-gray-600 hover:bg-white hover:shadow-sm transition-all"
+              className="flex flex-col items-center justify-center py-4 bg-gray-100 rounded-2xl text-gray-600 hover:bg-white hover:shadow-sm transition-all"
             >
-              <Heart className="w-4 h-4 mr-2" />
-              <span className="text-sm font-medium">Favoris</span>
+              <Heart className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Favoris</span>
+            </button>
+
+            {/* ✅ NOUVEAU BOUTON RECHERCHE AVANCÉE */}
+            <button
+              onClick={() => setShowAdvancedSearch(true)}
+              className="flex flex-col items-center justify-center py-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl text-purple-600 hover:from-purple-200 hover:to-pink-200 transition-all"
+            >
+              <Wand2 className="w-5 h-5 mb-1" />
+              <span className="text-xs font-medium">Recherche+</span>
             </button>
           </div>
         </div>
@@ -181,9 +194,20 @@ export default function Home() {
       {/* Suggestions populaires */}
       <section className="py-6">
         <div className="max-w-md mx-auto px-4">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">
-            Suggestions populaires
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-bold text-gray-800">
+              Suggestions populaires
+            </h2>
+            {/* ✅ BOUTON RECHERCHE AVANCÉE DESKTOP */}
+            <button
+              onClick={() => setShowAdvancedSearch(true)}
+              className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
+            >
+              <Sparkles className="w-4 h-4" />
+              <span>Recherche Avancée</span>
+            </button>
+          </div>
+
           <div className="grid grid-cols-3 gap-3 mb-6">
             {popularSuggestions.map((suggestion) => (
               <div
@@ -252,19 +276,31 @@ export default function Home() {
             ))}
           </div>
 
-          <button
-            onClick={() => setShowFilters(true)}
-            className="inline-flex items-center space-x-2 bg-white text-gray-700 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300 mx-auto block"
-          >
-            <Filter className="w-5 h-5" />
-            <span>Filtres avancés</span>
-            {(filters.notes.length > 0 || filters.sortBy !== "popularite") && (
-              <span className="bg-red-100 text-red-800 text-sm px-2 py-1 rounded-full">
-                {filters.notes.length +
-                  (filters.sortBy !== "popularite" ? 1 : 0)}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center justify-center space-x-4">
+            <button
+              onClick={() => setShowFilters(true)}
+              className="inline-flex items-center space-x-2 bg-white text-gray-700 px-6 py-3 rounded-xl font-semibold shadow-md hover:shadow-lg transition-all duration-300"
+            >
+              <Filter className="w-5 h-5" />
+              <span>Filtres avancés</span>
+              {(filters.notes.length > 0 ||
+                filters.sortBy !== "popularite") && (
+                <span className="bg-red-100 text-red-800 text-sm px-2 py-1 rounded-full">
+                  {filters.notes.length +
+                    (filters.sortBy !== "popularite" ? 1 : 0)}
+                </span>
+              )}
+            </button>
+
+            {/* ✅ BOUTON RECHERCHE AVANCÉE DESKTOP */}
+            <button
+              onClick={() => setShowAdvancedSearch(true)}
+              className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105"
+            >
+              <Sparkles className="w-5 h-5" />
+              <span>Recherche par Similarité</span>
+            </button>
+          </div>
         </div>
       </section>
 
@@ -338,31 +374,48 @@ export default function Home() {
               <p className="text-gray-500 mb-8">
                 Essayez de modifier vos filtres ou votre recherche
               </p>
-              <button
-                onClick={() => {
-                  setSearchParams({});
-                  setFilters({
-                    genre: "tous",
-                    sortBy: "popularite",
-                    notes: [],
-                  });
-                  setSearchQuery("");
-                }}
-                className="bg-red-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
-              >
-                Réinitialiser les filtres
-              </button>
+              <div className="flex items-center justify-center space-x-4">
+                <button
+                  onClick={() => {
+                    setSearchParams({});
+                    setFilters({
+                      genre: "tous",
+                      sortBy: "popularite",
+                      notes: [],
+                    });
+                    setSearchQuery("");
+                  }}
+                  className="bg-red-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+                >
+                  Réinitialiser les filtres
+                </button>
+
+                {/* ✅ BOUTON RECHERCHE AVANCÉE DANS L'ÉTAT VIDE */}
+                <button
+                  onClick={() => setShowAdvancedSearch(true)}
+                  className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                >
+                  <Sparkles className="w-5 h-5" />
+                  <span>Essayer la recherche avancée</span>
+                </button>
+              </div>
             </div>
           )}
         </div>
       </section>
 
-      {/* Composant des filtres avancés */}
+      {/* ✅ COMPOSANTS MODAUX */}
       <ParfumFilters
         show={showFilters}
         filters={filters}
         onApply={handleFiltersApply}
         onClose={() => setShowFilters(false)}
+      />
+
+      {/* ✅ NOUVEAU - Modal Recherche Avancée */}
+      <AdvancedSearch
+        show={showAdvancedSearch}
+        onClose={() => setShowAdvancedSearch(false)}
       />
     </div>
   );
