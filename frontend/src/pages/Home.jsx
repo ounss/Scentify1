@@ -1,4 +1,4 @@
-// frontend/src/pages/Home.jsx - INTÉGRATION RECHERCHE AVANCÉE
+// frontend/src/pages/Home.jsx - CORRECTION RECHERCHE COMPLÈTE
 import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import {
@@ -14,17 +14,17 @@ import { parfumAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "../components/ParfumCard";
 import ParfumFilters from "../components/ParfumFilters";
-import AdvancedSearch from "../components/AdvancedSearch"; // ✅ IMPORT NOUVEAU COMPOSANT
+import AdvancedSearch from "../components/AdvancedSearch";
 import ScentifyLogo from "../components/ScentifyLogo";
 
 export default function Home() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [parfums, setParfums] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilters, setShowFilters] = useState(false);
-  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false); // ✅ NOUVEAU STATE
+  const [showAdvancedSearch, setShowAdvancedSearch] = useState(false);
   const [filters, setFilters] = useState({
     genre: "tous",
     sortBy: "popularite",
@@ -33,24 +33,122 @@ export default function Home() {
 
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Suggestions populaires
+  // ✅ CHARGEMENT INITIAL AU MONTAGE
+  useEffect(() => {
+    loadParfums();
+  }, []);
+
+  // ✅ ÉCOUTE DES CHANGEMENTS DE FILTRES ET RECHERCHE
+  useEffect(() => {
+    const searchTerm = searchParams.get("search");
+    if (searchTerm !== searchQuery) {
+      setSearchQuery(searchTerm || "");
+    }
+    loadParfums();
+  }, [filters, searchParams]);
+
+  // ✅ FONCTION DE CHARGEMENT PARFUMS CORRIGÉE
+  const loadParfums = async () => {
+    try {
+      setLoading(true);
+
+      const currentSearch = searchParams.get("search") || "";
+
+      const params = {
+        search: currentSearch,
+        genre: filters.genre !== "tous" ? filters.genre : undefined,
+        sortBy: filters.sortBy,
+        notes: filters.notes.length > 0 ? filters.notes.join(",") : undefined,
+        page: 1,
+        limit: 24,
+      };
+
+      // Nettoyer les paramètres undefined
+      Object.keys(params).forEach((key) => {
+        if (params[key] === undefined) {
+          delete params[key];
+        }
+      });
+
+      console.log("🔍 Recherche avec paramètres:", params);
+
+      const response = await parfumAPI.getAll(params);
+      setParfums(response.data.parfums || []);
+
+      console.log(`✅ ${response.data.parfums?.length || 0} parfums trouvés`);
+    } catch (error) {
+      console.error("❌ Erreur chargement parfums:", error);
+      setParfums([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // ✅ GESTION RECHERCHE TEXTUELLE
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const query = searchQuery.trim();
+
+    if (query) {
+      console.log("🔍 Nouvelle recherche:", query);
+      setSearchParams({ search: query });
+    } else {
+      console.log("🔍 Effacement recherche");
+      setSearchParams({});
+    }
+  };
+
+  // ✅ FILTRES RAPIDES
+  const handleQuickFilter = (genre) => {
+    const newGenre = genre === "Tous" ? "tous" : genre.toLowerCase();
+    console.log("🎯 Filtre rapide:", newGenre);
+
+    setFilters((prev) => ({
+      ...prev,
+      genre: newGenre,
+    }));
+  };
+
+  // ✅ APPLICATION FILTRES AVANCÉS
+  const handleFiltersApply = (newFilters) => {
+    console.log("🎯 Application filtres:", newFilters);
+    setFilters(newFilters);
+    setShowFilters(false);
+  };
+
+  // ✅ RÉINITIALISATION
+  const handleReset = () => {
+    console.log("🔄 Réinitialisation complète");
+    setSearchParams({});
+    setSearchQuery("");
+    setFilters({
+      genre: "tous",
+      sortBy: "popularite",
+      notes: [],
+    });
+  };
+
+  const quickFilters = ["Tous", "Femme", "Homme", "Mixte"];
+  const currentSearchTerm = searchParams.get("search") || "";
+
+  // ✅ SUGGESTIONS POPULAIRES (données statiques pour le prototype)
   const popularSuggestions = [
     {
-      id: 1,
+      id: "67501234567890abcdef1234",
       name: "Sauvage",
       brand: "Dior",
       image:
         "https://images.unsplash.com/photo-1541643600914-78b084683601?w=100&h=100&fit=crop",
     },
     {
-      id: 2,
+      id: "67501234567890abcdef1235",
       name: "Black Orchid",
       brand: "Tom Ford",
       image:
         "https://images.unsplash.com/photo-1594035910387-fea47794261f?w=100&h=100&fit=crop",
     },
     {
-      id: 3,
+      id: "67501234567890abcdef1236",
       name: "La Vie Est Belle",
       brand: "Lancôme",
       image:
@@ -76,64 +174,9 @@ export default function Home() {
     },
   ];
 
-  useEffect(() => {
-    loadParfums();
-  }, [filters, searchParams]);
-
-  const loadParfums = async () => {
-    try {
-      setLoading(true);
-
-      const params = {
-        search: searchParams.get("search") || "",
-        genre: filters.genre !== "tous" ? filters.genre : undefined,
-        sortBy: filters.sortBy,
-        notes: filters.notes.length > 0 ? filters.notes.join(",") : undefined,
-        page: 1,
-        limit: 20,
-      };
-
-      Object.keys(params).forEach(
-        (key) => params[key] === undefined && delete params[key]
-      );
-
-      const response = await parfumAPI.getAll(params);
-      setParfums(response.data.parfums || []);
-    } catch (error) {
-      console.error("Erreur chargement:", error);
-      setParfums([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSearch = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      setSearchParams({ search: searchQuery.trim() });
-    } else {
-      setSearchParams({});
-    }
-  };
-
-  const handleQuickFilter = (genre) => {
-    setFilters((prev) => ({
-      ...prev,
-      genre: genre === "Tous" ? "tous" : genre.toLowerCase(),
-    }));
-  };
-
-  const handleFiltersApply = (newFilters) => {
-    setFilters(newFilters);
-    setShowFilters(false);
-  };
-
-  const quickFilters = ["Tous", "Femme", "Homme", "Mixte"];
-  const currentSearchTerm = searchParams.get("search") || "";
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Hero Section Mobile-First */}
+      {/* ✅ HERO SECTION MOBILE-FIRST */}
       <section className="bg-white pt-4 pb-8">
         <div className="max-w-md mx-auto px-4">
           {/* Logo centré */}
@@ -145,7 +188,7 @@ export default function Home() {
             <p className="text-gray-600 mt-2">Découvrez votre parfum idéal</p>
           </div>
 
-          {/* Barre de recherche */}
+          {/* ✅ BARRE DE RECHERCHE FONCTIONNELLE */}
           <form onSubmit={handleSearch} className="mb-6">
             <div className="relative bg-gray-50 rounded-2xl border border-gray-200">
               <div className="flex items-center">
@@ -153,15 +196,27 @@ export default function Home() {
                 <input
                   type="text"
                   className="flex-1 px-4 py-4 bg-transparent border-none outline-none placeholder-gray-500"
-                  placeholder="Rechercher un parfum..."
+                  placeholder="Rechercher un parfum ou une note..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSearchQuery("");
+                      setSearchParams({});
+                    }}
+                    className="mr-4 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
               </div>
             </div>
           </form>
 
-          {/* ✅ NOUVEAUX BOUTONS - Historique/Favoris/Recherche Avancée */}
+          {/* ✅ BOUTONS RAPIDES */}
           <div className="grid grid-cols-3 gap-3 mb-6">
             <button
               onClick={() => navigate(isAuthenticated ? "/history" : "/auth")}
@@ -179,7 +234,6 @@ export default function Home() {
               <span className="text-xs font-medium">Favoris</span>
             </button>
 
-            {/* ✅ NOUVEAU BOUTON RECHERCHE AVANCÉE */}
             <button
               onClick={() => setShowAdvancedSearch(true)}
               className="flex flex-col items-center justify-center py-4 bg-gradient-to-r from-purple-100 to-pink-100 rounded-2xl text-purple-600 hover:from-purple-200 hover:to-pink-200 transition-all"
@@ -191,14 +245,13 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Suggestions populaires */}
+      {/* ✅ SUGGESTIONS POPULAIRES */}
       <section className="py-6">
         <div className="max-w-md mx-auto px-4">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-800">
               Suggestions populaires
             </h2>
-            {/* ✅ BOUTON RECHERCHE AVANCÉE DESKTOP */}
             <button
               onClick={() => setShowAdvancedSearch(true)}
               className="hidden md:flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-4 py-2 rounded-xl text-sm font-semibold hover:from-purple-700 hover:to-pink-700 transition-all"
@@ -213,7 +266,10 @@ export default function Home() {
               <div
                 key={suggestion.id}
                 className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all"
-                onClick={() => navigate(`/parfum/${suggestion.id}`)}
+                onClick={() => {
+                  setSearchQuery(suggestion.name);
+                  setSearchParams({ search: suggestion.name });
+                }}
               >
                 <div className="aspect-square bg-gray-100 rounded-lg mb-2">
                   <img
@@ -234,7 +290,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* FAQ Section */}
+      {/* ✅ FAQ SECTION */}
       <section className="py-6">
         <div className="max-w-md mx-auto px-4">
           <h2 className="text-lg font-bold text-gray-800 mb-4">FAQ</h2>
@@ -256,9 +312,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Filtres rapides - Desktop/Tablet */}
+      {/* ✅ FILTRES DESKTOP/TABLET */}
       <section className="hidden md:block py-6 bg-white">
         <div className="container mx-auto px-4">
+          {/* Filtres rapides */}
           <div className="flex flex-wrap justify-center gap-3 mb-6">
             {quickFilters.map((filter) => (
               <button
@@ -276,6 +333,7 @@ export default function Home() {
             ))}
           </div>
 
+          {/* Actions */}
           <div className="flex items-center justify-center space-x-4">
             <button
               onClick={() => setShowFilters(true)}
@@ -292,7 +350,6 @@ export default function Home() {
               )}
             </button>
 
-            {/* ✅ BOUTON RECHERCHE AVANCÉE DESKTOP */}
             <button
               onClick={() => setShowAdvancedSearch(true)}
               className="inline-flex items-center space-x-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white px-6 py-3 rounded-xl font-semibold shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-105"
@@ -304,9 +361,10 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Résultats parfums - Desktop/Tablet */}
+      {/* ✅ RÉSULTATS PARFUMS DESKTOP/TABLET */}
       <section className="hidden md:block py-12">
         <div className="container mx-auto px-4">
+          {/* Header résultats */}
           <div className="flex items-center justify-between mb-8">
             <div>
               <h2 className="text-3xl font-bold text-gray-800 mb-2">
@@ -318,11 +376,12 @@ export default function Home() {
                 {loading
                   ? "Chargement..."
                   : `${parfums.length} parfum${
-                      parfums.length > 1 ? "s" : ""
-                    } trouvé${parfums.length > 1 ? "s" : ""}`}
+                      parfums.length !== 1 ? "s" : ""
+                    } trouvé${parfums.length !== 1 ? "s" : ""}`}
               </p>
             </div>
 
+            {/* Tri */}
             <div className="flex items-center space-x-2">
               <TrendingUp className="w-5 h-5 text-gray-500" />
               <select
@@ -340,6 +399,7 @@ export default function Home() {
             </div>
           </div>
 
+          {/* ✅ AFFICHAGE RÉSULTATS */}
           {loading ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {[...Array(8)].map((_, i) => (
@@ -366,31 +426,27 @@ export default function Home() {
               ))}
             </div>
           ) : (
+            /* ✅ ÉTAT VIDE */
             <div className="text-center py-16">
               <Search className="w-20 h-20 text-gray-400 mx-auto mb-4" />
               <h3 className="text-2xl font-bold text-gray-600 mb-4">
-                Aucun parfum trouvé
+                {currentSearchTerm
+                  ? "Aucun parfum trouvé"
+                  : "Aucun parfum disponible"}
               </h3>
               <p className="text-gray-500 mb-8">
-                Essayez de modifier vos filtres ou votre recherche
+                {currentSearchTerm
+                  ? `Aucun résultat pour "${currentSearchTerm}". Essayez des mots-clés différents.`
+                  : "Chargez la base de données avec des parfums ou modifiez vos filtres."}
               </p>
               <div className="flex items-center justify-center space-x-4">
                 <button
-                  onClick={() => {
-                    setSearchParams({});
-                    setFilters({
-                      genre: "tous",
-                      sortBy: "popularite",
-                      notes: [],
-                    });
-                    setSearchQuery("");
-                  }}
+                  onClick={handleReset}
                   className="bg-red-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
                 >
                   Réinitialiser les filtres
                 </button>
 
-                {/* ✅ BOUTON RECHERCHE AVANCÉE DANS L'ÉTAT VIDE */}
                 <button
                   onClick={() => setShowAdvancedSearch(true)}
                   className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-purple-700 transition-colors flex items-center space-x-2"
@@ -404,7 +460,105 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ✅ COMPOSANTS MODAUX */}
+      {/* ✅ RÉSULTATS MOBILE */}
+      <section className="block md:hidden py-6">
+        <div className="max-w-md mx-auto px-4">
+          {currentSearchTerm && (
+            <div className="mb-4">
+              <h3 className="text-lg font-bold text-gray-800">
+                Résultats pour "{currentSearchTerm}"
+              </h3>
+              <p className="text-gray-600 text-sm">
+                {loading
+                  ? "Recherche..."
+                  : `${parfums.length} parfum${
+                      parfums.length !== 1 ? "s" : ""
+                    } trouvé${parfums.length !== 1 ? "s" : ""}`}
+              </p>
+            </div>
+          )}
+
+          {loading ? (
+            <div className="space-y-4">
+              {[...Array(4)].map((_, i) => (
+                <div
+                  key={i}
+                  className="bg-white rounded-2xl p-4 shadow-sm animate-pulse"
+                >
+                  <div className="flex space-x-4">
+                    <div className="w-16 h-16 bg-gray-200 rounded-xl"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-2/3 mb-2"></div>
+                      <div className="h-3 bg-gray-200 rounded w-1/2"></div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : parfums.length > 0 ? (
+            <div className="grid grid-cols-2 gap-3">
+              {parfums.slice(0, 10).map((parfum) => (
+                <div
+                  key={parfum._id}
+                  className="bg-white rounded-xl p-3 shadow-sm border border-gray-100 cursor-pointer hover:shadow-md transition-all"
+                  onClick={() => navigate(`/parfum/${parfum._id}`)}
+                >
+                  <img
+                    src={
+                      parfum.photo ||
+                      "https://images.unsplash.com/photo-1541643600914-78b084683601?w=150&h=150&fit=crop"
+                    }
+                    alt={parfum.nom}
+                    className="w-full aspect-square object-cover rounded-lg mb-3"
+                  />
+                  <h3 className="font-semibold text-sm text-gray-800 truncate">
+                    {parfum.nom}
+                  </h3>
+                  <p className="text-xs text-gray-600 truncate">
+                    {parfum.marque}
+                  </p>
+                  <div className="flex items-center justify-between mt-2">
+                    <span
+                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        parfum.genre === "homme"
+                          ? "bg-blue-100 text-blue-800"
+                          : parfum.genre === "femme"
+                          ? "bg-pink-100 text-pink-800"
+                          : "bg-purple-100 text-purple-800"
+                      }`}
+                    >
+                      {parfum.genre}
+                    </span>
+                    <Heart className="w-4 h-4 text-gray-300" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : currentSearchTerm ? (
+            <div className="text-center py-12">
+              <Search className="w-16 h-16 text-gray-300 mx-auto mb-4" />
+              <h3 className="text-lg font-bold text-gray-600 mb-2">
+                Aucun résultat trouvé
+              </h3>
+              <p className="text-gray-500 mb-6 text-sm">
+                Essayez avec d'autres mots-clés ou explorez nos suggestions
+              </p>
+              <button
+                onClick={() => {
+                  setSearchQuery("");
+                  setSearchParams({});
+                }}
+                className="bg-red-600 text-white px-6 py-2 rounded-xl font-semibold text-sm"
+              >
+                Effacer la recherche
+              </button>
+            </div>
+          ) : null}
+        </div>
+      </section>
+
+      {/* ✅ MODALS */}
       <ParfumFilters
         show={showFilters}
         filters={filters}
@@ -412,7 +566,6 @@ export default function Home() {
         onClose={() => setShowFilters(false)}
       />
 
-      {/* ✅ NOUVEAU - Modal Recherche Avancée */}
       <AdvancedSearch
         show={showAdvancedSearch}
         onClose={() => setShowAdvancedSearch(false)}

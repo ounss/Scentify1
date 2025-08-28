@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS
+// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS ET ÉVÉNEMENTS
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
 import api from "../services/api";
@@ -37,68 +37,107 @@ const authReducer = (state, action) => {
     case "REFRESH_USER":
       return { ...state, user: action.payload };
 
-    // ✅ NOUVEAUX ACTIONS POUR FAVORIS OPTIMISÉES
+    // ✅ GESTION FAVORIS PARFUMS
     case "ADD_FAVORI_PARFUM":
+      if (!state.user) return state;
+      const currentFavorisParfums = state.user.favorisParfums || [];
+      if (
+        currentFavorisParfums.some(
+          (fav) => (typeof fav === "string" ? fav : fav._id) === action.payload
+        )
+      ) {
+        return state; // Déjà en favoris
+      }
       return {
         ...state,
         user: {
           ...state.user,
-          favorisParfums: [
-            ...(state.user?.favorisParfums || []),
-            action.payload,
-          ],
+          favorisParfums: [...currentFavorisParfums, action.payload],
         },
       };
 
     case "REMOVE_FAVORI_PARFUM":
+      if (!state.user) return state;
       return {
         ...state,
         user: {
           ...state.user,
-          favorisParfums: (state.user?.favorisParfums || []).filter(
+          favorisParfums: (state.user.favorisParfums || []).filter(
             (fav) =>
               (typeof fav === "string" ? fav : fav._id) !== action.payload
           ),
         },
       };
 
+    // ✅ GESTION FAVORIS NOTES
     case "ADD_FAVORI_NOTE":
+      if (!state.user) return state;
+      const currentFavorisNotes = state.user.favorisNotes || [];
+      if (
+        currentFavorisNotes.some(
+          (fav) => (typeof fav === "string" ? fav : fav._id) === action.payload
+        )
+      ) {
+        return state; // Déjà en favoris
+      }
       return {
         ...state,
         user: {
           ...state.user,
-          favorisNotes: [...(state.user?.favorisNotes || []), action.payload],
+          favorisNotes: [...currentFavorisNotes, action.payload],
         },
       };
 
     case "REMOVE_FAVORI_NOTE":
+      if (!state.user) return state;
       return {
         ...state,
         user: {
           ...state.user,
-          favorisNotes: (state.user?.favorisNotes || []).filter(
+          favorisNotes: (state.user.favorisNotes || []).filter(
             (fav) =>
               (typeof fav === "string" ? fav : fav._id) !== action.payload
           ),
         },
       };
 
+    // ✅ GESTION HISTORIQUE
     case "ADD_TO_HISTORY":
+      if (!state.user) return state;
+
       const newHistoryItem = {
         parfum: action.payload.parfum,
         dateVisite: new Date().toISOString(),
       };
 
-      // Supprimer l'existant et ajouter au début
-      const filteredHistory = (state.user?.historique || []).filter(
-        (h) => h.parfum._id !== action.payload.parfum._id
-      );
+      const currentHistory = state.user.historique || [];
+
+      // Supprimer l'entrée existante si elle existe
+      const filteredHistory = currentHistory.filter((h) => {
+        const historyParfumId =
+          typeof h.parfum === "string" ? h.parfum : h.parfum?._id;
+        const newParfumId =
+          typeof newHistoryItem.parfum === "string"
+            ? newHistoryItem.parfum
+            : newHistoryItem.parfum?._id;
+        return historyParfumId !== newParfumId;
+      });
 
       return {
         ...state,
         user: {
           ...state.user,
           historique: [newHistoryItem, ...filteredHistory].slice(0, 50), // Limiter à 50
+        },
+      };
+
+    case "CLEAR_HISTORY":
+      if (!state.user) return state;
+      return {
+        ...state,
+        user: {
+          ...state.user,
+          historique: [],
         },
       };
 
@@ -120,7 +159,7 @@ const initialState = {
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // ✅ Vérifier le token au chargement
+  // ✅ VÉRIFIER TOKEN AU CHARGEMENT
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
@@ -130,14 +169,14 @@ export function AuthProvider({ children }) {
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
           const response = await authAPI.getProfile();
 
-          console.log("✅ Utilisateur chargé:", response.data);
+          console.log("✅ Utilisateur chargé:", response.data.username);
 
           dispatch({
             type: "LOGIN_SUCCESS",
             payload: { user: response.data, token },
           });
         } catch (error) {
-          console.error("❌ Token invalide:", error);
+          console.error("❌ Token invalide:", error.message);
           localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
           dispatch({ type: "LOGOUT" });
@@ -150,8 +189,9 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
-  // ✅ ÉCOUTER LES ÉVÉNEMENTS FAVORIS POUR MISE À JOUR OPTIMISÉE
+  // ✅ ÉCOUTER LES ÉVÉNEMENTS DE MISE À JOUR
   useEffect(() => {
+    // Événement favoris parfums
     const handleFavorisUpdate = (event) => {
       const { parfumId, action } = event.detail;
 
@@ -162,26 +202,43 @@ export function AuthProvider({ children }) {
       }
     };
 
+    // Événement favoris notes
+    const handleNotesUpdate = (event) => {
+      const { noteId, action } = event.detail;
+
+      if (action === "add") {
+        dispatch({ type: "ADD_FAVORI_NOTE", payload: noteId });
+      } else if (action === "remove") {
+        dispatch({ type: "REMOVE_FAVORI_NOTE", payload: noteId });
+      }
+    };
+
+    // Événement historique
     const handleHistoryUpdate = (event) => {
       const { parfum } = event.detail;
       dispatch({ type: "ADD_TO_HISTORY", payload: { parfum } });
     };
 
+    // Ajouter les listeners
     window.addEventListener("favorisUpdated", handleFavorisUpdate);
+    window.addEventListener("notesUpdated", handleNotesUpdate);
     window.addEventListener("historyUpdated", handleHistoryUpdate);
 
+    // Nettoyage
     return () => {
       window.removeEventListener("favorisUpdated", handleFavorisUpdate);
+      window.removeEventListener("notesUpdated", handleNotesUpdate);
       window.removeEventListener("historyUpdated", handleHistoryUpdate);
     };
   }, []);
 
-  // ✅ ACTIONS
+  // ✅ ACTIONS PRINCIPALES
   const login = async (credentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.login(credentials);
-      console.log("✅ Login réussie:", response.data);
+      console.log("✅ Login réussie:", response.data.user?.username);
+
       dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
       return { success: true };
     } catch (error) {
@@ -196,7 +253,8 @@ export function AuthProvider({ children }) {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.register(userData);
-      console.log("✅ Registration réussie:", response.data);
+      console.log("✅ Registration réussie:", response.data.user?.username);
+
       dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
       return { success: true };
     } catch (error) {
@@ -209,30 +267,28 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     console.log("🚪 Déconnexion");
-    delete api.defaults.headers.common["Authorization"];
     dispatch({ type: "LOGOUT" });
   };
 
   const updateUser = (userData) => {
-    console.log("🔄 Mise à jour utilisateur:", userData);
+    console.log("🔄 Mise à jour utilisateur:", userData.username);
     dispatch({ type: "UPDATE_USER", payload: userData });
   };
 
-  // ✅ FONCTION REFRESH OPTIMISÉE - Utilisée seulement quand nécessaire
+  // ✅ REFRESH USER - À utiliser avec parcimonie
   const refreshUser = async () => {
     try {
       const response = await authAPI.getProfile();
-      console.log("🔄 Profil rechargé:", response.data);
+      console.log("🔄 Profil rechargé:", response.data.username);
       dispatch({ type: "REFRESH_USER", payload: response.data });
       return response.data;
     } catch (error) {
       console.error("❌ Erreur refresh user:", error);
-      // ✅ Ne pas déconnecter automatiquement sur erreur refresh
       return null;
     }
   };
 
-  // ✅ NOUVELLES FONCTIONS OPTIMISÉES POUR FAVORIS
+  // ✅ ACTIONS FAVORIS (pour utilisation directe si besoin)
   const addFavoriParfum = (parfumId) => {
     dispatch({ type: "ADD_FAVORI_PARFUM", payload: parfumId });
   };
@@ -241,15 +297,29 @@ export function AuthProvider({ children }) {
     dispatch({ type: "REMOVE_FAVORI_PARFUM", payload: parfumId });
   };
 
+  const addFavoriNote = (noteId) => {
+    dispatch({ type: "ADD_FAVORI_NOTE", payload: noteId });
+  };
+
+  const removeFavoriNote = (noteId) => {
+    dispatch({ type: "REMOVE_FAVORI_NOTE", payload: noteId });
+  };
+
   const addToHistory = (parfum) => {
     dispatch({ type: "ADD_TO_HISTORY", payload: { parfum } });
+  };
+
+  const clearHistory = () => {
+    dispatch({ type: "CLEAR_HISTORY" });
   };
 
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });
   };
 
+  // ✅ VALEURS EXPOSÉES
   const value = {
+    // État
     user: state.user,
     token: state.token,
     loading: state.loading,
@@ -257,17 +327,20 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!state.user,
     isAdmin: state.user?.isAdmin || false,
 
-    // Actions
+    // Actions principales
     login,
     register,
     logout,
     updateUser,
     refreshUser,
 
-    // ✅ Nouvelles actions optimisées
+    // Actions favoris et historique
     addFavoriParfum,
     removeFavoriParfum,
+    addFavoriNote,
+    removeFavoriNote,
     addToHistory,
+    clearHistory,
     clearError,
   };
 

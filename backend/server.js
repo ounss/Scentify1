@@ -1,8 +1,13 @@
+// backend/server.js - AJOUT VÉRIFICATION EMAIL AU DÉMARRAGE
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
 import dotenv from "dotenv";
 import { errorHandler } from "./middleware/errorHandler.js";
+import {
+  testEmailConnection,
+  getRequiredEnvVars,
+} from "./services/emailService.js";
 
 // Import routes
 import userRoutes from "./routes/userRoutes.js";
@@ -13,7 +18,7 @@ import adminRoutes from "./routes/adminRoutes.js";
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 5001; // Utiliser 5001 au lieu de 5000
+const PORT = process.env.PORT || 5001;
 
 // Middleware
 app.use(
@@ -42,11 +47,31 @@ const connectDB = async () => {
       useNewUrlParser: true,
       useUnifiedTopology: true,
     });
-    console.log(`MongoDB connecté: ${conn.connection.host}`);
+    console.log(`✅ MongoDB connecté: ${conn.connection.host}`);
+    return true;
   } catch (error) {
-    console.error("Erreur MongoDB:", error);
-    process.exit(1);
+    console.error("❌ Erreur MongoDB:", error);
+    return false;
   }
+};
+
+// ✅ Vérification configuration email
+const checkEmailConfiguration = async () => {
+  console.log("\n🔧 Vérification configuration email...");
+
+  if (!getRequiredEnvVars()) {
+    console.log("⚠️  Service email désactivé - variables manquantes");
+    return false;
+  }
+
+  const isEmailWorking = await testEmailConnection();
+  if (isEmailWorking) {
+    console.log("✅ Service email configuré et prêt");
+  } else {
+    console.log("⚠️  Service email configuré mais connexion échouée");
+  }
+
+  return isEmailWorking;
 };
 
 // Health check
@@ -54,20 +79,76 @@ app.get("/api/health", (req, res) => {
   res.json({
     message: "Scentify API fonctionnel",
     timestamp: new Date().toISOString(),
+    version: "1.0.0",
+    environment: process.env.NODE_ENV || "development",
   });
 });
 
-// Start server
-const startServer = async () => {
-  await connectDB();
+// ✅ Test endpoint pour email
+app.get("/api/test-email", async (req, res) => {
+  try {
+    const isWorking = await testEmailConnection();
+    res.json({
+      emailService: isWorking ? "OK" : "ERROR",
+      configuration: getRequiredEnvVars() ? "OK" : "MISSING_VARS",
+    });
+  } catch (error) {
+    res.status(500).json({
+      emailService: "ERROR",
+      error: error.message,
+    });
+  }
+});
 
+// Start server avec vérifications
+const startServer = async () => {
+  console.log("🚀 Démarrage du serveur Scentify...\n");
+
+  // 1. Connexion MongoDB
+  const mongoConnected = await connectDB();
+  if (!mongoConnected) {
+    console.error("❌ Impossible de démarrer sans MongoDB");
+    process.exit(1);
+  }
+
+  // 2. Vérification email (non bloquant)
+  await checkEmailConfiguration();
+
+  // 3. Démarrage serveur
   app.listen(PORT, () => {
-    console.log(`🚀 Serveur démarré sur le port ${PORT}`);
+    console.log(`\n🎉 Serveur Scentify démarré avec succès !`);
+    console.log(`🌐 Port: ${PORT}`);
     console.log(
-      `📱 Frontend URL: ${process.env.CLIENT_URL || "http://localhost:3000"}`
+      `📱 Frontend: ${process.env.CLIENT_URL || "http://localhost:3000"}`
     );
-    console.log(`🔗 API URL: http://localhost:${PORT}/api`);
+    console.log(`🔗 API: http://localhost:${PORT}/api`);
+    console.log(`🏥 Health: http://localhost:${PORT}/api/health`);
+    console.log(`📧 Test Email: http://localhost:${PORT}/api/test-email`);
+
+    if (process.env.NODE_ENV === "development") {
+      console.log(`\n🔧 Mode développement`);
+      console.log(`📊 Admin panel: http://localhost:3000/admin`);
+    }
+
+    console.log(`\n📝 Variables d'environnement importantes:`);
+    console.log(`   DATABASE: ${process.env.MONGODB_URI ? "✅" : "❌"}`);
+    console.log(`   JWT_SECRET: ${process.env.JWT_SECRET ? "✅" : "❌"}`);
+    console.log(`   EMAIL_USER: ${process.env.EMAIL_USER ? "✅" : "❌"}`);
+    console.log(`   EMAIL_PASS: ${process.env.EMAIL_PASS ? "✅" : "❌"}`);
   });
 };
+
+// Gestion des erreurs non capturées
+process.on("unhandledRejection", (err) => {
+  console.error("❌ Unhandled Promise Rejection:", err);
+  console.log("🔄 Arrêt du serveur...");
+  process.exit(1);
+});
+
+process.on("uncaughtException", (err) => {
+  console.error("❌ Uncaught Exception:", err);
+  console.log("🔄 Arrêt du serveur...");
+  process.exit(1);
+});
 
 startServer().catch(console.error);

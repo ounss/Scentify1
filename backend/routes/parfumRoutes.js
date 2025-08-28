@@ -1,5 +1,5 @@
 // backend/routes/parfumRoutes.js - CORRECTION ORDRE DES ROUTES
-import express from "multer";
+import express from "express";
 import multer from "multer";
 import path from "path";
 import {
@@ -24,7 +24,7 @@ import {
 
 const router = express.Router();
 
-// Configuration multer (identique)
+// Configuration multer
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, "uploads/parfums/");
@@ -58,15 +58,15 @@ const upload = multer({
 });
 
 // ✅ ROUTES PUBLIQUES - ORDRE CRITIQUE CORRIGÉ
-router.get("/", getParfums);
-router.get("/search", searchParfums); // ✅ AVANT /:id
-router.get("/stats", getParfumsStats); // ✅ AVANT /:id
-router.get("/note/:noteId", getParfumsByNote); // ✅ AVANT /:id - FIX PRINCIPAL
-router.post("/similarity", getParfumsBySimilarity); // ✅ AVANT /:id
+router.get("/", getParfums); // Liste parfums avec filtres
+router.get("/search", searchParfums); // ✅ AVANT /:id - Recherche parfums
+router.get("/stats", getParfumsStats); // ✅ AVANT /:id - Stats
+router.post("/similarity", getParfumsBySimilarity); // ✅ AVANT /:id - Similarité
 
 // ✅ ROUTES AVEC PARAMÈTRES - APRÈS LES ROUTES SPÉCIFIQUES
 router.get("/:id", getParfumById); // ✅ APRÈS les routes spécifiques
-router.get("/:id/similar", getSimilarParfums); // ✅ APRÈS /:id
+router.get("/:id/similar", getSimilarParfums); // ✅ Parfums similaires à un parfum
+router.get("/note/:noteId", getParfumsByNote); // ✅ Parfums par note
 
 // ✅ ROUTES ADMIN
 router.post(

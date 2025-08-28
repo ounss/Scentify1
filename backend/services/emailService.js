@@ -1,26 +1,45 @@
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
-// Configuration transporteur email
+// ✅ Configuration transporteur email CORRIGÉE
 const createTransporter = () => {
   if (process.env.NODE_ENV === "production") {
+    // Configuration pour Gmail en production
     return nodemailer.createTransporter({
       service: "gmail",
+      auth: {
+        user: process.env.EMAIL_USER, // votre-email@gmail.com
+        pass: process.env.EMAIL_PASS, // mot de passe d'application Gmail
+      },
+      secure: true,
+    });
+  } else {
+    // ✅ Configuration SMTP pour développement (utiliser un vrai SMTP même en dev)
+    return nodemailer.createTransporter({
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: process.env.SMTP_PORT || 587,
+      secure: false, // true pour 465, false pour autres ports
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
-    });
-  } else {
-    // Transporteur de test pour développement
-    return nodemailer.createTransporter({
-      host: "smtp.ethereal.email",
-      port: 587,
-      auth: {
-        user: "ethereal.user@ethereal.email",
-        pass: "ethereal.pass",
+      tls: {
+        rejectUnauthorized: false,
       },
     });
+  }
+};
+
+// ✅ Test de connexion au démarrage
+export const testEmailConnection = async () => {
+  try {
+    const transporter = createTransporter();
+    await transporter.verify();
+    console.log("✅ Service email configuré correctement");
+    return true;
+  } catch (error) {
+    console.error("❌ Erreur configuration email:", error);
+    return false;
   }
 };
 
@@ -29,7 +48,7 @@ export const generateToken = () => {
   return crypto.randomBytes(32).toString("hex");
 };
 
-// Envoyer email de reset password
+// ✅ Envoyer email de reset password AMÉLIORÉ
 export const sendPasswordResetEmail = async (user, token) => {
   try {
     const transporter = createTransporter();
@@ -39,36 +58,198 @@ export const sendPasswordResetEmail = async (user, token) => {
     }/reset-password?token=${token}`;
 
     const mailOptions = {
-      from: process.env.EMAIL_FROM || "noreply@scentify.app",
+      from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: user.email,
       subject: "Réinitialisation de votre mot de passe - Scentify",
       html: `
-        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif;">
-          <h2>Réinitialisation de mot de passe</h2>
-          <p>Bonjour ${user.username},</p>
-          <p>Vous avez demandé une réinitialisation de votre mot de passe sur Scentify.</p>
-          <p>Cliquez sur le lien ci-dessous pour créer un nouveau mot de passe :</p>
-          <a href="${resetUrl}" style="background: #007bff; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Réinitialiser mon mot de passe
-          </a>
-          <p>Ce lien expirera dans 1 heure.</p>
-          <p>Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.</p>
-          <hr>
-          <p><small>L'équipe Scentify</small></p>
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px;">
+          <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <!-- Header avec logo -->
+            <div style="text-align: center; margin-bottom: 30px;">
+              <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #a44949, #c56b6b); border-radius: 15px; margin: 0 auto; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                <span style="color: white; font-size: 24px; font-weight: bold;">S</span>
+              </div>
+              <h1 style="color: #2c2c2c; margin: 0;">Scentify</h1>
+              <p style="color: #666; margin: 5px 0 0 0;">Votre guide dans l'univers des parfums</p>
+            </div>
+
+            <!-- Contenu principal -->
+            <h2 style="color: #2c2c2c; margin-bottom: 20px;">Réinitialisation de mot de passe</h2>
+            <p style="color: #2c2c2c; line-height: 1.6; margin-bottom: 15px;">Bonjour ${user.username},</p>
+            <p style="color: #2c2c2c; line-height: 1.6; margin-bottom: 15px;">
+              Vous avez demandé une réinitialisation de votre mot de passe sur Scentify.
+            </p>
+            <p style="color: #2c2c2c; line-height: 1.6; margin-bottom: 25px;">
+              Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :
+            </p>
+
+            <!-- Bouton CTA -->
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetUrl}" 
+                 style="background: linear-gradient(135deg, #a44949, #c56b6b); 
+                        color: white; 
+                        padding: 15px 30px; 
+                        text-decoration: none; 
+                        border-radius: 25px; 
+                        display: inline-block; 
+                        font-weight: bold;
+                        box-shadow: 0 4px 15px rgba(164, 73, 73, 0.3);">
+                Réinitialiser mon mot de passe
+              </a>
+            </div>
+
+            <!-- Informations importantes -->
+            <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 25px 0;">
+              <p style="margin: 0; color: #856404; font-size: 14px;">
+                ⏰ <strong>Ce lien expirera dans 1 heure</strong> pour votre sécurité.
+              </p>
+            </div>
+
+            <!-- Lien alternatif -->
+            <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0;">
+              Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :
+            </p>
+            <p style="word-break: break-all; color: #a44949; font-size: 14px; background-color: #f8f9fa; padding: 10px; border-radius: 5px;">
+              ${resetUrl}
+            </p>
+
+            <!-- Footer -->
+            <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
+            <p style="color: #666; font-size: 14px; line-height: 1.6;">
+              Si vous n'avez pas demandé cette réinitialisation, ignorez cet email en toute sécurité.
+              Votre mot de passe actuel reste inchangé.
+            </p>
+            <p style="color: #666; font-size: 14px; text-align: center; margin-top: 20px;">
+              L'équipe Scentify<br>
+              <span style="font-size: 12px;">Brussels, Belgium</span>
+            </p>
+          </div>
+
+          <!-- Footer externe -->
+          <p style="text-align: center; color: #999; font-size: 12px; margin-top: 20px;">
+            © 2024-2025 Scentify - Tous droits réservés
+          </p>
+        </div>
+      `,
+      // Version texte pour les clients qui ne supportent pas le HTML
+      text: `
+        Scentify - Réinitialisation de mot de passe
+
+        Bonjour ${user.username},
+
+        Vous avez demandé une réinitialisation de votre mot de passe.
+        
+        Cliquez sur ce lien pour créer un nouveau mot de passe :
+        ${resetUrl}
+        
+        Ce lien expirera dans 1 heure.
+        
+        Si vous n'avez pas demandé cette réinitialisation, ignorez cet email.
+        
+        L'équipe Scentify
+      `,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log(
+      "✅ Email de reset envoyé à:",
+      user.email,
+      "ID:",
+      result.messageId
+    );
+    return result;
+  } catch (error) {
+    console.error("❌ Erreur envoi email:", error);
+    throw new Error(`Impossible d'envoyer l'email: ${error.message}`);
+  }
+};
+
+// ✅ Email de bienvenue (optionnel)
+export const sendWelcomeEmail = async (user) => {
+  try {
+    const transporter = createTransporter();
+
+    const mailOptions = {
+      from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      to: user.email,
+      subject: "Bienvenue sur Scentify ! 🌸",
+      html: `
+        <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px;">
+          <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
+            <!-- Header -->
+            <div style="text-align: center; margin-bottom: 30px;">
+              <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #a44949, #c56b6b); border-radius: 15px; margin: 0 auto; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
+                <span style="color: white; font-size: 24px; font-weight: bold;">S</span>
+              </div>
+              <h1 style="color: #2c2c2c; margin: 0;">Bienvenue sur Scentify !</h1>
+            </div>
+
+            <h2 style="color: #2c2c2c;">Bonjour ${user.username} ! 👋</h2>
+            <p style="color: #2c2c2c; line-height: 1.6;">
+              Votre compte Scentify a été créé avec succès. Nous sommes ravis de vous accueillir dans notre univers olfactif !
+            </p>
+            
+            <h3 style="color: #a44949;">Que pouvez-vous faire sur Scentify ?</h3>
+            <ul style="color: #2c2c2c; line-height: 1.6;">
+              <li>🔍 Découvrir de nouveaux parfums</li>
+              <li>❤️ Créer votre liste de favoris</li>
+              <li>🎯 Obtenir des recommandations personnalisées</li>
+              <li>📊 Analyser les notes olfactives</li>
+            </ul>
+
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}" 
+                 style="background: linear-gradient(135deg, #a44949, #c56b6b); 
+                        color: white; 
+                        padding: 15px 30px; 
+                        text-decoration: none; 
+                        border-radius: 25px; 
+                        display: inline-block; 
+                        font-weight: bold;">
+                Commencer l'exploration
+              </a>
+            </div>
+
+            <p style="color: #666; font-size: 14px; text-align: center;">
+              L'équipe Scentify
+            </p>
+          </div>
         </div>
       `,
     };
 
-    await transporter.sendMail(mailOptions);
-    console.log("Email de reset envoyé à:", user.email);
+    const result = await transporter.sendMail(mailOptions);
+    console.log("✅ Email de bienvenue envoyé à:", user.email);
+    return result;
   } catch (error) {
-    console.error("Erreur envoi email:", error);
-    throw new Error("Impossible d'envoyer l'email");
+    console.error("❌ Erreur envoi email bienvenue:", error);
+    // Ne pas faire échouer l'inscription si l'email ne peut pas être envoyé
+    return null;
   }
+};
+
+// ✅ Configuration des variables d'environnement nécessaires
+export const getRequiredEnvVars = () => {
+  const required = ["EMAIL_USER", "EMAIL_PASS"];
+  const missing = required.filter((key) => !process.env[key]);
+
+  if (missing.length > 0) {
+    console.error(
+      "❌ Variables d'environnement manquantes pour l'email:",
+      missing.join(", ")
+    );
+    console.log("ℹ️  Ajoutez ces variables à votre fichier .env :");
+    console.log("EMAIL_USER=votre-email@gmail.com");
+    console.log("EMAIL_PASS=votre-mot-de-passe-application");
+    return false;
+  }
+  return true;
 };
 
 export default {
   generateToken,
   sendPasswordResetEmail,
+  sendWelcomeEmail,
+  testEmailConnection,
+  getRequiredEnvVars,
 };
-// Export du service email

@@ -1,4 +1,4 @@
-// frontend/src/components/ParfumDetail.jsx - CORRECTION HISTORIQUE
+// frontend/src/components/ParfumDetail.jsx - CORRECTION HISTORIQUE ET AFFICHAGE
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -22,7 +22,7 @@ import toast from "react-hot-toast";
 export default function ParfumDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user, addToHistory } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [parfum, setParfum] = useState(null);
   const [similarParfums, setSimilarParfums] = useState([]);
@@ -31,9 +31,7 @@ export default function ParfumDetail() {
   const [error, setError] = useState(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  console.log("🔍 ParfumDetail ID:", id);
-
-  // ✅ CORRECTION HISTORIQUE - Charger les données du parfum
+  // ✅ CHARGEMENT DU PARFUM AVEC AJOUT AUTOMATIQUE À L'HISTORIQUE
   useEffect(() => {
     const loadParfumData = async () => {
       if (!id) {
@@ -46,29 +44,26 @@ export default function ParfumDetail() {
         setLoading(true);
         setError(null);
 
-        console.log("📦 Chargement du parfum:", id);
-
         // ✅ 1. Charger le parfum principal
         const parfumResponse = await parfumAPI.getById(id);
-        console.log("✅ Parfum reçu:", parfumResponse.data);
-        setParfum(parfumResponse.data);
+        const parfumData = parfumResponse.data;
+        setParfum(parfumData);
 
-        // ✅ 2. AJOUTER À L'HISTORIQUE IMMÉDIATEMENT (CORRECTION PRINCIPALE)
+        // ✅ 2. AJOUT AUTOMATIQUE À L'HISTORIQUE si connecté
         if (isAuthenticated) {
           try {
-            console.log("📖 Ajout à l'historique...");
             await historyAPI.addToHistory(id);
-            console.log("✅ Ajouté à l'historique");
-
-            // ✅ Mettre à jour le contexte via événement personnalisé
+            // ✅ Déclencher événement pour mise à jour contexte
             window.dispatchEvent(
               new CustomEvent("historyUpdated", {
-                detail: { parfum: parfumResponse.data },
+                detail: { parfum: parfumData },
               })
             );
           } catch (histErr) {
-            console.warn("⚠️ Erreur ajout historique (non critique):", histErr);
-            // Ne pas faire échouer le chargement pour ça
+            console.warn(
+              "⚠️ Erreur ajout historique (non bloquant):",
+              histErr?.message || histErr
+            );
           }
         }
 
@@ -76,45 +71,42 @@ export default function ParfumDetail() {
         try {
           const similarResponse = await parfumAPI.getSimilar(id);
           setSimilarParfums(similarResponse.data || []);
-          console.log(
-            "🔗 Parfums similaires:",
-            similarResponse.data?.length || 0
-          );
         } catch (err) {
-          console.warn("⚠️ Parfums similaires non disponibles:", err);
+          console.warn(
+            "⚠️ Parfums similaires non disponibles:",
+            err?.message || err
+          );
+          setSimilarParfums([]);
         }
       } catch (err) {
         console.error("❌ Erreur chargement parfum:", err);
-        setError(err.response?.data?.message || "Parfum non trouvé");
+        setError(
+          err?.response?.status === 404
+            ? "Parfum non trouvé"
+            : err?.response?.data?.message || "Erreur lors du chargement"
+        );
       } finally {
         setLoading(false);
       }
     };
 
     loadParfumData();
-  }, [id, isAuthenticated]); // ✅ Dépendances simplifiées
+  }, [id, isAuthenticated]);
 
-  // ✅ Vérifier si le parfum est en favori
+  // ✅ Vérifier si le parfum est en favori (sur base du contexte utilisateur)
   useEffect(() => {
     if (user?.favorisParfums && parfum?._id) {
       const isInFavorites = user.favorisParfums.some((fav) => {
         const favId = typeof fav === "string" ? fav : fav?._id;
         return favId === parfum._id;
       });
-
-      console.log("💝 Vérification favori:", {
-        parfumId: parfum._id,
-        isInFavorites,
-        userFavoris: user.favorisParfums?.length || 0,
-      });
-
       setIsFavorite(isInFavorites);
     } else {
       setIsFavorite(false);
     }
   }, [user?.favorisParfums, parfum?._id]);
 
-  // ✅ Gérer les favoris
+  // ✅ GESTION FAVORIS
   const toggleFavorite = async () => {
     if (!isAuthenticated) {
       toast.error("Connectez-vous pour ajouter des favoris");
@@ -131,16 +123,11 @@ export default function ParfumDetail() {
 
     setFavoriteLoading(true);
 
-    // ✅ Optimisation - Mise à jour optimiste
+    // ✅ Mise à jour optimiste UI
     const previousState = isFavorite;
     setIsFavorite(!isFavorite);
 
     try {
-      console.log(
-        `💝 ${previousState ? "Suppression" : "Ajout"} favori:`,
-        parfum.nom
-      );
-
       if (previousState) {
         await favoriAPI.removeParfum(parfum._id);
         toast.success(`${parfum.nom} retiré des favoris`);
@@ -149,7 +136,7 @@ export default function ParfumDetail() {
         toast.success(`${parfum.nom} ajouté aux favoris !`);
       }
 
-      // ✅ Déclencher événement pour mettre à jour le contexte
+      // ✅ Déclencher événement pour mise à jour contexte
       window.dispatchEvent(
         new CustomEvent("favorisUpdated", {
           detail: {
@@ -161,15 +148,15 @@ export default function ParfumDetail() {
     } catch (error) {
       console.error("❌ Erreur favoris:", error);
 
-      // ✅ Rollback en cas d'erreur
+      // ✅ Rollback UI en cas d'erreur
       setIsFavorite(previousState);
 
-      if (error.response?.status === 401) {
+      if (error?.response?.status === 401) {
         toast.error("Session expirée, reconnectez-vous");
         navigate("/auth");
       } else {
         const message =
-          error.response?.data?.message || "Erreur lors de la modification";
+          error?.response?.data?.message || "Erreur lors de la modification";
         toast.error(message);
       }
     } finally {
@@ -177,7 +164,7 @@ export default function ParfumDetail() {
     }
   };
 
-  // ✅ Partager le parfum
+  // ✅ PARTAGE
   const handleShare = async () => {
     if (!parfum) return;
 
@@ -187,15 +174,11 @@ export default function ParfumDetail() {
       url: window.location.href,
     };
 
-    if (
-      navigator.share &&
-      navigator.canShare &&
-      navigator.canShare(shareData)
-    ) {
+    if (navigator.share && navigator.canShare?.(shareData)) {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        if (err.name !== "AbortError") {
+        if (err?.name !== "AbortError") {
           copyToClipboard();
         }
       }
@@ -214,7 +197,7 @@ export default function ParfumDetail() {
     }
   };
 
-  // ✅ Utilitaires couleurs
+  // ✅ UTILITAIRES UI
   const getGenreColor = (genre) => {
     switch (genre) {
       case "homme":
@@ -241,11 +224,10 @@ export default function ParfumDetail() {
     }
   };
 
-  // ✅ Formatage prix avec réduction
   const formatPrix = (lien) => {
-    if (!lien.prix) return null;
+    if (!lien?.prix && !lien?.prixOriginal) return null;
 
-    if (lien.enPromotion && lien.prixOriginal) {
+    if (lien?.enPromotion && lien?.prixOriginal) {
       const reduction = Math.round(
         ((lien.prixOriginal - lien.prix) / lien.prixOriginal) * 100
       );
@@ -258,12 +240,12 @@ export default function ParfumDetail() {
     }
 
     return {
-      prix: `${lien.prix}€`,
+      prix: lien?.prix ? `${lien.prix}€` : undefined,
       isPromo: false,
     };
   };
 
-  // ✅ États de chargement et erreur
+  // ✅ LOADING STATE
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -275,6 +257,7 @@ export default function ParfumDetail() {
     );
   }
 
+  // ✅ ERROR STATE
   if (error || !parfum) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
@@ -283,17 +266,25 @@ export default function ParfumDetail() {
             <Eye className="w-20 h-20 mx-auto mb-4" />
           </div>
           <h2 className="text-2xl font-bold text-gray-700 mb-4">
-            Parfum non trouvé
+            {error || "Parfum non trouvé"}
           </h2>
           <p className="text-gray-500 mb-8">
-            {error || "Ce parfum n'existe pas ou a été supprimé."}
+            Ce parfum n'existe pas ou a été supprimé.
           </p>
-          <button
-            onClick={() => navigate("/")}
-            className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
-          >
-            Retour à l'accueil
-          </button>
+          <div className="space-x-4">
+            <button
+              onClick={() => navigate(-1)}
+              className="bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors"
+            >
+              Retour
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+            >
+              Accueil
+            </button>
+          </div>
         </div>
       </div>
     );
@@ -301,12 +292,12 @@ export default function ParfumDetail() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-12">
-      {/* Header avec navigation */}
+      {/* ✅ HEADER AVEC NAVIGATION */}
       <div className="bg-white shadow-sm border-b sticky top-0 z-30">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate(-1)}
               className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
             >
               <ArrowLeft className="w-5 h-5" />
@@ -346,7 +337,7 @@ export default function ParfumDetail() {
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Section principale */}
+        {/* ✅ SECTION PRINCIPALE */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
           {/* Image et infos de base */}
           <div className="space-y-6">
@@ -359,7 +350,7 @@ export default function ParfumDetail() {
                 alt={parfum.nom}
                 className="w-full max-w-sm h-96 object-cover rounded-2xl mx-auto shadow-lg"
                 onError={(e) => {
-                  e.target.src =
+                  e.currentTarget.src =
                     "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop";
                 }}
               />
@@ -381,9 +372,25 @@ export default function ParfumDetail() {
                 </div>
               )}
             </div>
+
+            {/* Info rapides */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="bg-white rounded-2xl p-4 shadow">
+                <div className="text-sm text-gray-500">Marque</div>
+                <div className="font-semibold text-gray-800">
+                  {parfum.marque}
+                </div>
+              </div>
+              <div className="bg-white rounded-2xl p-4 shadow">
+                <div className="text-sm text-gray-500">Genre</div>
+                <div className="font-semibold capitalize text-gray-800">
+                  {parfum.genre}
+                </div>
+              </div>
+            </div>
           </div>
 
-          {/* Détails du parfum */}
+          {/* ✅ DÉTAILS DU PARFUM */}
           <div className="space-y-8">
             {/* En-tête */}
             <div>
@@ -394,7 +401,7 @@ export default function ParfumDetail() {
                 {parfum.marque}
               </p>
 
-              {parfum.popularite && (
+              {parfum.popularite > 0 && (
                 <div className="flex items-center space-x-2 mb-6">
                   <div className="flex items-center space-x-1">
                     <Star className="w-5 h-5 text-yellow-500 fill-current" />
@@ -415,7 +422,7 @@ export default function ParfumDetail() {
               )}
             </div>
 
-            {/* Notes olfactives */}
+            {/* ✅ NOTES OLFACTIVES */}
             {parfum.notes && parfum.notes.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-lg">
                 <div className="flex items-center space-x-2 mb-6">
@@ -458,10 +465,10 @@ export default function ParfumDetail() {
               </div>
             )}
 
-            {/* ✅ LIENS MARCHANDS AMÉLIORÉS */}
+            {/* ✅ LIENS MARCHANDS */}
             {parfum.liensMarchands && parfum.liensMarchands.length > 0 && (
               <div className="bg-white rounded-2xl p-6 shadow-lg">
-                <div className="flex items-center space-x-2 mb-6">
+                <div className="flex items-center gap-3 mb-6">
                   <ShoppingBag className="w-6 h-6 text-green-600" />
                   <h2 className="text-2xl font-bold text-gray-800">
                     Où l'acheter
@@ -475,7 +482,7 @@ export default function ParfumDetail() {
 
                 <div className="space-y-4">
                   {parfum.liensMarchands
-                    .filter((lien) => lien.disponible)
+                    .filter((lien) => lien?.disponible !== false)
                     .map((marchand, index) => {
                       const prixInfo = formatPrix(marchand);
 
@@ -484,115 +491,113 @@ export default function ParfumDetail() {
                           key={index}
                           className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-100"
                         >
-                          <div className="flex items-center space-x-4">
+                          <div className="flex items-center gap-4">
                             <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-sm">
                               <ShoppingBag className="w-6 h-6 text-white" />
                             </div>
                             <div>
-                              <div className="flex items-center space-x-2">
-                                <span className="font-semibold text-gray-800">
-                                  {marchand.nom}
+                              <div className="flex items-center gap-2">
+                                <span className="font-semibold text-gray-900">
+                                  {marchand?.nom ||
+                                    marchand?.site ||
+                                    "Boutique"}
                                 </span>
-                                {marchand.enPromotion && (
-                                  <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-bold">
-                                    PROMO -{prixInfo.reduction}
+                                {marchand?.label && (
+                                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
+                                    {marchand.label}
                                   </span>
                                 )}
                               </div>
-
-                              {marchand.taille && (
-                                <span className="text-sm text-gray-600">
-                                  {marchand.taille}
-                                </span>
+                              {marchand?.format && (
+                                <div className="text-sm text-gray-500 flex items-center gap-1">
+                                  <Tag className="w-4 h-4" /> {marchand.format}
+                                </div>
                               )}
-
-                              {marchand.delaiLivraison && (
-                                <div className="flex items-center space-x-1 text-xs text-gray-500 mt-1">
-                                  <Truck className="w-3 h-3" />
-                                  <span>{marchand.delaiLivraison}</span>
-                                  {marchand.fraisLivraison === 0 && (
-                                    <span className="text-green-600 font-medium">
-                                      • Livraison gratuite
-                                    </span>
-                                  )}
+                              {marchand?.delaiLivraison && (
+                                <div className="text-sm text-gray-500 flex items-center gap-1">
+                                  <Truck className="w-4 h-4" />{" "}
+                                  {marchand.delaiLivraison}
                                 </div>
                               )}
                             </div>
                           </div>
 
-                          <div className="flex items-center space-x-4">
-                            <div className="text-right">
-                              {prixInfo?.isPromo ? (
-                                <div>
-                                  <div className="text-2xl font-bold text-red-600">
+                          <div className="flex items-center gap-4">
+                            {prixInfo?.isPromo ? (
+                              <div className="text-right">
+                                <div className="text-lg font-bold text-gray-900">
+                                  {prixInfo.prix}
+                                </div>
+                                <div className="text-sm text-gray-500 line-through">
+                                  {prixInfo.prixOriginal}
+                                </div>
+                                <div className="text-xs text-green-700 font-semibold">
+                                  -{prixInfo.reduction}
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="text-right">
+                                {prixInfo?.prix ? (
+                                  <div className="text-lg font-bold text-gray-900">
                                     {prixInfo.prix}
                                   </div>
-                                  <div className="text-sm text-gray-500 line-through">
-                                    {prixInfo.prixOriginal}
+                                ) : (
+                                  <div className="text-sm text-gray-500">
+                                    Prix non communiqué
                                   </div>
-                                </div>
-                              ) : (
-                                <div className="text-2xl font-bold text-gray-800">
-                                  {prixInfo?.prix || "Prix non disponible"}
-                                </div>
-                              )}
+                                )}
+                              </div>
+                            )}
 
-                              {marchand.noteQualite && (
-                                <div className="flex items-center space-x-1 mt-1">
-                                  <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                                  <span className="text-sm text-gray-600">
-                                    {marchand.noteQualite}/5
-                                  </span>
-                                </div>
-                              )}
-                            </div>
-
-                            <a
-                              href={marchand.url}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-3 rounded-xl font-semibold hover:from-green-700 hover:to-emerald-700 transition-all duration-300 transform hover:scale-105 flex items-center space-x-2 shadow-lg"
-                            >
-                              <span>Acheter</span>
-                              <ExternalLink className="w-4 h-4" />
-                            </a>
+                            {marchand?.url && (
+                              <a
+                                href={marchand.url}
+                                target="_blank"
+                                rel="noreferrer noopener"
+                                className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                              >
+                                Voir l'offre{" "}
+                                <ExternalLink className="w-4 h-4" />
+                              </a>
+                            )}
                           </div>
                         </div>
                       );
                     })}
                 </div>
 
-                {/* ✅ Liens non disponibles */}
-                {parfum.liensMarchands.some((lien) => !lien.disponible) && (
-                  <div className="mt-4 p-3 bg-orange-50 rounded-xl border border-orange-200">
-                    <p className="text-orange-800 text-sm">
-                      <span className="font-medium">Note :</span> Certains
-                      marchands peuvent être temporairement indisponibles.
-                    </p>
-                  </div>
-                )}
+                {/* Disclaimer prix */}
+                <p className="text-xs text-gray-500 mt-4 flex items-center gap-1">
+                  <Clock className="w-3.5 h-3.5" />
+                  Les prix et disponibilités sont indicatifs et peuvent varier
+                  selon les boutiques.
+                </p>
               </div>
             )}
           </div>
         </div>
 
-        {/* Parfums similaires */}
-        {similarParfums.length > 0 && (
-          <div>
-            <div className="flex items-center space-x-2 mb-8">
-              <Clock className="w-6 h-6 text-red-500" />
-              <h2 className="text-3xl font-bold text-gray-800">
-                Parfums similaires
-              </h2>
-            </div>
+        {/* ✅ SECTION SIMILAIRES */}
+        <div className="space-y-6">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-6 h-6 text-purple-600" />
+            <h2 className="text-2xl font-bold text-gray-800">
+              Parfums similaires
+            </h2>
+          </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {similarParfums.slice(0, 4).map((similarParfum) => (
-                <ParfumCard key={similarParfum._id} parfum={similarParfum} />
+          {similarParfums?.length > 0 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {similarParfums.map((p) => (
+                <ParfumCard key={p._id} parfum={p} />
               ))}
             </div>
-          </div>
-        )}
+          ) : (
+            <div className="bg-white rounded-2xl p-6 text-gray-600 shadow">
+              Aucun parfum similaire trouvé pour le moment.
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
