@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS ET ÉVÉNEMENTS
+// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS ET ÉVÉNEMENTS + HYDRATE TOKEN
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
 import api from "../services/api";
@@ -9,6 +9,16 @@ const authReducer = (state, action) => {
   switch (action.type) {
     case "SET_LOADING":
       return { ...state, loading: action.payload };
+
+    case "HYDRATE_TOKEN":
+      // Hydrate depuis le token décodé (user minimal), on conserve loading: true
+      return {
+        ...state,
+        user: action.payload.user || state.user,
+        token: action.payload.token,
+        loading: true,
+        error: null,
+      };
 
     case "LOGIN_SUCCESS":
       localStorage.setItem("token", action.payload.token);
@@ -159,7 +169,44 @@ const initialState = {
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // ✅ VÉRIFIER TOKEN AU CHARGEMENT
+  // ✅ HYDRATE DEPUIS LE TOKEN AU MONTAGE (décodage local, sans appel API)
+  // Permet de garder l'utilisateur connecté après refresh immédiatement.
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    try {
+      const payloadBase64 = token.split(".")[1];
+      if (!payloadBase64) return;
+
+      const decoded = JSON.parse(atob(payloadBase64));
+
+      // Construire un "user minimal" depuis le payload JWT
+      const minimalUser = {
+        id: decoded.id || decoded._id,
+        _id: decoded.id || decoded._id,
+        email: decoded.email,
+        role: decoded.role,
+        isAdmin:
+          decoded.isAdmin === true ||
+          decoded.role === "admin" ||
+          decoded.role === "ADMIN",
+        username: decoded.username || decoded.name || undefined,
+      };
+
+      // Pose l'en-tête tout de suite pour les futurs appels
+      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
+      dispatch({
+        type: "HYDRATE_TOKEN",
+        payload: { token, user: minimalUser },
+      });
+    } catch (e) {
+      console.error("❌ Échec du décodage du token:", e);
+    }
+  }, []);
+
+  // ✅ VÉRIFIER TOKEN AU CHARGEMENT (validation serveur, remplace par profil complet)
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
@@ -176,7 +223,7 @@ export function AuthProvider({ children }) {
             payload: { user: response.data, token },
           });
         } catch (error) {
-          console.error("❌ Token invalide:", error.message);
+          console.error("❌ Token invalide:", error?.message);
           localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
           dispatch({ type: "LOGOUT" });

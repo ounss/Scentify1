@@ -67,7 +67,22 @@ router.post("/similarity", getParfumsBySimilarity); // ✅ AVANT /:id - Similari
 router.get("/:id", getParfumById); // ✅ APRÈS les routes spécifiques
 router.get("/:id/similar", getSimilarParfums); // ✅ Parfums similaires à un parfum
 router.get("/note/:noteId", getParfumsByNote); // ✅ Parfums par note
+// Ajouter la recherche avancée avec multiples filtres
+router.get("/search/advanced", async (req, res) => {
+  const { notes, genre, marque, type } = req.query;
+  const filter = {};
 
+  if (notes) {
+    const notesArray = Array.isArray(notes) ? notes : [notes];
+    filter.notes = { $in: notesArray };
+  }
+  if (genre) filter.genre = genre;
+  if (marque) filter.marque = new RegExp(marque, "i");
+  if (type) filter.type = type;
+
+  const parfums = await Parfum.find(filter).populate("notes");
+  res.json(parfums);
+});
 // ✅ ROUTES ADMIN
 router.post(
   "/",

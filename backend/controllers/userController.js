@@ -1,5 +1,8 @@
+// controllers/userController.js (ou chemin équivalent)
+// ✅ Version complète avec historique corrigé
+
 import User from "../models/User.js";
-import Parfum from "../models/Parfum.js"; // ✅ Import ajouté
+import Parfum from "../models/Parfum.js";
 import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import emailService from "../services/emailService.js";
@@ -11,16 +14,16 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
-// Vérification email (fonction manquante ajoutée)
+// ✅ Vérification email (placeholder à étoffer selon votre flow)
 export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.body;
 
-    // Simple validation pour le moment - à développer selon vos besoins
     if (!token) {
       return res.status(400).json({ message: "Token requis" });
     }
 
+    // À implémenter: vérification réelle du token de vérification d'email
     res.json({
       message: "Email vérifié avec succès",
       success: true,
@@ -33,10 +36,16 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-// Inscription simplifiée (auto-vérifiée)
+// ✅ Inscription simplifiée (auto-vérifiée en phase 1)
 export const registerUser = async (req, res) => {
   try {
     const { email, password, username } = req.body;
+
+    if (!email || !password || !username) {
+      return res
+        .status(400)
+        .json({ message: "email, password et username sont requis" });
+    }
 
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -45,9 +54,9 @@ export const registerUser = async (req, res) => {
 
     const user = await User.create({
       email,
-      password,
+      password, // hook Mongoose pour hasher (matchPassword existe plus bas)
       username,
-      isVerified: true, // Auto-vérifié pour simplifier la phase 1
+      isVerified: true, // Phase 1: pas de double opt-in
     });
 
     const token = generateToken(user._id);
@@ -69,10 +78,16 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// Connexion simplifiée
+// ✅ Connexion
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
+
+    if (!email || typeof password !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Email et mot de passe sont requis" });
+    }
 
     const user = await User.findOne({ email });
     if (!user) {
@@ -102,13 +117,16 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// Mot de passe oublié
+// ✅ Mot de passe oublié
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
 
+    if (!email) return res.status(400).json({ message: "Email requis" });
+
     const user = await User.findOne({ email });
     if (!user) {
+      // Réponse générique pour ne pas divulguer l'existence d'un compte
       return res.json({ message: "Email envoyé si l'utilisateur existe" });
     }
 
@@ -126,10 +144,16 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// Reset mot de passe
+// ✅ Reset mot de passe
 export const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
+
+    if (!token || typeof password !== "string") {
+      return res
+        .status(400)
+        .json({ message: "Token et nouveau mot de passe requis" });
+    }
 
     const user = await User.findOne({
       resetPasswordToken: token,
@@ -140,7 +164,7 @@ export const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Token invalide ou expiré" });
     }
 
-    user.password = password;
+    user.password = password; // hook Mongoose pour hash
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
@@ -152,6 +176,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
+// ✅ Profil utilisateur
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -189,6 +214,7 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
+// ✅ Mise à jour profil
 export const updateUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -229,31 +255,29 @@ export const updateUserProfile = async (req, res) => {
   }
 };
 
-// ✅ FAVORIS - CORRECTION URGENTE
+/* ------------------------------ FAVORIS ------------------------------ */
+
+// ✅ Ajouter un parfum aux favoris
 export const addFavoriteParfum = async (req, res) => {
   try {
     const userId = req.user._id;
     const parfumId = req.params.id;
 
-    // ✅ Validation ObjectId
     if (!mongoose.Types.ObjectId.isValid(parfumId)) {
       return res.status(400).json({ message: "ID de parfum invalide" });
     }
 
     console.log(`💝 Ajout favori parfum: ${parfumId} pour user: ${userId}`);
 
-    // ✅ Vérifier que le parfum existe
     const parfumExists = await Parfum.findById(parfumId);
     if (!parfumExists) {
       return res.status(404).json({ message: "Parfum non trouvé" });
     }
 
     const user = await User.findById(userId);
-    if (!user) {
+    if (!user)
       return res.status(404).json({ message: "Utilisateur non trouvé" });
-    }
 
-    // ✅ Vérifier si déjà en favori
     const isAlreadyFavorite = user.favorisParfums.some(
       (id) => id.toString() === parfumId
     );
@@ -261,7 +285,6 @@ export const addFavoriteParfum = async (req, res) => {
       return res.status(400).json({ message: "Parfum déjà en favoris" });
     }
 
-    // ✅ Ajouter aux favoris
     user.favorisParfums.push(parfumId);
     await user.save();
 
@@ -277,12 +300,12 @@ export const addFavoriteParfum = async (req, res) => {
   }
 };
 
+// ✅ Retirer un parfum des favoris
 export const removeFavoriteParfum = async (req, res) => {
   try {
     const userId = req.user._id;
     const parfumId = req.params.id;
 
-    // ✅ Validation ObjectId
     if (!mongoose.Types.ObjectId.isValid(parfumId)) {
       return res.status(400).json({ message: "ID de parfum invalide" });
     }
@@ -292,11 +315,9 @@ export const removeFavoriteParfum = async (req, res) => {
     );
 
     const user = await User.findById(userId);
-    if (!user) {
+    if (!user)
       return res.status(404).json({ message: "Utilisateur non trouvé" });
-    }
 
-    // ✅ Supprimer des favoris
     const initialLength = user.favorisParfums.length;
     user.favorisParfums = user.favorisParfums.filter(
       (id) => id.toString() !== parfumId
@@ -320,12 +341,12 @@ export const removeFavoriteParfum = async (req, res) => {
   }
 };
 
+// ✅ Ajouter une note en favoris
 export const addFavoriteNote = async (req, res) => {
   try {
     const userId = req.user._id;
     const noteId = req.params.id;
 
-    // ✅ Validation ObjectId
     if (!mongoose.Types.ObjectId.isValid(noteId)) {
       return res.status(400).json({ message: "ID de note invalide" });
     }
@@ -333,11 +354,9 @@ export const addFavoriteNote = async (req, res) => {
     console.log(`🏷️ Ajout favori note: ${noteId} pour user: ${userId}`);
 
     const user = await User.findById(userId);
-    if (!user) {
+    if (!user)
       return res.status(404).json({ message: "Utilisateur non trouvé" });
-    }
 
-    // ✅ Vérifier si déjà en favori
     const isAlreadyFavorite = user.favorisNotes.some(
       (id) => id.toString() === noteId
     );
@@ -360,12 +379,12 @@ export const addFavoriteNote = async (req, res) => {
   }
 };
 
+// ✅ Retirer une note des favoris
 export const removeFavoriteNote = async (req, res) => {
   try {
     const userId = req.user._id;
     const noteId = req.params.id;
 
-    // ✅ Validation ObjectId
     if (!mongoose.Types.ObjectId.isValid(noteId)) {
       return res.status(400).json({ message: "ID de note invalide" });
     }
@@ -373,9 +392,8 @@ export const removeFavoriteNote = async (req, res) => {
     console.log(`🏷️ Suppression favori note: ${noteId} pour user: ${userId}`);
 
     const user = await User.findById(userId);
-    if (!user) {
+    if (!user)
       return res.status(404).json({ message: "Utilisateur non trouvé" });
-    }
 
     const initialLength = user.favorisNotes.length;
     user.favorisNotes = user.favorisNotes.filter(
@@ -400,6 +418,7 @@ export const removeFavoriteNote = async (req, res) => {
   }
 };
 
+// ✅ Récupérer tous les favoris (parfums + notes)
 export const getUserFavorites = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -424,42 +443,46 @@ export const getUserFavorites = async (req, res) => {
   }
 };
 
-// ✅ HISTORIQUE - CORRECTION URGENTE
+/* ----------------------------- HISTORIQUE ----------------------------- */
+
+// ✅ Ajout à l'historique (compat params/body, déduplication, dateVisite)
 export const addToHistory = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const parfumId = req.params.id;
+    const userId = req.user?._id || req.user?.id;
+    const parfumId = req.body?.parfumId || req.params?.id || req.body?.parfum;
 
-    // ✅ Validation ObjectId
+    if (!parfumId) {
+      return res
+        .status(400)
+        .json({ message: "parfumId requis (body) ou :id (params)" });
+    }
     if (!mongoose.Types.ObjectId.isValid(parfumId)) {
       return res.status(400).json({ message: "ID de parfum invalide" });
     }
 
-    console.log(`📖 Ajout à l'historique: ${parfumId} pour user: ${userId}`);
-
-    // ✅ Vérifier que le parfum existe
-    const parfumExists = await Parfum.findById(parfumId);
+    const [parfumExists, user] = await Promise.all([
+      Parfum.findById(parfumId),
+      User.findById(userId),
+    ]);
     if (!parfumExists) {
       return res.status(404).json({ message: "Parfum non trouvé" });
     }
-
-    const user = await User.findById(userId);
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // ✅ Supprimer l'entrée existante si elle existe
-    user.historique = user.historique.filter(
+    // Déduplication
+    user.historique = (user.historique || []).filter(
       (h) => h.parfum.toString() !== parfumId
     );
 
-    // ✅ Ajouter au début de l'historique
+    // Ajout en tête
     user.historique.unshift({
       parfum: parfumId,
       dateVisite: new Date(),
     });
 
-    // ✅ Limiter l'historique à 50 entrées
+    // Limite 50 (ajuste si illimité)
     if (user.historique.length > 50) {
       user.historique = user.historique.slice(0, 50);
     }
@@ -481,10 +504,13 @@ export const addToHistory = async (req, res) => {
   }
 };
 
+// ✅ Lecture de l'historique (tolère dateVisite || consultedAt)
 export const getUserHistory = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
-    const skip = (page - 1) * limit;
+    const p = parseInt(page);
+    const l = parseInt(limit);
+    const skip = (p - 1) * l;
 
     const user = await User.findById(req.user._id).populate(
       "historique.parfum",
@@ -495,13 +521,13 @@ export const getUserHistory = async (req, res) => {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
-    // ✅ Filtrer les entrées avec parfums supprimés
-    const validHistorique = user.historique
-      .filter((h) => h.parfum) // Exclure les parfums supprimés
-      .slice(skip, skip + parseInt(limit))
+    // Exclure les parfums supprimés et paginer
+    const validHistorique = (user.historique || [])
+      .filter((h) => h.parfum)
+      .slice(skip, skip + l)
       .map((h) => ({
         parfum: h.parfum,
-        viewedAt: h.dateVisite,
+        viewedAt: h.dateVisite || h.consultedAt || null,
       }));
 
     console.log(
@@ -515,6 +541,7 @@ export const getUserHistory = async (req, res) => {
   }
 };
 
+// ✅ Vider l'historique
 export const clearHistory = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -538,11 +565,13 @@ export const clearHistory = async (req, res) => {
   }
 };
 
+/* ------------------------------- ADMIN ------------------------------- */
+
+// ✅ Suppression du compte utilisateur
 export const deleteUser = async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
+    const me = await User.findById(req.user._id);
+    if (!me) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
@@ -554,6 +583,7 @@ export const deleteUser = async (req, res) => {
   }
 };
 
+// ✅ Statistiques utilisateurs (simples)
 export const getUserStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
@@ -576,10 +606,13 @@ export const getUserStats = async (req, res) => {
   }
 };
 
+// ✅ Liste des utilisateurs (pagination + recherche)
 export const getAllUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
-    const skip = (page - 1) * limit;
+    const p = parseInt(page);
+    const l = parseInt(limit);
+    const skip = (p - 1) * l;
 
     let query = {};
     if (search) {
@@ -591,21 +624,22 @@ export const getAllUsers = async (req, res) => {
       };
     }
 
-    const users = await User.find(query)
-      .select("-password")
-      .skip(skip)
-      .limit(parseInt(limit))
-      .sort({ createdAt: -1 });
-
-    const total = await User.countDocuments(query);
+    const [users, total] = await Promise.all([
+      User.find(query)
+        .select("-password")
+        .skip(skip)
+        .limit(l)
+        .sort({ createdAt: -1 }),
+      User.countDocuments(query),
+    ]);
 
     res.json({
       users,
       pagination: {
-        page: parseInt(page),
-        limit: parseInt(limit),
+        page: p,
+        limit: l,
         total,
-        pages: Math.ceil(total / limit),
+        pages: Math.ceil(total / l),
       },
     });
   } catch (error) {
@@ -614,6 +648,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
+// ✅ Export CSV
 export const exportUsersCSV = async (req, res) => {
   try {
     const users = await User.find().select("-password").lean();
@@ -628,6 +663,7 @@ export const exportUsersCSV = async (req, res) => {
   }
 };
 
+// ✅ Toggle admin
 export const toggleAdminStatus = async (req, res) => {
   try {
     const { id } = req.params;
@@ -637,7 +673,6 @@ export const toggleAdminStatus = async (req, res) => {
     }
 
     const user = await User.findById(id);
-
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
