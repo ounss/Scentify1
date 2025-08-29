@@ -1,7 +1,107 @@
-// backend/models/Parfum.js - CORRECTION LIENS MARCHANDS
+// backend/models/Parfum.js - modèle aligné + liens marchands
 import mongoose from "mongoose";
 
-const ParfumSchema = new mongoose.Schema(
+const { Schema } = mongoose;
+
+const LienMarchandSchema = new Schema(
+  {
+    nom: {
+      type: String,
+      required: true,
+      enum: [
+        "Sephora",
+        "Douglas",
+        "Marionnaud",
+        "Nocibé",
+        "Amazon",
+        "Origines Parfums",
+        "Parfums de Marly",
+        "Fragonard",
+        "Galeries Lafayette",
+        "Printemps",
+        "Site Officiel",
+        "Autre",
+      ],
+    },
+    url: {
+      type: String,
+      required: true,
+      validate: {
+        validator: function (v) {
+          const urlPattern =
+            /^https?:\/\/([\da-z.-]+)\.([a-z.]{2,})([\/\w.-]*)*\/?(\?[;&a-z\d%_.~+=-]*)?(#[-a-z\d_]*)?$/i;
+          return urlPattern.test(v);
+        },
+        message:
+          "URL invalide - doit être une URL complète (ex: https://www.example.com)",
+      },
+    },
+    prix: {
+      type: Number,
+      min: [0, "Le prix ne peut pas être négatif"],
+      max: [9999.99, "Prix trop élevé"],
+      validate: {
+        validator: function (v) {
+          return (
+            v === null ||
+            v === undefined ||
+            (typeof v === "number" &&
+              Number.isFinite(v) &&
+              v >= 0 &&
+              Math.round(v * 100) === v * 100)
+          );
+        },
+        message: "Prix invalide (max 2 décimales)",
+      },
+    },
+    devise: {
+      type: String,
+      default: "EUR",
+      enum: {
+        values: ["EUR", "USD", "GBP", "CHF", "CAD"],
+        message: "Devise non supportée",
+      },
+    },
+    taille: {
+      type: String,
+      validate: {
+        validator: (v) => !v || /^\d+(\.\d+)?(ml|L)$/i.test(v),
+        message: "Format de taille invalide (ex: 50ml, 100ml, 1L)",
+      },
+    },
+    disponible: { type: Boolean, default: true },
+    enPromotion: { type: Boolean, default: false },
+    prixOriginal: {
+      type: Number,
+      min: 0,
+      validate: {
+        validator: function (v) {
+          if (this.enPromotion && v && this.prix) return v > this.prix;
+          return true;
+        },
+        message: "Le prix original doit être supérieur au prix promotionnel",
+      },
+    },
+    dateVerification: { type: Date, default: Date.now },
+    // Livraison
+    fraisLivraison: { type: Number, min: 0, default: null },
+    delaiLivraison: { type: String, maxlength: 50 },
+    // Qualité
+    noteQualite: {
+      type: Number,
+      min: 1,
+      max: 5,
+      validate: {
+        validator: Number.isInteger,
+        message: "La note doit être un entier entre 1 et 5",
+      },
+    },
+    commentaire: { type: String, maxlength: 200, trim: true },
+  },
+  { _id: false }
+);
+
+const ParfumSchema = new Schema(
   {
     nom: {
       type: String,
@@ -27,279 +127,139 @@ const ParfumSchema = new mongoose.Schema(
       trim: true,
       maxlength: 1000,
     },
-    notes: [
+
+    /* -------------------- LIEN AVEC LES NOTES (ObjectId) -------------------- */
+    notes_tete: [
       {
-        type: mongoose.Schema.Types.ObjectId,
+        type: Schema.Types.ObjectId,
         ref: "NoteOlfactive",
       },
     ],
-    photo: {
-      type: String,
-      default: null,
-    },
-    popularite: {
-      type: Number,
-      default: 0,
-    },
-
-    // ✅ LIENS MARCHANDS AMÉLIORÉS - STRUCTURE COMPLÈTE
-    liensMarchands: [
+    notes_coeur: [
       {
-        nom: {
-          type: String,
-          required: true,
-          enum: [
-            "Sephora",
-            "Douglas",
-            "Marionnaud",
-            "Nocibé",
-            "Amazon",
-            "Origines Parfums",
-            "Parfums de Marly",
-            "Fragonard",
-            "Galeries Lafayette",
-            "Printemps",
-            "Site Officiel",
-            "Autre",
-          ],
-        },
-        url: {
-          type: String,
-          required: true,
-          validate: {
-            validator: function (v) {
-              // Validation URL plus stricte
-              const urlPattern =
-                /^https?:\/\/([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?(\?[;&a-z\d%_\.~+=-]*)?(\#[-a-z\d_]*)?$/i;
-              return urlPattern.test(v);
-            },
-            message:
-              "URL invalide - doit être une URL complète (ex: https://www.example.com)",
-          },
-        },
-        prix: {
-          type: Number,
-          min: [0, "Le prix ne peut pas être négatif"],
-          max: [9999.99, "Prix trop élevé"],
-          validate: {
-            validator: function (v) {
-              // Accepter null/undefined ou nombre positif avec max 2 décimales
-              return (
-                v === null ||
-                v === undefined ||
-                (typeof v === "number" &&
-                  v >= 0 &&
-                  Number.isFinite(v) &&
-                  (v * 100) % 1 === 0)
-              ); // Max 2 décimales
-            },
-            message: "Prix invalide (max 2 décimales)",
-          },
-        },
-        devise: {
-          type: String,
-          default: "EUR",
-          enum: {
-            values: ["EUR", "USD", "GBP", "CHF", "CAD"],
-            message: "Devise non supportée",
-          },
-        },
-        taille: {
-          type: String,
-          validate: {
-            validator: function (v) {
-              if (!v) return true; // Optionnel
-              // Format: nombre + ml/L (ex: 50ml, 100ml, 1L)
-              return /^\d+(\.\d+)?(ml|L)$/i.test(v);
-            },
-            message: "Format de taille invalide (ex: 50ml, 100ml, 1L)",
-          },
-        },
-        disponible: {
-          type: Boolean,
-          default: true,
-        },
-        enPromotion: {
-          type: Boolean,
-          default: false,
-        },
-        prixOriginal: {
-          type: Number,
-          min: 0,
-          validate: {
-            validator: function (v) {
-              // Si enPromotion = true, prixOriginal doit être > prix
-              if (this.enPromotion && v && this.prix) {
-                return v > this.prix;
-              }
-              return true;
-            },
-            message:
-              "Le prix original doit être supérieur au prix promotionnel",
-          },
-        },
-        dateVerification: {
-          type: Date,
-          default: Date.now,
-        },
-        // ✅ Informations de livraison
-        fraisLivraison: {
-          type: Number,
-          min: 0,
-          default: null, // null = gratuit ou non spécifié
-        },
-        delaiLivraison: {
-          type: String, // ex: "2-3 jours", "24h", "1 semaine"
-          maxlength: 50,
-        },
-        // ✅ Notes et commentaires
-        noteQualite: {
-          type: Number,
-          min: 1,
-          max: 5,
-          validate: {
-            validator: Number.isInteger,
-            message: "La note doit être un nombre entier entre 1 et 5",
-          },
-        },
-        commentaire: {
-          type: String,
-          maxlength: 200,
-          trim: true,
-        },
+        type: Schema.Types.ObjectId,
+        ref: "NoteOlfactive",
       },
     ],
+    notes_fond: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "NoteOlfactive",
+      },
+    ],
+
+    photo: { type: String, default: null },
+    popularite: { type: Number, default: 0 },
+
+    // Liens marchands
+    liensMarchands: [LienMarchandSchema],
 
     codeBarres: {
       type: String,
       unique: true,
       sparse: true,
       validate: {
-        validator: function (v) {
-          if (!v) return true; // Optionnel
-          // Validation code-barres EAN-13 ou UPC-A
-          return /^\d{12,13}$/.test(v);
-        },
+        validator: (v) => !v || /^\d{12,13}$/.test(v),
         message: "Code-barres invalide (12 ou 13 chiffres requis)",
       },
     },
 
-    // ✅ PRIX PRINCIPAL DU PARFUM (prix moyen ou de référence)
+    // Prix principal (moyen / de référence)
     prix: {
       type: Number,
       min: 0,
       validate: {
-        validator: function (v) {
-          return (
-            v === null ||
-            v === undefined ||
-            (typeof v === "number" && v >= 0 && (v * 100) % 1 === 0)
-          );
-        },
+        validator: (v) =>
+          v === null ||
+          v === undefined ||
+          (typeof v === "number" &&
+            v >= 0 &&
+            Number.isFinite(v) &&
+            Math.round(v * 100) === v * 100),
         message: "Prix invalide",
       },
     },
 
-    // ✅ MÉTADONNÉES POUR LES LIENS MARCHANDS
-    meilleurPrix: {
-      type: Number,
-      min: 0,
-    },
-    nombreLiensMarchands: {
-      type: Number,
-      default: 0,
-    },
+    // Métadonnées
+    meilleurPrix: { type: Number, min: 0 },
+    nombreLiensMarchands: { type: Number, default: 0 },
   },
-  {
-    timestamps: true,
-  }
+  { timestamps: true }
 );
 
-// ✅ INDEX OPTIMISÉS
+/* -------------------------------- Indexes -------------------------------- */
 ParfumSchema.index({ nom: "text", marque: "text", description: "text" });
 ParfumSchema.index({ genre: 1 });
 ParfumSchema.index({ marque: 1 });
 ParfumSchema.index({ popularite: -1 });
-ParfumSchema.index({ notes: 1 });
-ParfumSchema.index({ "liensMarchands.prix": 1 }); // Index pour recherche par prix
-ParfumSchema.index({ meilleurPrix: 1 }); // Index pour tri par prix
+ParfumSchema.index({ notes_tete: 1 });
+ParfumSchema.index({ notes_coeur: 1 });
+ParfumSchema.index({ notes_fond: 1 });
+ParfumSchema.index({ "liensMarchands.prix": 1 });
+ParfumSchema.index({ meilleurPrix: 1 });
 
-// ✅ MIDDLEWARE PRE-SAVE - CALCUL AUTOMATIQUE DU MEILLEUR PRIX
+/* -------------------------- Hooks / Pré-traitements ------------------------- */
 ParfumSchema.pre("save", function (next) {
-  if (this.liensMarchands && this.liensMarchands.length > 0) {
-    // Calculer le meilleur prix disponible
+  if (Array.isArray(this.liensMarchands) && this.liensMarchands.length > 0) {
     const prixDisponibles = this.liensMarchands
-      .filter((lien) => lien.disponible && lien.prix && lien.prix > 0)
+      .filter(
+        (lien) =>
+          lien.disponible && typeof lien.prix === "number" && lien.prix > 0
+      )
       .map((lien) => lien.prix);
 
-    if (prixDisponibles.length > 0) {
-      this.meilleurPrix = Math.min(...prixDisponibles);
-    } else {
-      this.meilleurPrix = undefined;
-    }
+    this.meilleurPrix = prixDisponibles.length
+      ? Math.min(...prixDisponibles)
+      : undefined;
 
-    // Mettre à jour le nombre de liens
     this.nombreLiensMarchands = this.liensMarchands.length;
 
-    // Si pas de prix principal défini, utiliser le meilleur prix
-    if (!this.prix && this.meilleurPrix) {
-      this.prix = this.meilleurPrix;
-    }
+    if (!this.prix && this.meilleurPrix) this.prix = this.meilleurPrix;
   }
-
   next();
 });
 
-// ✅ MÉTHODES UTILITAIRES
+/* -------------------------------- Méthodes -------------------------------- */
 ParfumSchema.methods.incrementPopularite = function () {
   this.popularite += 1;
   return this.save();
 };
 
-// ✅ Méthode pour obtenir les liens valides
 ParfumSchema.methods.getLiensValides = function () {
-  return this.liensMarchands.filter(
+  return (this.liensMarchands || []).filter(
     (lien) => lien.disponible && lien.url && !this.isLienExpire(lien)
   );
 };
 
-// ✅ Méthode pour vérifier si un lien est expiré (plus de 30 jours)
 ParfumSchema.methods.isLienExpire = function (lien) {
-  if (!lien.dateVerification) return false;
-
+  if (!lien?.dateVerification) return false;
   const maintenant = new Date();
-  const dateVerif = new Date(lien.dateVerification);
-  const diffJours = (maintenant - dateVerif) / (1000 * 60 * 60 * 24);
-
-  return diffJours > 30; // Considérer comme expiré après 30 jours
+  const diffJours =
+    (maintenant - new Date(lien.dateVerification)) / (1000 * 60 * 60 * 24);
+  return diffJours > 30;
 };
 
-// ✅ Méthode pour obtenir le prix avec promotion
 ParfumSchema.methods.getPrixAffiche = function (lien) {
   if (lien.enPromotion && lien.prixOriginal) {
-    const reduction = (
-      ((lien.prixOriginal - lien.prix) / lien.prixOriginal) *
-      100
-    ).toFixed(0);
+    const reduction = Math.round(
+      ((lien.prixOriginal - lien.prix) / lien.prixOriginal) * 100
+    );
     return {
       prix: lien.prix,
       prixOriginal: lien.prixOriginal,
-      reduction: reduction,
+      reduction,
       enPromotion: true,
     };
   }
-  return {
-    prix: lien.prix,
-    enPromotion: false,
-  };
+  return { prix: lien.prix, enPromotion: false };
 };
 
-// ✅ MÉTHODES STATIQUES
+/* ------------------------------ Méthodes statiques ------------------------------ */
 ParfumSchema.statics.findByPriceRange = function (minPrix, maxPrix) {
   return this.find({
     meilleurPrix: {
-      $gte: minPrix || 0,
-      $lte: maxPrix || Number.MAX_SAFE_INTEGER,
+      $gte: minPrix ?? 0,
+      $lte: maxPrix ?? Number.MAX_SAFE_INTEGER,
     },
   });
 };
@@ -311,18 +271,20 @@ ParfumSchema.statics.findWithValidLinks = function () {
   });
 };
 
-// ✅ VIRTUALS
+/* --------------------------------- Virtuels --------------------------------- */
 ParfumSchema.virtual("nombreNotes").get(function () {
-  return this.notes.length;
+  const a = Array.isArray(this.notes_tete) ? this.notes_tete.length : 0;
+  const b = Array.isArray(this.notes_coeur) ? this.notes_coeur.length : 0;
+  const c = Array.isArray(this.notes_fond) ? this.notes_fond.length : 0;
+  return a + b + c;
 });
 
 ParfumSchema.virtual("aDesLiensMarchands").get(function () {
-  return this.nombreLiensMarchands > 0;
+  return (this.nombreLiensMarchands || 0) > 0;
 });
 
 ParfumSchema.virtual("prixFormatte").get(function () {
-  if (!this.prix) return null;
-  return `${this.prix.toFixed(2)} EUR`;
+  return typeof this.prix === "number" ? `${this.prix.toFixed(2)} EUR` : null;
 });
 
 ParfumSchema.set("toJSON", { virtuals: true });

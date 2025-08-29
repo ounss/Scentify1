@@ -88,14 +88,13 @@ export default function AdminPanel() {
       return;
     }
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, navigate]);
 
   // ✅ CHARGEMENT DES DONNÉES
   const loadData = async () => {
     try {
       setLoading(true);
-      console.log("📡 Chargement données admin...");
-
       const [statsData, usersData, parfumsData, notesData] = await Promise.all([
         adminAPI
           .getStats()
@@ -130,6 +129,29 @@ export default function AdminPanel() {
     setRefreshing(false);
   };
 
+  // ✅ EXPORT CSV UTILISATEURS (NOUVEAU)
+  const handleExportUsers = async () => {
+    try {
+      const response = await adminAPI.exportUsers();
+
+      // Créer un blob et déclencher le téléchargement
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "users.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+
+      toast.success("Export CSV réussi");
+    } catch (error) {
+      console.error("Erreur export:", error);
+      toast.error("Erreur lors de l'export");
+    }
+  };
+
   // ✅ GESTION UTILISATEURS
   const createUser = async (e) => {
     e.preventDefault();
@@ -152,7 +174,7 @@ export default function AdminPanel() {
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
 
     try {
-      // Note: Route à ajouter dans le backend
+      // Note: Route backend à implémenter si nécessaire
       setUsers(users.filter((u) => u._id !== userId));
       toast.success("Utilisateur supprimé");
     } catch (error) {
@@ -185,7 +207,12 @@ export default function AdminPanel() {
     try {
       const response = await parfumAPI.create(parfumForm);
       setShowParfumForm(false);
-      setParfumForm({ nom: "", marque: "", genre: "mixte", description: "" });
+      setParfumForm({
+        nom: "",
+        marque: "",
+        genre: "mixte",
+        description: "",
+      });
       setParfums([...parfums, response.data]);
       toast.success("Parfum créé");
     } catch (error) {
@@ -261,11 +288,11 @@ export default function AdminPanel() {
     }
   };
 
-  // ✅ FILTRES
+  // ✅ FILTRES (mémoïsables si besoin)
   const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(searchUsers.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchUsers.toLowerCase())
+    (u) =>
+      u.username.toLowerCase().includes(searchUsers.toLowerCase()) ||
+      u.email.toLowerCase().includes(searchUsers.toLowerCase())
   );
 
   const filteredParfums = parfums.filter((parfum) => {
@@ -412,7 +439,7 @@ export default function AdminPanel() {
               </p>
             </div>
 
-            {/* Cards statistiques améliorées */}
+            {/* Cards statistiques */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl p-6 border border-blue-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
                 <div className="flex items-center justify-between">
@@ -487,7 +514,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* État du système stylisé */}
+            {/* État du système */}
             <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100">
               <div className="flex items-center space-x-3 mb-6">
                 <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center">
@@ -547,8 +574,9 @@ export default function AdminPanel() {
                   <span>Nouvel utilisateur</span>
                 </button>
 
+                {/* ✅ Bouton Export CSV corrigé */}
                 <button
-                  onClick={() => adminAPI.exportUsers()}
+                  onClick={handleExportUsers}
                   className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
                 >
                   <Download className="w-5 h-5" />
@@ -571,7 +599,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* Table utilisateurs stylisée */}
+            {/* Table utilisateurs */}
             <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
               <div className="overflow-x-auto">
                 <table className="w-full">
@@ -732,7 +760,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* Recherche et filtres parfums */}
+            {/* Recherche & filtres parfums */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="relative lg:col-span-2">
@@ -905,7 +933,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* Recherche et filtres notes */}
+            {/* Recherche & filtres notes */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                 <div className="relative lg:col-span-2">
@@ -1082,7 +1110,8 @@ export default function AdminPanel() {
               onSubmit={
                 editingItem
                   ? (e) => {
-                      e.preventDefault(); /* updateUser */
+                      e.preventDefault();
+                      /* updateUser à implémenter si souhaité */
                     }
                   : createUser
               }

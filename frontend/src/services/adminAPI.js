@@ -1,46 +1,36 @@
-// frontend/src/services/adminAPI.js - CORRECTION APPELS API
+// frontend/src/services/adminAPI.js
 import api from "./api.js";
 
 export const adminAPI = {
-  // ✅ STATS - URLs corrigées pour correspondre aux routes backend
+  // Stats
   getStats: async () => {
-    try {
-      const [users, parfums, notes] = await Promise.all([
-        api.get("/admin/stats/users"), // ✅ Correspond à router.get("/stats/users")
-        api.get("/admin/stats/parfums"), // ✅ Correspond à router.get("/stats/parfums")
-        api.get("/admin/stats/notes"), // ✅ Correspond à router.get("/stats/notes")
-      ]);
-
-      return {
-        users: users.data,
-        parfums: parfums.data,
-        notes: notes.data,
-      };
-    } catch (error) {
-      console.error("❌ Erreur récupération stats:", error);
-      throw error;
-    }
+    const [users, parfums, notes] = await Promise.all([
+      api.get("/admin/stats/users"),
+      api.get("/admin/stats/parfums"),
+      api.get("/admin/stats/notes"),
+    ]);
+    return {
+      users: users.data,
+      parfums: parfums.data,
+      notes: notes.data,
+    };
   },
 
-  // ✅ UTILISATEURS - URLs corrigées
-  getUsers: (params = {}) => {
-    console.log("📡 Appel getUsers avec params:", params);
-    return api.get("/admin/users", { params });
-  },
+  // Utilisateurs
+  getUsers: (params = {}) => api.get("/admin/users", { params }),
+  toggleAdmin: (userId) => api.patch(`/admin/users/${userId}/admin`),
 
-  toggleAdmin: (userId) => {
-    console.log("📡 Toggle admin pour user:", userId);
-    return api.patch(`/admin/users/${userId}/admin`);
-  },
+  // ✅ Export CSV (réponse en blob + header CSV)
+  exportUsers: () =>
+    api.get("/admin/users/export", {
+      responseType: "blob",
+      headers: { Accept: "text/csv" },
+    }),
 
-  exportUsers: () => {
-    console.log("📡 Export users CSV");
-    return api.get("/admin/users/export", { responseType: "blob" });
-  },
-
-  // ✅ PARFUMS - URL corrigée
-  exportParfums: () => {
-    console.log("📡 Export parfums CSV");
-    return api.get("/admin/parfums/export", { responseType: "blob" });
-  },
+  // Parfums
+  exportParfums: () =>
+    api.get("/admin/parfums/export", {
+      responseType: "blob",
+      headers: { Accept: "text/csv" },
+    }),
 };

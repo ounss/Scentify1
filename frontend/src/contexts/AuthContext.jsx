@@ -83,28 +83,25 @@ export function AuthProvider({ children }) {
 
       if (token) {
         try {
+          // ✅ IMPORTANT: Définir le header Authorization AVANT l'appel
           api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-          const response = await authAPI.getProfile();
 
-          console.log("✅ Utilisateur chargé:", response.data.username);
-          console.log("✅ Favoris chargés:", {
-            parfums: response.data.favorisParfums?.length || 0,
-            notes: response.data.favorisNotes?.length || 0,
-          });
+          const response = await authAPI.getProfile();
 
           dispatch({
             type: "LOGIN_SUCCESS",
             payload: { user: response.data, token },
           });
         } catch (error) {
-          console.error("❌ Token invalide:", error?.message);
+          // Token invalide/expiré
           localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
           dispatch({ type: "LOGOUT" });
         }
-      } else {
-        dispatch({ type: "SET_LOADING", payload: false });
       }
+
+      // ✅ IMPORTANT: Arrêter le loading même si pas de token
+      dispatch({ type: "SET_LOADING", payload: false });
     };
 
     checkAuth();

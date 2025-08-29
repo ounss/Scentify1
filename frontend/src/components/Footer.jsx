@@ -29,13 +29,8 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a className="footer-link" href="#parfums">
-                  Parfums
-                </a>
-              </li>
-              <li>
-                <a className="footer-link" href="#notes">
-                  Notes
+                <a className="footer-link" href="/profile">
+                  Compte
                 </a>
               </li>
               <li>

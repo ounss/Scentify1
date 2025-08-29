@@ -2566,7 +2566,7 @@ ul {
   cursor: pointer;
 }
 .text-white {
-  color: var(--white);
+  color: #131313;
 }
 .text-gray-500 {
   color: var(--gray-500);
