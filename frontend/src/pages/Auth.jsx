@@ -1,6 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, ArrowRight } from "lucide-react";
+import React, { useState } from "react";
+import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 
@@ -12,30 +11,12 @@ export default function Auth() {
     password: "",
     username: "",
   });
-  const [isLoading, setIsLoading] = useState(false);
-
-  const { login, register, error, clearError, isAuthenticated, loading } =
-    useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  // ✅ FIX BOUCLE INFINIE - Vérifier seulement si pas en loading
-  useEffect(() => {
-    if (!loading && isAuthenticated) {
-      const from = location.state?.from?.pathname || "/";
-      console.log("🔄 Redirection utilisateur connecté vers:", from);
-      navigate(from, { replace: true });
-    }
-  }, [isAuthenticated, loading, navigate, location.state?.from?.pathname]);
-
-  // ✅ Nettoyer les erreurs au changement de mode (avec dépendance correcte)
-  useEffect(() => {
-    clearError();
-  }, [isLogin]);
+  const [loading, setLoading] = useState(false);
+  const { login, register } = useAuth();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setIsLoading(true);
+    setLoading(true);
 
     try {
       const result = isLogin
@@ -43,167 +24,124 @@ export default function Auth() {
         : await register(formData);
 
       if (result.success) {
-        toast.success(
-          isLogin ? "Connexion réussie !" : "Compte créé avec succès !"
-        );
-        // La redirection se fera automatiquement via useEffect
+        toast.success(isLogin ? "Connexion réussie!" : "Compte créé!");
       } else {
         toast.error(result.error);
       }
-    } catch (err) {
-      toast.error("Une erreur est survenue");
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
-  };
-
-  // ✅ Afficher loading pendant la vérification auth
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Vérification...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
-    <div className="min-h-screen flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gradient-to-br from-amber-100 via-orange-100 to-pink-100"></div>
+    <div
+      className="min-h-screen flex items-center justify-center p-4"
+      style={{
+        background: "linear-gradient(135deg, var(--bg), var(--bg-light))",
+      }}
+    >
+      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <div className="logo-icon mx-auto mb-4">S</div>
+          <h1 className="text-2xl font-bold text-gray-900 mb-2">
+            {isLogin ? "Bon retour" : "Bienvenue"}
+          </h1>
+          <p className="text-gray-600">
+            {isLogin ? "Connectez-vous à votre compte" : "Créez votre compte"}
+          </p>
+        </div>
 
-      <div className="relative w-full max-w-md">
-        {/* Card principale */}
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
-          {/* Header */}
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl mx-auto mb-4 flex items-center justify-center">
-              <span className="text-white font-bold text-xl">S</span>
-            </div>
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">
-              {isLogin ? "Bon retour" : "Bienvenue"}
-            </h1>
-            <p className="text-gray-600">
-              {isLogin
-                ? "Connectez-vous à votre compte Scentify"
-                : "Créez votre compte pour découvrir vos parfums"}
-            </p>
-          </div>
-
-          {/* Formulaire */}
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {!isLogin && (
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {!isLogin && (
+            <div className="form-group">
               <div className="relative">
-                <User className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
                 <input
                   type="text"
-                  name="username"
+                  className="form-input pl-10"
                   placeholder="Nom d'utilisateur"
                   value={formData.username}
-                  onChange={handleChange}
-                  required={!isLogin}
-                  autoComplete="username"
-                  className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  onChange={(e) =>
+                    setFormData({ ...formData, username: e.target.value })
+                  }
+                  required
                 />
               </div>
-            )}
+            </div>
+          )}
 
+          <div className="form-group">
             <div className="relative">
-              <Mail className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
                 type="email"
-                name="email"
+                className="form-input pl-10"
                 placeholder="Email"
                 value={formData.email}
-                onChange={handleChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
                 required
-                autoComplete="email"
-                className="w-full pl-12 pr-4 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
               />
             </div>
+          </div>
 
+          <div className="form-group">
             <div className="relative">
-              <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
               <input
                 type={showPassword ? "text" : "password"}
-                name="password"
+                className="form-input pl-10 pr-10"
                 placeholder="Mot de passe"
                 value={formData.password}
-                onChange={handleChange}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
                 required
-                autoComplete={isLogin ? "current-password" : "new-password"}
-                className="w-full pl-12 pr-12 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
               />
               <button
                 type="button"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 p-1 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 {showPassword ? (
-                  <EyeOff className="w-5 h-5 text-gray-400" />
+                  <EyeOff className="w-5 h-5 text-gray-500" />
                 ) : (
-                  <Eye className="w-5 h-5 text-gray-400" />
+                  <Eye className="w-5 h-5 text-gray-500" />
                 )}
               </button>
             </div>
-
-            {/* Bouton submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-gradient-to-r from-red-600 to-pink-600 text-white py-4 rounded-2xl font-semibold text-lg hover:from-red-700 hover:to-pink-700 transition-all duration-300 transform hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
-            >
-              {isLoading ? (
-                <div className="w-6 h-6 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-              ) : (
-                <>
-                  <span>{isLogin ? "Se connecter" : "Créer mon compte"}</span>
-                  <ArrowRight className="w-5 h-5" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Toggle mode */}
-          <div className="text-center mt-8">
-            <p className="text-gray-600 mb-4">
-              {isLogin ? "Pas encore de compte ?" : "Déjà un compte ?"}
-            </p>
-            <button
-              onClick={() => {
-                setIsLogin(!isLogin);
-                setFormData({ email: "", password: "", username: "" });
-              }}
-              className="text-red-600 font-semibold hover:text-red-700 transition-colors"
-            >
-              {isLogin ? "Créer un compte" : "Se connecter"}
-            </button>
           </div>
 
-          {/* Mot de passe oublié */}
-          {isLogin && (
-            <div className="text-center mt-4">
-              <button
-                onClick={() => toast("Fonctionnalité bientôt disponible")}
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
-              >
-                Mot de passe oublié ?
-              </button>
-            </div>
-          )}
-        </div>
+          <button
+            type="submit"
+            className="btn btn-primary btn-full"
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full spin"></div>
+            ) : isLogin ? (
+              "Se connecter"
+            ) : (
+              "S'inscrire"
+            )}
+          </button>
+        </form>
 
-        {/* Décorations */}
-        <div className="absolute top-20 left-10 w-32 h-32 bg-gradient-to-br from-yellow-200 to-orange-200 rounded-full opacity-20 blur-xl"></div>
-        <div className="absolute bottom-20 right-10 w-40 h-40 bg-gradient-to-br from-pink-200 to-purple-200 rounded-full opacity-20 blur-xl"></div>
+        {/* Toggle */}
+        <div className="text-center mt-6">
+          <p className="text-gray-600 mb-2">
+            {isLogin ? "Pas de compte ?" : "Déjà un compte ?"}
+          </p>
+          <button
+            className="text-primary font-semibold"
+            onClick={() => setIsLogin(!isLogin)}
+          >
+            {isLogin ? "S'inscrire" : "Se connecter"}
+          </button>
+        </div>
       </div>
     </div>
   );
