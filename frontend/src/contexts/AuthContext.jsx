@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS ET ÉVÉNEMENTS + HYDRATE TOKEN
+// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS URGENTE
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
 import api from "../services/api";
@@ -9,16 +9,6 @@ const authReducer = (state, action) => {
   switch (action.type) {
     case "SET_LOADING":
       return { ...state, loading: action.payload };
-
-    case "HYDRATE_TOKEN":
-      // Hydrate depuis le token décodé (user minimal), on conserve loading: true
-      return {
-        ...state,
-        user: action.payload.user || state.user,
-        token: action.payload.token,
-        loading: true,
-        error: null,
-      };
 
     case "LOGIN_SUCCESS":
       localStorage.setItem("token", action.payload.token);
@@ -44,110 +34,27 @@ const authReducer = (state, action) => {
     case "UPDATE_USER":
       return { ...state, user: { ...state.user, ...action.payload } };
 
-    case "REFRESH_USER":
-      return { ...state, user: action.payload };
+    case "REFRESH_USER_COMPLETE":
+      return { ...state, user: action.payload, loading: false };
 
-    // ✅ GESTION FAVORIS PARFUMS
-    case "ADD_FAVORI_PARFUM":
+    // ✅ CORRECTION FAVORIS - STRUCTURE CORRIGÉE
+    case "UPDATE_FAVORIS_PARFUMS":
       if (!state.user) return state;
-      const currentFavorisParfums = state.user.favorisParfums || [];
-      if (
-        currentFavorisParfums.some(
-          (fav) => (typeof fav === "string" ? fav : fav._id) === action.payload
-        )
-      ) {
-        return state; // Déjà en favoris
-      }
       return {
         ...state,
         user: {
           ...state.user,
-          favorisParfums: [...currentFavorisParfums, action.payload],
+          favorisParfums: action.payload, // Remplacer complètement la liste
         },
       };
 
-    case "REMOVE_FAVORI_PARFUM":
+    case "UPDATE_FAVORIS_NOTES":
       if (!state.user) return state;
       return {
         ...state,
         user: {
           ...state.user,
-          favorisParfums: (state.user.favorisParfums || []).filter(
-            (fav) =>
-              (typeof fav === "string" ? fav : fav._id) !== action.payload
-          ),
-        },
-      };
-
-    // ✅ GESTION FAVORIS NOTES
-    case "ADD_FAVORI_NOTE":
-      if (!state.user) return state;
-      const currentFavorisNotes = state.user.favorisNotes || [];
-      if (
-        currentFavorisNotes.some(
-          (fav) => (typeof fav === "string" ? fav : fav._id) === action.payload
-        )
-      ) {
-        return state; // Déjà en favoris
-      }
-      return {
-        ...state,
-        user: {
-          ...state.user,
-          favorisNotes: [...currentFavorisNotes, action.payload],
-        },
-      };
-
-    case "REMOVE_FAVORI_NOTE":
-      if (!state.user) return state;
-      return {
-        ...state,
-        user: {
-          ...state.user,
-          favorisNotes: (state.user.favorisNotes || []).filter(
-            (fav) =>
-              (typeof fav === "string" ? fav : fav._id) !== action.payload
-          ),
-        },
-      };
-
-    // ✅ GESTION HISTORIQUE
-    case "ADD_TO_HISTORY":
-      if (!state.user) return state;
-
-      const newHistoryItem = {
-        parfum: action.payload.parfum,
-        dateVisite: new Date().toISOString(),
-      };
-
-      const currentHistory = state.user.historique || [];
-
-      // Supprimer l'entrée existante si elle existe
-      const filteredHistory = currentHistory.filter((h) => {
-        const historyParfumId =
-          typeof h.parfum === "string" ? h.parfum : h.parfum?._id;
-        const newParfumId =
-          typeof newHistoryItem.parfum === "string"
-            ? newHistoryItem.parfum
-            : newHistoryItem.parfum?._id;
-        return historyParfumId !== newParfumId;
-      });
-
-      return {
-        ...state,
-        user: {
-          ...state.user,
-          historique: [newHistoryItem, ...filteredHistory].slice(0, 50), // Limiter à 50
-        },
-      };
-
-    case "CLEAR_HISTORY":
-      if (!state.user) return state;
-      return {
-        ...state,
-        user: {
-          ...state.user,
-          historique: [],
+          favorisNotes: action.payload, // Remplacer complètement la liste
         },
       };
 
@@ -169,44 +76,7 @@ const initialState = {
 export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, initialState);
 
-  // ✅ HYDRATE DEPUIS LE TOKEN AU MONTAGE (décodage local, sans appel API)
-  // Permet de garder l'utilisateur connecté après refresh immédiatement.
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    try {
-      const payloadBase64 = token.split(".")[1];
-      if (!payloadBase64) return;
-
-      const decoded = JSON.parse(atob(payloadBase64));
-
-      // Construire un "user minimal" depuis le payload JWT
-      const minimalUser = {
-        id: decoded.id || decoded._id,
-        _id: decoded.id || decoded._id,
-        email: decoded.email,
-        role: decoded.role,
-        isAdmin:
-          decoded.isAdmin === true ||
-          decoded.role === "admin" ||
-          decoded.role === "ADMIN",
-        username: decoded.username || decoded.name || undefined,
-      };
-
-      // Pose l'en-tête tout de suite pour les futurs appels
-      api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-      dispatch({
-        type: "HYDRATE_TOKEN",
-        payload: { token, user: minimalUser },
-      });
-    } catch (e) {
-      console.error("❌ Échec du décodage du token:", e);
-    }
-  }, []);
-
-  // ✅ VÉRIFIER TOKEN AU CHARGEMENT (validation serveur, remplace par profil complet)
+  // ✅ VÉRIFIER TOKEN AU CHARGEMENT
   useEffect(() => {
     const checkAuth = async () => {
       const token = localStorage.getItem("token");
@@ -217,6 +87,10 @@ export function AuthProvider({ children }) {
           const response = await authAPI.getProfile();
 
           console.log("✅ Utilisateur chargé:", response.data.username);
+          console.log("✅ Favoris chargés:", {
+            parfums: response.data.favorisParfums?.length || 0,
+            notes: response.data.favorisNotes?.length || 0,
+          });
 
           dispatch({
             type: "LOGIN_SUCCESS",
@@ -236,48 +110,36 @@ export function AuthProvider({ children }) {
     checkAuth();
   }, []);
 
-  // ✅ ÉCOUTER LES ÉVÉNEMENTS DE MISE À JOUR
+  // ✅ ÉCOUTER LES ÉVÉNEMENTS DE MISE À JOUR FAVORIS
   useEffect(() => {
-    // Événement favoris parfums
-    const handleFavorisUpdate = (event) => {
-      const { parfumId, action } = event.detail;
+    const handleFavorisUpdate = async () => {
+      if (!state.user) return;
 
-      if (action === "add") {
-        dispatch({ type: "ADD_FAVORI_PARFUM", payload: parfumId });
-      } else if (action === "remove") {
-        dispatch({ type: "REMOVE_FAVORI_PARFUM", payload: parfumId });
+      try {
+        console.log("🔄 Refresh favoris après changement...");
+        const response = await authAPI.getProfile();
+
+        dispatch({
+          type: "UPDATE_FAVORIS_PARFUMS",
+          payload: response.data.favorisParfums || [],
+        });
+
+        console.log(
+          "✅ Favoris mis à jour:",
+          response.data.favorisParfums?.length || 0
+        );
+      } catch (error) {
+        console.error("❌ Erreur refresh favoris:", error);
       }
     };
 
-    // Événement favoris notes
-    const handleNotesUpdate = (event) => {
-      const { noteId, action } = event.detail;
-
-      if (action === "add") {
-        dispatch({ type: "ADD_FAVORI_NOTE", payload: noteId });
-      } else if (action === "remove") {
-        dispatch({ type: "REMOVE_FAVORI_NOTE", payload: noteId });
-      }
-    };
-
-    // Événement historique
-    const handleHistoryUpdate = (event) => {
-      const { parfum } = event.detail;
-      dispatch({ type: "ADD_TO_HISTORY", payload: { parfum } });
-    };
-
-    // Ajouter les listeners
+    // Écouter les événements favoris
     window.addEventListener("favorisUpdated", handleFavorisUpdate);
-    window.addEventListener("notesUpdated", handleNotesUpdate);
-    window.addEventListener("historyUpdated", handleHistoryUpdate);
 
-    // Nettoyage
     return () => {
       window.removeEventListener("favorisUpdated", handleFavorisUpdate);
-      window.removeEventListener("notesUpdated", handleNotesUpdate);
-      window.removeEventListener("historyUpdated", handleHistoryUpdate);
     };
-  }, []);
+  }, [state.user]);
 
   // ✅ ACTIONS PRINCIPALES
   const login = async (credentials) => {
@@ -322,42 +184,19 @@ export function AuthProvider({ children }) {
     dispatch({ type: "UPDATE_USER", payload: userData });
   };
 
-  // ✅ REFRESH USER - À utiliser avec parcimonie
+  // ✅ REFRESH USER - CORRECTION
   const refreshUser = async () => {
+    if (!state.user) return null;
+
     try {
       const response = await authAPI.getProfile();
       console.log("🔄 Profil rechargé:", response.data.username);
-      dispatch({ type: "REFRESH_USER", payload: response.data });
+      dispatch({ type: "REFRESH_USER_COMPLETE", payload: response.data });
       return response.data;
     } catch (error) {
       console.error("❌ Erreur refresh user:", error);
       return null;
     }
-  };
-
-  // ✅ ACTIONS FAVORIS (pour utilisation directe si besoin)
-  const addFavoriParfum = (parfumId) => {
-    dispatch({ type: "ADD_FAVORI_PARFUM", payload: parfumId });
-  };
-
-  const removeFavoriParfum = (parfumId) => {
-    dispatch({ type: "REMOVE_FAVORI_PARFUM", payload: parfumId });
-  };
-
-  const addFavoriNote = (noteId) => {
-    dispatch({ type: "ADD_FAVORI_NOTE", payload: noteId });
-  };
-
-  const removeFavoriNote = (noteId) => {
-    dispatch({ type: "REMOVE_FAVORI_NOTE", payload: noteId });
-  };
-
-  const addToHistory = (parfum) => {
-    dispatch({ type: "ADD_TO_HISTORY", payload: { parfum } });
-  };
-
-  const clearHistory = () => {
-    dispatch({ type: "CLEAR_HISTORY" });
   };
 
   const clearError = () => {
@@ -380,14 +219,6 @@ export function AuthProvider({ children }) {
     logout,
     updateUser,
     refreshUser,
-
-    // Actions favoris et historique
-    addFavoriParfum,
-    removeFavoriParfum,
-    addFavoriNote,
-    removeFavoriNote,
-    addToHistory,
-    clearHistory,
     clearError,
   };
 

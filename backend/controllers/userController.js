@@ -19,6 +19,16 @@ const generateToken = (id) => {
 export const registerUser = async (req, res) => {
   try {
     const { email, password, username } = req.body;
+    const existingUser = await User.findOne({
+      $or: [{ email }, { username }],
+    });
+    if (existingUser) {
+      const message =
+        existingUser.email === email
+          ? "Email déjà utilisé"
+          : "Nom d'utilisateur déjà pris";
+      return res.status(400).json({ message });
+    }
 
     const user = await User.create({
       email,

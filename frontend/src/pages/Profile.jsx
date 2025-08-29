@@ -1,3 +1,4 @@
+// frontend/src/pages/Profile.jsx - CORRECTION COMPLÈTE
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -10,7 +11,11 @@ import {
   Crown,
   Mail,
   Calendar,
-  TrendingUp,
+  LogOut,
+  ArrowLeft,
+  Edit3,
+  Save,
+  X,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { favoriAPI, historyAPI, authAPI } from "../services/api";
@@ -18,10 +23,10 @@ import ParfumCard from "../components/ParfumCard";
 import toast from "react-hot-toast";
 
 export default function Profile() {
-  const { user, updateUser, logout, isAdmin } = useAuth();
+  const { user, updateUser, logout, isAdmin, isAuthenticated } = useAuth();
   const navigate = useNavigate();
 
-  const [activeTab, setActiveTab] = useState("favorites");
+  const [activeTab, setActiveTab] = useState("overview");
   const [favorites, setFavorites] = useState({ parfums: [], notes: [] });
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -31,44 +36,86 @@ export default function Profile() {
     email: user?.email || "",
   });
 
-  // Charger les données utilisateur
+  // ✅ VÉRIFICATION AUTHENTIFICATION
   useEffect(() => {
-    loadUserData();
-  }, []);
+    if (!isAuthenticated) {
+      toast.error("Veuillez vous connecter");
+      navigate("/auth");
+      return;
+    }
 
+    if (!user) {
+      toast.error("Erreur de chargement du profil");
+      navigate("/");
+      return;
+    }
+
+    loadUserData();
+  }, [isAuthenticated, user, navigate]);
+
+  // ✅ CHARGEMENT DES DONNÉES UTILISATEUR
   const loadUserData = async () => {
+    if (!user) return;
+
     try {
       setLoading(true);
+
       const [favoritesRes, historyRes] = await Promise.all([
-        favoriAPI.getFavorites(),
-        historyAPI.getHistory({ limit: 20 }),
+        favoriAPI.getFavorites().catch((err) => {
+          console.warn("Erreur favoris:", err);
+          return { data: { parfums: [], notes: [] } };
+        }),
+        historyAPI.getHistory({ limit: 20 }).catch((err) => {
+          console.warn("Erreur historique:", err);
+          return { data: [] };
+        }),
       ]);
 
       setFavorites(favoritesRes.data);
       setHistory(historyRes.data);
+
+      console.log("✅ Données profil chargées:", {
+        favorisParfums: favoritesRes.data.parfums?.length || 0,
+        historique: historyRes.data?.length || 0,
+      });
     } catch (error) {
-      console.error("Erreur chargement profil:", error);
+      console.error("❌ Erreur chargement profil:", error);
       toast.error("Erreur lors du chargement");
     } finally {
       setLoading(false);
     }
   };
 
-  // Mise à jour du profil
+  // ✅ MISE À JOUR DU PROFIL
   const handleUpdateProfile = async (e) => {
     e.preventDefault();
+
+    if (!editForm.username.trim() || !editForm.email.trim()) {
+      toast.error("Veuillez remplir tous les champs");
+      return;
+    }
+
     try {
       const response = await authAPI.updateProfile(editForm);
       updateUser(response.data);
       setIsEditing(false);
       toast.success("Profil mis à jour !");
+
+      // Mettre à jour le formulaire avec les nouvelles données
+      setEditForm({
+        username: response.data.username,
+        email: response.data.email,
+      });
     } catch (error) {
+      console.error("❌ Erreur mise à jour profil:", error);
       toast.error(error.response?.data?.message || "Erreur de mise à jour");
     }
   };
 
-  // Supprimer un favori
+  // ✅ SUPPRIMER UN FAVORI
   const removeFavorite = async (parfumId) => {
+    if (!window.confirm("Retirer ce parfum des favoris ?")) return;
+
     try {
       await favoriAPI.removeParfum(parfumId);
       setFavorites((prev) => ({
@@ -76,50 +123,58 @@ export default function Profile() {
         parfums: prev.parfums.filter((p) => p._id !== parfumId),
       }));
       toast.success("Retiré des favoris");
+
+      // Déclencher mise à jour du contexte
+      window.dispatchEvent(new CustomEvent("favorisUpdated"));
     } catch (error) {
+      console.error("❌ Erreur suppression favori:", error);
       toast.error("Erreur lors de la suppression");
     }
   };
 
-  // Vider l'historique
+  // ✅ VIDER L'HISTORIQUE
   const clearHistory = async () => {
-    if (window.confirm("Voulez-vous vraiment vider votre historique ?")) {
-      try {
-        await historyAPI.clearHistory();
-        setHistory([]);
-        toast.success("Historique vidé");
-      } catch (error) {
-        toast.error("Erreur lors de la suppression");
-      }
+    if (!window.confirm("Voulez-vous vraiment vider votre historique ?"))
+      return;
+
+    try {
+      await historyAPI.clearHistory();
+      setHistory([]);
+      toast.success("Historique vidé");
+    } catch (error) {
+      console.error("❌ Erreur clear history:", error);
+      toast.error("Erreur lors de la suppression");
     }
   };
 
-  // Navigation vers admin
+  // ✅ DÉCONNEXION
+  const handleLogout = () => {
+    if (window.confirm("Êtes-vous sûr de vouloir vous déconnecter ?")) {
+      logout();
+      toast.success("Déconnexion réussie");
+      navigate("/");
+    }
+  };
+
+  // ✅ NAVIGATION VERS ADMIN
   const goToAdmin = () => navigate("/admin");
 
   const tabs = [
+    { id: "overview", label: "Aperçu", icon: User },
     {
       id: "favorites",
       label: "Favoris",
       icon: Heart,
       count: favorites.parfums.length,
     },
-    {
-      id: "history",
-      label: "Historique",
-      icon: Clock,
-      count: history.length,
-    },
-    {
-      id: "settings",
-      label: "Paramètres",
-      icon: Settings,
-    },
+    { id: "history", label: "Historique", icon: Clock, count: history.length },
+    { id: "settings", label: "Paramètres", icon: Settings },
   ];
 
+  // ✅ ÉTAT DE CHARGEMENT
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-gray-600">Chargement de votre profil...</p>
@@ -128,47 +183,82 @@ export default function Profile() {
     );
   }
 
+  // ✅ VÉRIFICATION UTILISATEUR
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <User className="w-20 h-20 text-gray-300 mx-auto mb-6" />
+          <h2 className="text-2xl font-bold text-gray-600 mb-4">
+            Profil non disponible
+          </h2>
+          <button
+            onClick={() => navigate("/")}
+            className="bg-red-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-red-700"
+          >
+            Retour à l'accueil
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="container mx-auto px-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header mobile */}
+      <div className="lg:hidden bg-white shadow-sm border-b sticky top-0 z-30">
+        <div className="flex items-center justify-between p-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="p-2 hover:bg-gray-100 rounded-full"
+          >
+            <ArrowLeft className="w-5 h-5 text-gray-600" />
+          </button>
+          <h1 className="text-lg font-bold text-gray-800">Profil</h1>
+          <div className="w-9"></div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Header du profil */}
-        <div className="bg-white rounded-3xl shadow-lg p-8 mb-8">
-          <div className="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+        <div className="bg-white rounded-3xl shadow-lg p-6 lg:p-8 mb-8">
+          <div className="flex flex-col lg:flex-row items-center lg:items-start space-y-6 lg:space-y-0 lg:space-x-8">
             {/* Avatar */}
             <div className="relative">
-              <div className="w-32 h-32 bg-gradient-to-r from-red-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-lg">
-                <span className="text-white font-bold text-4xl">
-                  {user?.username?.charAt(0).toUpperCase()}
+              <div className="w-24 h-24 lg:w-32 lg:h-32 bg-gradient-to-r from-red-500 to-pink-500 rounded-3xl flex items-center justify-center shadow-lg">
+                <span className="text-white font-bold text-2xl lg:text-4xl">
+                  {user.username?.charAt(0).toUpperCase()}
                 </span>
               </div>
               {isAdmin && (
                 <div className="absolute -top-2 -right-2 bg-orange-500 text-white p-2 rounded-full shadow-lg">
-                  <Crown className="w-5 h-5" />
+                  <Crown className="w-4 h-4 lg:w-5 lg:h-5" />
                 </div>
               )}
             </div>
 
             {/* Informations */}
-            <div className="flex-1 text-center md:text-left">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">
-                {user?.username}
+            <div className="flex-1 text-center lg:text-left">
+              <h1 className="text-2xl lg:text-3xl font-bold text-gray-800 mb-2">
+                {user.username}
               </h1>
-              <div className="flex flex-col md:flex-row items-center md:items-start space-y-2 md:space-y-0 md:space-x-6 text-gray-600 mb-4">
+
+              <div className="flex flex-col lg:flex-row items-center lg:items-start space-y-2 lg:space-y-0 lg:space-x-6 text-gray-600 mb-4">
                 <div className="flex items-center space-x-2">
                   <Mail className="w-4 h-4" />
-                  <span>{user?.email}</span>
+                  <span>{user.email}</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <Calendar className="w-4 h-4" />
                   <span>
                     Membre depuis{" "}
-                    {new Date(user?.createdAt).toLocaleDateString("fr-FR")}
+                    {new Date(user.createdAt).toLocaleDateString("fr-FR")}
                   </span>
                 </div>
               </div>
 
               {/* Badges */}
-              <div className="flex flex-wrap justify-center md:justify-start gap-2 mb-6">
+              <div className="flex flex-wrap justify-center lg:justify-start gap-2 mb-6">
                 {isAdmin && (
                   <span className="bg-orange-100 text-orange-800 px-3 py-1 rounded-full text-sm font-medium flex items-center space-x-1">
                     <Crown className="w-3 h-3" />
@@ -184,12 +274,16 @@ export default function Profile() {
               </div>
 
               {/* Actions */}
-              <div className="flex flex-wrap justify-center md:justify-start gap-3">
+              <div className="flex flex-wrap justify-center lg:justify-start gap-3">
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="bg-red-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+                  onClick={() => {
+                    setEditForm({ username: user.username, email: user.email });
+                    setIsEditing(true);
+                  }}
+                  className="bg-red-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center space-x-2"
                 >
-                  Modifier le profil
+                  <Edit3 className="w-4 h-4" />
+                  <span>Modifier</span>
                 </button>
 
                 {isAdmin && (
@@ -197,26 +291,34 @@ export default function Profile() {
                     onClick={goToAdmin}
                     className="bg-orange-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-orange-700 transition-colors flex items-center space-x-2"
                   >
-                    <Settings className="w-4 h-4" />
-                    <span>Administration</span>
+                    <Crown className="w-4 h-4" />
+                    <span>Dashboard Admin</span>
                   </button>
                 )}
+
+                <button
+                  onClick={handleLogout}
+                  className="bg-gray-600 text-white px-6 py-2 rounded-xl font-semibold hover:bg-gray-700 transition-colors flex items-center space-x-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  <span>Déconnexion</span>
+                </button>
               </div>
             </div>
           </div>
         </div>
 
         {/* Navigation par onglets */}
-        <div className="bg-white rounded-3xl shadow-lg mb-8">
+        <div className="bg-white rounded-3xl shadow-lg mb-8 overflow-hidden">
           <div className="border-b border-gray-200">
-            <div className="flex space-x-1 p-2">
+            <div className="flex overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center space-x-2 px-6 py-4 rounded-2xl font-semibold transition-all ${
+                  className={`flex items-center space-x-2 px-4 lg:px-6 py-4 font-semibold transition-all whitespace-nowrap ${
                     activeTab === tab.id
-                      ? "bg-red-50 text-red-600"
+                      ? "bg-red-50 text-red-600 border-b-2 border-red-600"
                       : "text-gray-600 hover:bg-gray-50"
                   }`}
                 >
@@ -239,7 +341,87 @@ export default function Profile() {
           </div>
 
           {/* Contenu des onglets */}
-          <div className="p-8">
+          <div className="p-6 lg:p-8">
+            {/* Onglet Aperçu */}
+            {activeTab === "overview" && (
+              <div className="space-y-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-gray-800 mb-6">
+                    Aperçu de votre compte
+                  </h2>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-2xl p-6">
+                      <div className="flex items-center space-x-4">
+                        <Heart className="w-10 h-10 text-blue-600" />
+                        <div>
+                          <div className="text-2xl font-bold text-blue-800">
+                            {favorites.parfums.length}
+                          </div>
+                          <div className="text-blue-600 font-medium">
+                            Parfums favoris
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-green-50 to-green-100 rounded-2xl p-6">
+                      <div className="flex items-center space-x-4">
+                        <Clock className="w-10 h-10 text-green-600" />
+                        <div>
+                          <div className="text-2xl font-bold text-green-800">
+                            {history.length}
+                          </div>
+                          <div className="text-green-600 font-medium">
+                            Parfums consultés
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-purple-50 to-purple-100 rounded-2xl p-6">
+                      <div className="flex items-center space-x-4">
+                        <User className="w-10 h-10 text-purple-600" />
+                        <div>
+                          <div className="text-2xl font-bold text-purple-800">
+                            {Math.floor(
+                              (Date.now() - new Date(user.createdAt)) /
+                                (1000 * 60 * 60 * 24)
+                            )}
+                          </div>
+                          <div className="text-purple-600 font-medium">
+                            Jours membre
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Derniers favoris */}
+                {favorites.parfums.length > 0 && (
+                  <div>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-xl font-bold text-gray-800">
+                        Derniers favoris
+                      </h3>
+                      <button
+                        onClick={() => setActiveTab("favorites")}
+                        className="text-red-600 hover:text-red-700 font-medium"
+                      >
+                        Voir tout
+                      </button>
+                    </div>
+                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                      {favorites.parfums.slice(0, 4).map((parfum) => (
+                        <ParfumCard key={parfum._id} parfum={parfum} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
             {/* Onglet Favoris */}
             {activeTab === "favorites" && (
               <div>
@@ -256,11 +438,12 @@ export default function Profile() {
                 {favorites.parfums.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
                     {favorites.parfums.map((parfum) => (
-                      <div key={parfum._id} className="relative">
+                      <div key={parfum._id} className="relative group">
                         <ParfumCard parfum={parfum} />
                         <button
                           onClick={() => removeFavorite(parfum._id)}
-                          className="absolute top-4 right-4 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg"
+                          className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-full hover:bg-red-600 transition-colors shadow-lg opacity-0 group-hover:opacity-100"
+                          title="Retirer des favoris"
                         >
                           <Heart className="w-4 h-4 fill-current" />
                         </button>
@@ -378,6 +561,8 @@ export default function Profile() {
                         }
                         className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500"
                         required
+                        minLength={3}
+                        maxLength={20}
                       />
                     </div>
 
@@ -399,22 +584,24 @@ export default function Profile() {
                     <div className="flex space-x-4">
                       <button
                         type="submit"
-                        className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+                        className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center space-x-2"
                       >
-                        Enregistrer
+                        <Save className="w-4 h-4" />
+                        <span>Enregistrer</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => {
                           setIsEditing(false);
                           setEditForm({
-                            username: user?.username || "",
-                            email: user?.email || "",
+                            username: user.username,
+                            email: user.email,
                           });
                         }}
-                        className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                        className="bg-gray-200 text-gray-700 px-6 py-3 rounded-xl font-semibold hover:bg-gray-300 transition-colors flex items-center space-x-2"
                       >
-                        Annuler
+                        <X className="w-4 h-4" />
+                        <span>Annuler</span>
                       </button>
                     </div>
                   </form>
@@ -425,39 +612,57 @@ export default function Profile() {
                         Informations personnelles
                       </h3>
                       <div className="space-y-3">
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="text-gray-600">
                             Nom d'utilisateur:
                           </span>
-                          <span className="font-semibold">
-                            {user?.username}
-                          </span>
+                          <span className="font-semibold">{user.username}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="text-gray-600">Email:</span>
-                          <span className="font-semibold">{user?.email}</span>
+                          <span className="font-semibold">{user.email}</span>
                         </div>
-                        <div className="flex justify-between">
+                        <div className="flex justify-between items-center">
                           <span className="text-gray-600">Membre depuis:</span>
                           <span className="font-semibold">
-                            {new Date(user?.createdAt).toLocaleDateString(
+                            {new Date(user.createdAt).toLocaleDateString(
                               "fr-FR"
                             )}
                           </span>
                         </div>
+                        {isAdmin && (
+                          <div className="flex justify-between items-center">
+                            <span className="text-gray-600">Statut:</span>
+                            <span className="font-semibold text-orange-600 flex items-center space-x-1">
+                              <Crown className="w-4 h-4" />
+                              <span>Administrateur</span>
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
 
                     <div className="flex justify-between items-center pt-6 border-t border-gray-200">
                       <button
                         onClick={() => {
-                          logout();
-                          navigate("/");
-                          toast.success("Déconnexion réussie");
+                          setEditForm({
+                            username: user.username,
+                            email: user.email,
+                          });
+                          setIsEditing(true);
                         }}
-                        className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
+                        className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors flex items-center space-x-2"
                       >
-                        Se déconnecter
+                        <Edit3 className="w-4 h-4" />
+                        <span>Modifier mes informations</span>
+                      </button>
+
+                      <button
+                        onClick={handleLogout}
+                        className="text-red-600 hover:text-red-700 font-semibold flex items-center space-x-2"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>Se déconnecter</span>
                       </button>
                     </div>
                   </div>
