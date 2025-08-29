@@ -30,6 +30,25 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [searchUsers, setSearchUsers] = useState("");
   const [refreshing, setRefreshing] = useState(false);
+  // frontend/src/pages/AdminPanel.jsx - AJOUTER onglets parfums/notes
+  const tabs = [
+    { id: "dashboard", label: "Tableau de bord", icon: BarChart3 },
+    { id: "users", label: "Utilisateurs", icon: Users, count: users.length },
+    {
+      id: "parfums",
+      label: "Parfums",
+      icon: Package,
+      count: stats.parfums?.totalParfums || 0,
+    },
+    {
+      id: "notes",
+      label: "Notes",
+      icon: TrendingUp,
+      count: stats.notes?.total || 0,
+    },
+  ];
+
+  // Ajouter sections pour parfums et notes avec tables et actions CRUD
 
   // ✅ Vérification des droits d'accès
   useEffect(() => {

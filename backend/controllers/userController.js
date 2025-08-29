@@ -14,70 +14,53 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
-// ✅ Vérification email (placeholder à étoffer selon votre flow)
-export const verifyEmail = async (req, res) => {
-  try {
-    const { token } = req.body;
-
-    if (!token) {
-      return res.status(400).json({ message: "Token requis" });
-    }
-
-    // À implémenter: vérification réelle du token de vérification d'email
-    res.json({
-      message: "Email vérifié avec succès",
-      success: true,
-    });
-  } catch (error) {
-    res.status(500).json({
-      message: "Erreur serveur",
-      error: error.message,
-    });
-  }
-};
-
 // ✅ Inscription simplifiée (auto-vérifiée en phase 1)
+// backend/controllers/userController.js - MODIFIER registerUser
 export const registerUser = async (req, res) => {
   try {
     const { email, password, username } = req.body;
 
-    if (!email || !password || !username) {
-      return res
-        .status(400)
-        .json({ message: "email, password et username sont requis" });
-    }
-
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Email déjà utilisé" });
-    }
-
     const user = await User.create({
       email,
-      password, // hook Mongoose pour hasher (matchPassword existe plus bas)
+      password,
       username,
-      isVerified: true, // Phase 1: pas de double opt-in
+      isVerified: false, // ⚠️ CHANGEMENT: par défaut non vérifié
+      emailVerificationToken: crypto.randomBytes(32).toString("hex"),
     });
 
-    const token = generateToken(user._id);
+    // Envoyer email de vérification
+    await emailService.sendVerificationEmail(user, user.emailVerificationToken);
 
     res.status(201).json({
-      message: "Utilisateur créé avec succès",
-      token,
+      message: "Compte créé. Vérifiez votre email pour l'activer.",
       user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        isAdmin: user.isAdmin,
-        createdAt: user.createdAt,
+        /* données publiques */
       },
     });
   } catch (error) {
-    console.error("Erreur registerUser:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
+// Ajouter route de vérification
+export const verifyEmail = async (req, res) => {
+  try {
+    const { token } = req.query;
+
+    const user = await User.findOne({ emailVerificationToken: token });
+    if (!user) {
+      return res.status(400).json({ message: "Token invalide" });
+    }
+
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    await user.save();
+
+    res.json({ message: "Email vérifié avec succès" });
+  } catch (error) {
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
 // ✅ Connexion
 export const loginUser = async (req, res) => {
   try {
