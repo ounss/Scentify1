@@ -271,12 +271,24 @@ ParfumSchema.statics.findWithValidLinks = function () {
   });
 };
 
-/* --------------------------------- Virtuels --------------------------------- */
+/* --------------------------------- Virtuels --------------------------------- 
 ParfumSchema.virtual("nombreNotes").get(function () {
   const a = Array.isArray(this.notes_tete) ? this.notes_tete.length : 0;
   const b = Array.isArray(this.notes_coeur) ? this.notes_coeur.length : 0;
   const c = Array.isArray(this.notes_fond) ? this.notes_fond.length : 0;
   return a + b + c;
+});*/
+
+// backend/models/Parfum.js - AJOUTER CE VIRTUAL
+
+/* --------------------------------- Virtuels --------------------------------- */
+ParfumSchema.virtual("notes").get(function () {
+  // Retourner toutes les notes combinées pour compatibilité
+  return [
+    ...(this.notes_tete || []),
+    ...(this.notes_coeur || []),
+    ...(this.notes_fond || []),
+  ];
 });
 
 ParfumSchema.virtual("aDesLiensMarchands").get(function () {

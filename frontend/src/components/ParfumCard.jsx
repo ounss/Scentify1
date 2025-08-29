@@ -34,6 +34,16 @@ export default function ParfumCard({ parfum }) {
     }
   }, [isAuthenticated, user?.favorisParfums, parfum?._id]);
 
+  // frontend/src/components/ParfumCard.jsx - CORRECTION AFFICHAGE NOTES
+
+  const displayNotes = (parfum) => {
+    const allNotes = [
+      ...(parfum.notes_tete || []),
+      ...(parfum.notes_coeur || []),
+      ...(parfum.notes_fond || []),
+    ];
+    return allNotes;
+  };
   // ✅ Se resynchroniser si un autre composant modifie les favoris
   useEffect(() => {
     const onFavUpdate = () => {

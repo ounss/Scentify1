@@ -160,12 +160,17 @@ export const updateNote = async (req, res) => {
 };
 
 // Supprimer une note olfactive (admin)
+// Dans la fonction deleteNote, corriger la recherche des parfums utilisant une note :
+
 export const deleteNote = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Vérifier si la note est utilisée par des parfums
-    const parfumsUtilisant = await Parfum.countDocuments({ notes: id });
+    // ✅ CORRIGER : Vérifier si la note est utilisée dans les 3 champs
+    const parfumsUtilisant = await Parfum.countDocuments({
+      $or: [{ notes_tete: id }, { notes_coeur: id }, { notes_fond: id }],
+    });
+
     if (parfumsUtilisant > 0) {
       return res.status(400).json({
         message: `Cette note est utilisée par ${parfumsUtilisant} parfum(s). Suppression impossible.`,
@@ -183,7 +188,6 @@ export const deleteNote = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
-
 // Obtenir les statistiques des notes
 export const getNotesStats = async (req, res) => {
   try {
