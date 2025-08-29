@@ -81,7 +81,11 @@ export const getParfums = async (req, res) => {
     }
 
     const parfums = await Parfum.find(query)
-      .populate("notes", "nom type famille")
+      .populate([
+        { path: "notes_tete", select: "nom type famille" },
+        { path: "notes_coeur", select: "nom type famille" },
+        { path: "notes_fond", select: "nom type famille" },
+      ])
       .sort(sortOptions)
       .skip(skip)
       .limit(limitNum);

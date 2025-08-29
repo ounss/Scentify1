@@ -50,7 +50,14 @@ export const getNoteById = async (req, res) => {
     }
 
     // Obtenir les parfums associés
-    const parfums = await Parfum.find({ notes: note._id })
+    // Chercher dans les 3 champs de notes
+    const parfums = await Parfum.find({
+      $or: [
+        { notes_tete: note._id },
+        { notes_coeur: note._id },
+        { notes_fond: note._id },
+      ],
+    })
       .select("nom marque genre photo popularite")
       .sort({ popularite: -1 })
       .limit(10);
@@ -109,7 +116,9 @@ export const createNote = async (req, res) => {
     const { nom, description, type } = req.body;
 
     // Vérifier si la note existe déjà
-    const noteExistante = await NoteOlfactive.findOne({ nom });
+    const parfumsUtilisant = await Parfum.countDocuments({
+      $or: [{ notes_tete: id }, { notes_coeur: id }, { notes_fond: id }],
+    });
     if (noteExistante) {
       return res
         .status(400)
