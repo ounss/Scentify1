@@ -28,7 +28,7 @@
 /* Ajuster le padding du body pour le nouveau header */
 body {
   font-family: var(--font);
-  background: var(--gray-50);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-light) 100%);
   color: var(--gray-900);
   line-height: 1.6;
   padding-top: 80px; /* Augmenté pour le nouveau header */

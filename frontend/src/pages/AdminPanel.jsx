@@ -311,7 +311,12 @@ export default function AdminPanel() {
     const matchSearch =
       parfum.nom.toLowerCase().includes(searchParfums.toLowerCase()) ||
       parfum.marque.toLowerCase().includes(searchParfums.toLowerCase());
-    const matchGenre = filterGenre === "tous" || parfum.genre === filterGenre;
+
+    const matchGenre =
+      filterGenre === "tous" ||
+      (parfum.genre &&
+        parfum.genre.toLowerCase() === filterGenre.toLowerCase());
+
     return matchSearch && matchGenre;
   });
 

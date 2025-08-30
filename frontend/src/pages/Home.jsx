@@ -1,8 +1,10 @@
+// frontend/src/pages/Home.jsx
 import React, { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Search, Filter } from "lucide-react";
+import { Search } from "lucide-react";
 import { parfumAPI } from "../services/api";
 import ParfumCard from "../components/ParfumCard";
+import NoteSearch from "../components/NoteSearch";
 
 export default function Home() {
   const [parfums, setParfums] = useState([]);
@@ -10,16 +12,28 @@ export default function Home() {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchParams, setSearchParams] = useSearchParams();
 
+  // ✅ Nouveau: filtre de genre actif
+  const [activeGenreFilter, setActiveGenreFilter] = useState("Tous");
+
+  const quickFilters = ["Tous", "Femme", "Homme", "Mixte"];
+
+  // ✅ Charger les parfums au démarrage et à chaque changement de recherche/filtre
   useEffect(() => {
     loadParfums();
-  }, [searchParams]);
+  }, [searchParams, activeGenreFilter]);
 
+  
+  // ✅ Load avec prise en compte du genre
   const loadParfums = async () => {
     setLoading(true);
     try {
       const search = searchParams.get("search");
+      const genre =
+        activeGenreFilter === "Tous" ? null : activeGenreFilter.toLowerCase();
+
       const response = await parfumAPI.getAll({
         search,
+        genre,
         limit: 20,
       });
       setParfums(response.data.parfums || []);
@@ -30,6 +44,7 @@ export default function Home() {
     }
   };
 
+  // Recherche via la barre de recherche
   const handleSearch = (e) => {
     e.preventDefault();
     if (searchQuery.trim()) {
@@ -38,8 +53,35 @@ export default function Home() {
       setSearchParams({});
     }
   };
+// Ajoutez l'import
+import NoteSearch from "../components/NoteSearch";
 
-  const quickFilters = ["Tous", "Femme", "Homme", "Mixte"];
+
+{activeTab === "notes" ? <NoteSearch /> :// Dans le composant Home, ajoutez un onglet ou section :
+const [activeTab, setActiveTab] = useState("parfums"); // parfums ou notes
+
+// Dans le JSX, ajoutez :
+<div className="mb-6">
+  <div className="flex gap-2">
+    <button
+      onClick={() => setActiveTab("parfums")}
+      className={`px-4 py-2 rounded-lg ${activeTab === "parfums" ? "bg-purple-600 text-white" : "bg-gray-200"}`}
+    >
+      Recherche Parfums
+    </button>
+    <button
+      onClick={() => setActiveTab("notes")}
+      className={`px-4 py-2 rounded-lg ${activeTab === "notes" ? "bg-purple-600 text-white" : "bg-gray-200"}`}
+    >
+      Recherche par Notes
+    </button>
+  </div>
+</div>
+}
+  // ✅ Gestion clic filtres genre
+  const handleGenreFilter = (genre) => {
+    setActiveGenreFilter(genre);
+  };
 
   return (
     <div className="container py-4">
@@ -68,7 +110,13 @@ export default function Home() {
       {/* Quick Filters */}
       <div className="flex gap-2 overflow-x-auto mb-6">
         {quickFilters.map((filter) => (
-          <button key={filter} className="btn btn-secondary whitespace-nowrap">
+          <button
+            key={filter}
+            onClick={() => handleGenreFilter(filter)}
+            className={`btn whitespace-nowrap ${
+              activeGenreFilter === filter ? "btn-primary" : "btn-secondary"
+            }`}
+          >
             {filter}
           </button>
         ))}

@@ -48,6 +48,7 @@ export const getParfums = async (req, res) => {
     }
 
     // ✅ CORRIGER : Filtre par notes olfactives dans les 3 champs
+    // ✅ Dans getParfums(), remplacer la section filtre notes par:
     if (notes) {
       const noteIds = notes
         .split(",")
@@ -56,23 +57,24 @@ export const getParfums = async (req, res) => {
         .filter((id) => mongoose.Types.ObjectId.isValid(id));
 
       if (noteIds.length > 0) {
-        const noteQuery = {
+        // Pour que TOUTES les notes soient présentes (Jasmin ET Vanille)
+        const noteConditions = noteIds.map((noteId) => ({
           $or: [
-            { notes_tete: { $in: noteIds } },
-            { notes_coeur: { $in: noteIds } },
-            { notes_fond: { $in: noteIds } },
+            { notes_tete: noteId },
+            { notes_coeur: noteId },
+            { notes_fond: noteId },
           ],
-        };
+        }));
+
+        const noteQuery = { $and: noteConditions };
 
         if (query.$or) {
-          // Combiner avec la recherche textuelle
           query = { $and: [{ $or: query.$or }, noteQuery] };
         } else {
           query = noteQuery;
         }
       }
     }
-
     const skip = (pageNum - 1) * limitNum;
 
     // Options de tri

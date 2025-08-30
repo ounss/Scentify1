@@ -1,0 +1,129 @@
+/* ===== FOOTER COMPONENT ===== */
+
+.footer {
+  background: linear-gradient(180deg, var(--bg), var(--bg-light));
+  border-top: 1px solid var(--gray-200);
+  margin-top: auto;
+}
+
+.footer-accent {
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--primary-dark));
+}
+
+.footer-content {
+  padding: var(--space-8) 0 var(--space-6);
+}
+
+.footer-grid {
+  display: grid;
+  gap: var(--space-6);
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .footer-grid {
+    grid-template-columns: 1.5fr 1fr 1fr 1fr;
+  }
+}
+
+.footer-section {
+  background: var(--white);
+  padding: var(--space-5);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--gray-200);
+  box-shadow: var(--shadow-sm);
+  transition: all var(--transition);
+}
+
+.footer-section:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.footer-brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+
+.footer-logo {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--white);
+  box-shadow: var(--shadow);
+}
+
+.footer-title {
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.footer-subtitle {
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+}
+
+.footer-heading {
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--gray-900);
+  margin-bottom: var(--space-4);
+}
+
+.footer-links {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+.footer-link {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--gray-700);
+  text-decoration: none;
+  font-size: var(--font-size-sm);
+  padding: var(--space-2);
+  border-radius: var(--radius);
+  transition: all var(--transition);
+}
+
+.footer-link::before {
+  content: "›";
+  color: var(--primary);
+  font-weight: 700;
+}
+
+.footer-link:hover {
+  color: var(--gray-900);
+  background: var(--primary-light);
+  transform: translateX(4px);
+}
+
+.footer-bottom {
+  border-top: 1px solid var(--gray-200);
+  padding: var(--space-4) 0;
+  text-align: center;
+  color: var(--gray-600);
+  font-size: var(--font-size-sm);
+}
+
+/* Mobile footer simplifié */
+@media (max-width: 767px) {
+  body {
+    padding-bottom: 80px; /* Pour bottom nav */
+  }
+
+  .footer {
+    display: none; /* Caché sur mobile car bottom nav */
+  }
+}

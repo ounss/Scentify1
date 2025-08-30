@@ -1,0 +1,148 @@
+/* ===== CARDS COMPONENTS ===== */
+
+/* Carte parfum spécialisée */
+.parfum-card {
+  position: relative;
+}
+
+.parfum-card .card-image::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent, rgba(0, 0, 0, 0.1));
+  opacity: 0;
+  transition: opacity var(--transition);
+}
+
+.parfum-card:hover .card-image::after {
+  opacity: 1;
+}
+
+/* Badges genre dans cartes parfum */
+.badge-genre {
+  position: absolute;
+  top: var(--space-3);
+  left: var(--space-3);
+  padding: var(--space-1) var(--space-3);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-xs);
+  font-weight: 700;
+  color: var(--white);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.badge-genre-homme {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+}
+
+.badge-genre-femme {
+  background: linear-gradient(135deg, #ec4899, #db2777);
+}
+
+.badge-genre-mixte {
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
+}
+
+/* Bouton favoris overlay */
+.fav-toggle {
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-3);
+  width: 40px;
+  height: 40px;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all var(--transition);
+  backdrop-filter: blur(4px);
+}
+
+.fav-toggle:hover {
+  background: var(--white);
+  transform: scale(1.05);
+}
+
+.fav-toggle.is-active {
+  color: var(--error);
+  background: rgba(239, 68, 68, 0.1);
+  border-color: var(--error);
+}
+
+.fav-toggle.is-loading {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Tags dans cartes */
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+
+.tag {
+  padding: var(--space-1) var(--space-2);
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-xs);
+  font-weight: 500;
+}
+
+.tag-primary {
+  background: var(--primary-light);
+  color: var(--primary);
+}
+
+/* Actions dans cartes */
+.card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+/* Carte de profil utilisateur */
+.user-card {
+  background: linear-gradient(135deg, var(--white), var(--gray-50));
+  border: 1px solid var(--gray-200);
+}
+
+.user-avatar {
+  width: 48px;
+  height: 48px;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  border-radius: var(--radius-lg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: var(--white);
+  font-size: var(--font-size-xl);
+}
+
+/* Carte statistique */
+.stat-card {
+  text-align: center;
+  padding: var(--space-6);
+}
+
+.stat-number {
+  font-size: var(--font-size-3xl);
+  font-weight: 800;
+  color: var(--primary);
+  margin-bottom: var(--space-2);
+}
+
+.stat-label {
+  font-size: var(--font-size-sm);
+  color: var(--gray-600);
+  font-weight: 500;
+}

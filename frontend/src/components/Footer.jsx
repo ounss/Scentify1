@@ -82,7 +82,7 @@ export default function Footer() {
 
         <div className="footer-bottom">
           <p className="footer-small">
-            &copy; 2024–{year} Scentify — Projet TFE par Benyaghlane Ouns
+            &copy; 2024–{year} Scentify — Projet TFE par Ben Yaghlane Ouns
           </p>
         </div>
       </div>
