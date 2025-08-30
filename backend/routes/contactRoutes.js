@@ -12,7 +12,7 @@ import { protect, admin } from "../middleware/authMiddleware.js";
 const router = express.Router();
 
 // Route publique
-router.post("/", sendContactEmail);
+router.post("/send", sendContactEmail);
 
 // Routes admin
 router.get("/", protect, admin, getContactMessages);

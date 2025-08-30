@@ -944,7 +944,7 @@ export default function AdminPanel() {
                 </button>
               </div>
             </div>
-
+            {activeTab === "contact" && <ContactSection />}
             {/* Recherche & filtres notes */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">

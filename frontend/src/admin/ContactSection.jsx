@@ -11,6 +11,7 @@ import {
   Calendar,
 } from "lucide-react";
 import toast from "react-hot-toast";
+import api from "../services/api";
 
 const ContactSection = () => {
   const [messages, setMessages] = useState([]);
@@ -22,11 +23,9 @@ const ContactSection = () => {
   // Charger les messages
   const loadMessages = async () => {
     try {
-      const response = await fetch("/api/contact", {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-      });
+      const response = await api.get("/contact");
+      const data = response.data;
+      setMessages(data);
 
       if (response.ok) {
         const data = await response.json();
