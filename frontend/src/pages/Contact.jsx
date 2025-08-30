@@ -3,10 +3,11 @@ import { Mail, Phone, MapPin, Send, MessageCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function Contact() {
+  // Dans Contact.jsx, assure-toi que formData contient :
   const [formData, setFormData] = useState({
-    name: "",
+    name: "", // pas "nom"
     email: "",
-    subject: "",
+    subject: "", // pas "sujet"
     message: "",
   });
   const [isLoading, setIsLoading] = useState(false);

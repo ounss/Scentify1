@@ -227,6 +227,53 @@ export const sendWelcomeEmail = async (user) => {
     return null;
   }
 };
+// backend/services/emailService.js (ajout fonction notification)
+// ===============================================================
+
+// Ajouter cette fonction dans emailService.js existant :
+
+export const sendContactNotificationToAdmin = async (contactData) => {
+  try {
+    const transporter = createTransporter();
+
+    const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
+    if (!adminEmail) {
+      throw new Error("ADMIN_EMAIL non configuré");
+    }
+
+    const dashboardUrl = `${
+      process.env.FRONTEND_URL || "http://localhost:3000"
+    }/admin/dashboard`;
+
+    const emailContent = `
+      🔔 NOUVEAU MESSAGE DE CONTACT
+      
+      De: ${contactData.name} (${contactData.email})
+      Sujet: ${contactData.subject}
+      Date: ${new Date(contactData.date).toLocaleString("fr-FR")}
+      
+      MESSAGE:
+      ${contactData.message}
+      
+      Voir dans le dashboard: ${dashboardUrl}
+      Message ID: ${contactData.id}
+    `;
+
+    const mailOptions = {
+      from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
+      to: adminEmail,
+      subject: `🔔 Nouveau message de contact - ${contactData.subject}`,
+      text: emailContent,
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    console.log("✅ Notification admin envoyée:", result.messageId);
+    return result;
+  } catch (error) {
+    console.error("❌ Erreur envoi notification admin:", error);
+    throw error;
+  }
+};
 
 // ✅ Configuration des variables d'environnement nécessaires
 export const getRequiredEnvVars = () => {

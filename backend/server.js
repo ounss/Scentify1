@@ -14,6 +14,7 @@ import userRoutes from "./routes/userRoutes.js";
 import parfumRoutes from "./routes/parfumRoutes.js";
 import noteRoutes from "./routes/noteRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 
 dotenv.config();
 
@@ -36,6 +37,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/parfums", parfumRoutes);
 app.use("/api/notes", noteRoutes);
 app.use("/api/admin", adminRoutes);
+app.use("/api/contact", contactRoutes);
 
 // Error handler middleware
 app.use(errorHandler);

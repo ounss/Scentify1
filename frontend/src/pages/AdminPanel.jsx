@@ -1,6 +1,8 @@
 // frontend/src/pages/AdminPanel.jsx - DASHBOARD ADMIN COMPLET
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import ContactSection from "../admin/ContactSection";
+import { MessageSquare /* tes autres imports */ } from "lucide-react";
 import {
   Users,
   Package,
@@ -78,8 +80,18 @@ export default function AdminPanel() {
     { id: "users", label: "Utilisateurs", icon: Users, count: users.length },
     { id: "parfums", label: "Parfums", icon: Package, count: parfums.length },
     { id: "notes", label: "Notes", icon: TrendingUp, count: notes.length },
+    {
+      id: "contact", // ✅ NOUVEAU
+      label: "Contact", // ✅ NOUVEAU
+      icon: MessageSquare, // ✅ NOUVEAU
+    },
   ];
-
+  {
+    /* ✅ CONTACT TAB - À AJOUTER À LA FIN */
+  }
+  {
+    activeTab === "contact" && <ContactSection />;
+  }
   // ✅ Vérification des droits d'accès
   useEffect(() => {
     if (!isAdmin) {
