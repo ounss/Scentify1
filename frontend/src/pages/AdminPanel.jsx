@@ -1,8 +1,8 @@
-// frontend/src/pages/AdminPanel.jsx - DASHBOARD ADMIN COMPLET
+// frontend/src/pages/AdminPanel.jsx - DASHBOARD ADMIN COMPLET - VERSION CORRIGÉE
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import ContactSection from "../admin/ContactSection";
-import { MessageSquare /* tes autres imports */ } from "lucide-react";
+import { MessageSquare } from "lucide-react";
 import {
   Users,
   Package,
@@ -25,7 +25,6 @@ import {
   X,
   Save,
   Star,
-  ShoppingBag,
 } from "lucide-react";
 import { adminAPI } from "../services/adminAPI.js";
 import { parfumAPI, noteAPI, authAPI } from "../services/api.js";
@@ -44,31 +43,33 @@ export default function AdminPanel() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // États pour la recherche et filtres
+  // Recherches & filtres
   const [searchUsers, setSearchUsers] = useState("");
   const [searchParfums, setSearchParfums] = useState("");
   const [searchNotes, setSearchNotes] = useState("");
   const [filterGenre, setFilterGenre] = useState("tous");
   const [filterNoteType, setFilterNoteType] = useState("tous");
 
-  // États pour les modals/formulaires
+  // Modales / édition
   const [showUserForm, setShowUserForm] = useState(false);
   const [showParfumForm, setShowParfumForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null);
+  const [editingItem, setEditingItem] = useState(null); // contiendra l'objet en édition
 
-  // États pour les formulaires
+  // Form states
   const [userForm, setUserForm] = useState({
     username: "",
     email: "",
     password: "",
   });
+
   const [parfumForm, setParfumForm] = useState({
     nom: "",
     marque: "",
     genre: "mixte",
     description: "",
   });
+
   const [noteForm, setNoteForm] = useState({
     nom: "",
     type: "tête",
@@ -80,19 +81,10 @@ export default function AdminPanel() {
     { id: "users", label: "Utilisateurs", icon: Users, count: users.length },
     { id: "parfums", label: "Parfums", icon: Package, count: parfums.length },
     { id: "notes", label: "Notes", icon: TrendingUp, count: notes.length },
-    {
-      id: "contact", // ✅ NOUVEAU
-      label: "Contact", // ✅ NOUVEAU
-      icon: MessageSquare, // ✅ NOUVEAU
-    },
+    { id: "contact", label: "Contact", icon: MessageSquare },
   ];
-  {
-    /* ✅ CONTACT TAB - À AJOUTER À LA FIN */
-  }
-  {
-    activeTab === "contact" && <ContactSection />;
-  }
-  // ✅ Vérification des droits d'accès
+
+  // Accès
   useEffect(() => {
     if (!isAdmin) {
       toast.error("Accès non autorisé");
@@ -103,7 +95,7 @@ export default function AdminPanel() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, navigate]);
 
-  // ✅ CHARGEMENT DES DONNÉES
+  // Chargement global
   const loadData = async () => {
     try {
       setLoading(true);
@@ -120,115 +112,161 @@ export default function AdminPanel() {
         noteAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
       ]);
 
-      setStats(statsData);
-      setUsers(usersData.data?.users || []);
-      setParfums(parfumsData.data?.parfums || parfumsData.data || []);
-      setNotes(notesData.data?.notes || notesData.data || []);
+      setStats(statsData || {});
+      setUsers(usersData?.data?.users || []);
+      setParfums(parfumsData?.data?.parfums || parfumsData?.data || []);
+      setNotes(notesData?.data?.notes || notesData?.data || []);
 
       toast.success("Données admin chargées");
-    } catch (error) {
-      console.error("❌ Erreur chargement admin:", error);
-      toast.error("Erreur lors du chargement");
+    } catch (err) {
+      console.error("❌ Erreur chargement admin:", err);
+      toast.error("Erreur lors du chargement des données");
     } finally {
       setLoading(false);
     }
   };
 
-  // ✅ REFRESH MANUEL
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadData();
     setRefreshing(false);
   };
 
-  // ✅ EXPORT CSV UTILISATEURS (NOUVEAU)
+  // Exports CSV
   const handleExportUsers = async () => {
     try {
       const response = await adminAPI.exportUsers();
-
-      // Créer un blob et déclencher le téléchargement
       const blob = new Blob([response.data], { type: "text/csv" });
       const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = "users.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "users.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       window.URL.revokeObjectURL(url);
-
-      toast.success("Export CSV réussi");
+      toast.success("Export CSV Utilisateurs réussi");
     } catch (error) {
-      console.error("Erreur export:", error);
-      toast.error("Erreur lors de l'export");
+      console.error("Erreur export users:", error);
+      toast.error("Erreur lors de l'export des utilisateurs");
     }
   };
 
-  // ✅ GESTION UTILISATEURS
+  const handleExportParfums = async () => {
+    try {
+      if (!adminAPI.exportParfums) {
+        toast.error("L'export des parfums n'est pas disponible.");
+        return;
+      }
+      const response = await adminAPI.exportParfums();
+      const blob = new Blob([response.data], { type: "text/csv" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "parfums.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+      toast.success("Export CSV Parfums réussi");
+    } catch (error) {
+      console.error("Erreur export parfums:", error);
+      toast.error("Erreur lors de l'export des parfums");
+    }
+  };
+
+  // USERS
   const createUser = async (e) => {
     e.preventDefault();
     try {
       await authAPI.register(userForm);
       setShowUserForm(false);
+      setEditingItem(null);
       setUserForm({ username: "", email: "", password: "" });
       await loadData();
       toast.success("Utilisateur créé");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Erreur création");
+      toast.error(
+        error?.response?.data?.message || "Erreur création utilisateur"
+      );
+    }
+  };
+
+  const updateUser = async (e) => {
+    e.preventDefault();
+    try {
+      if (adminAPI.updateUser) {
+        const updated = await adminAPI.updateUser(editingItem._id, userForm);
+        const updatedUser = updated?.data || updated;
+        setUsers((prev) =>
+          prev.map((u) =>
+            u._id === editingItem._id ? { ...u, ...updatedUser } : u
+          )
+        );
+        toast.success("Utilisateur mis à jour");
+      } else {
+        toast.error(
+          "Route de mise à jour utilisateur non disponible côté backend."
+        );
+      }
+      setShowUserForm(false);
+      setEditingItem(null);
+      setUserForm({ username: "", email: "", password: "" });
+    } catch (error) {
+      console.error(error);
+      toast.error("Erreur mise à jour utilisateur");
     }
   };
 
   const deleteUser = async (userId) => {
-    if (userId === user._id) {
+    if (userId === user?._id) {
       toast.error("Vous ne pouvez pas supprimer votre propre compte");
       return;
     }
     if (!window.confirm("Supprimer cet utilisateur ?")) return;
 
     try {
-      // Note: Route backend à implémenter si nécessaire
-      setUsers(users.filter((u) => u._id !== userId));
+      if (adminAPI.deleteUser) {
+        await adminAPI.deleteUser(userId);
+      }
+      setUsers((prev) => prev.filter((u) => u._id !== userId));
       toast.success("Utilisateur supprimé");
     } catch (error) {
-      toast.error("Erreur suppression");
+      toast.error("Erreur suppression utilisateur");
     }
   };
 
   const toggleAdminStatus = async (userId, currentStatus) => {
-    if (userId === user._id) {
+    if (userId === user?._id) {
       toast.error("Vous ne pouvez pas modifier votre propre statut");
       return;
     }
-
     try {
       await adminAPI.toggleAdmin(userId);
-      setUsers(
-        users.map((u) => (u._id === userId ? { ...u, isAdmin: !u.isAdmin } : u))
+      setUsers((prev) =>
+        prev.map((u) => (u._id === userId ? { ...u, isAdmin: !u.isAdmin } : u))
       );
       toast.success(
         currentStatus ? "Droits admin retirés" : "Droits admin accordés"
       );
-    } catch (error) {
-      toast.error("Erreur modification");
+    } catch {
+      toast.error("Erreur modification des droits");
     }
   };
 
-  // ✅ GESTION PARFUMS
+  // PARFUMS
   const createParfum = async (e) => {
     e.preventDefault();
     try {
       const response = await parfumAPI.create(parfumForm);
+      const created = response?.data?.parfum || response?.data || parfumForm;
+      setParfums((prev) => [...prev, created]);
       setShowParfumForm(false);
-      setParfumForm({
-        nom: "",
-        marque: "",
-        genre: "mixte",
-        description: "",
-      });
-      setParfums([...parfums, response.data]);
+      setEditingItem(null);
+      setParfumForm({ nom: "", marque: "", genre: "mixte", description: "" });
       toast.success("Parfum créé");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Erreur création");
+      toast.error(error?.response?.data?.message || "Erreur création parfum");
     }
   };
 
@@ -236,40 +274,43 @@ export default function AdminPanel() {
     e.preventDefault();
     try {
       const response = await parfumAPI.update(editingItem._id, parfumForm);
+      const updated = response?.data?.parfum || response?.data || parfumForm;
+      setParfums((prev) =>
+        prev.map((p) => (p._id === editingItem._id ? { ...p, ...updated } : p))
+      );
       setShowParfumForm(false);
       setEditingItem(null);
-      setParfums(
-        parfums.map((p) => (p._id === editingItem._id ? response.data : p))
-      );
+      setParfumForm({ nom: "", marque: "", genre: "mixte", description: "" });
       toast.success("Parfum modifié");
     } catch (error) {
-      toast.error("Erreur modification");
+      toast.error("Erreur modification parfum");
     }
   };
 
   const deleteParfum = async (parfumId) => {
     if (!window.confirm("Supprimer ce parfum ?")) return;
-
     try {
       await parfumAPI.delete(parfumId);
-      setParfums(parfums.filter((p) => p._id !== parfumId));
+      setParfums((prev) => prev.filter((p) => p._id !== parfumId));
       toast.success("Parfum supprimé");
-    } catch (error) {
-      toast.error("Erreur suppression");
+    } catch {
+      toast.error("Erreur suppression parfum");
     }
   };
 
-  // ✅ GESTION NOTES
+  // NOTES
   const createNote = async (e) => {
     e.preventDefault();
     try {
       const response = await noteAPI.create(noteForm);
+      const created = response?.data?.note || response?.data || noteForm;
+      setNotes((prev) => [...prev, created]);
       setShowNoteForm(false);
+      setEditingItem(null);
       setNoteForm({ nom: "", type: "tête", description: "" });
-      setNotes([...notes, response.data]);
       toast.success("Note créée");
     } catch (error) {
-      toast.error(error.response?.data?.message || "Erreur création");
+      toast.error(error?.response?.data?.message || "Erreur création note");
     }
   };
 
@@ -277,82 +318,88 @@ export default function AdminPanel() {
     e.preventDefault();
     try {
       const response = await noteAPI.update(editingItem._id, noteForm);
+      const updated = response?.data?.note || response?.data || noteForm;
+      setNotes((prev) =>
+        prev.map((n) => (n._id === editingItem._id ? { ...n, ...updated } : n))
+      );
       setShowNoteForm(false);
       setEditingItem(null);
-      setNotes(
-        notes.map((n) => (n._id === editingItem._id ? response.data : n))
-      );
+      setNoteForm({ nom: "", type: "tête", description: "" });
       toast.success("Note modifiée");
-    } catch (error) {
-      toast.error("Erreur modification");
+    } catch {
+      toast.error("Erreur modification note");
     }
   };
 
   const deleteNote = async (noteId) => {
     if (!window.confirm("Supprimer cette note ?")) return;
-
     try {
       await noteAPI.delete(noteId);
-      setNotes(notes.filter((n) => n._id !== noteId));
+      setNotes((prev) => prev.filter((n) => n._id !== noteId));
       toast.success("Note supprimée");
-    } catch (error) {
-      toast.error("Erreur suppression");
+    } catch {
+      toast.error("Erreur suppression note");
     }
   };
 
-  // ✅ FILTRES (mémoïsables si besoin)
+  // Filtres
   const filteredUsers = users.filter(
     (u) =>
-      u.username.toLowerCase().includes(searchUsers.toLowerCase()) ||
-      u.email.toLowerCase().includes(searchUsers.toLowerCase())
+      u?.username?.toLowerCase().includes(searchUsers.toLowerCase()) ||
+      u?.email?.toLowerCase().includes(searchUsers.toLowerCase())
   );
 
   const filteredParfums = parfums.filter((parfum) => {
     const matchSearch =
-      parfum.nom.toLowerCase().includes(searchParfums.toLowerCase()) ||
-      parfum.marque.toLowerCase().includes(searchParfums.toLowerCase());
-
+      (parfum?.nom || "").toLowerCase().includes(searchParfums.toLowerCase()) ||
+      (parfum?.marque || "")
+        .toLowerCase()
+        .includes(searchParfums.toLowerCase());
     const matchGenre =
       filterGenre === "tous" ||
-      (parfum.genre &&
+      (parfum?.genre &&
         parfum.genre.toLowerCase() === filterGenre.toLowerCase());
-
     return matchSearch && matchGenre;
   });
 
   const filteredNotes = notes.filter((note) => {
-    const matchSearch = note.nom
+    const matchSearch = (note?.nom || "")
       .toLowerCase()
       .includes(searchNotes.toLowerCase());
-    const matchType = filterNoteType === "tous" || note.type === filterNoteType;
+    const matchType =
+      filterNoteType === "tous" || note?.type === filterNoteType;
     return matchSearch && matchType;
   });
 
-  // ✅ UTILITAIRES
+  // Utilitaires
   const openEditForm = (item, type) => {
     setEditingItem(item);
     if (type === "user") {
-      setUserForm({ username: item.username, email: item.email, password: "" });
+      setUserForm({
+        username: item.username || "",
+        email: item.email || "",
+        password: "",
+      });
       setShowUserForm(true);
     } else if (type === "parfum") {
       setParfumForm({
-        nom: item.nom,
-        marque: item.marque,
-        genre: item.genre,
-        description: item.description,
+        nom: item.nom || "",
+        marque: item.marque || "",
+        genre: item.genre || "mixte",
+        description: item.description || "",
       });
       setShowParfumForm(true);
     } else if (type === "note") {
       setNoteForm({
-        nom: item.nom,
-        type: item.type,
-        description: item.description,
+        nom: item.nom || "",
+        type: item.type || "tête",
+        description: item.description || "",
       });
       setShowNoteForm(true);
     }
   };
 
-  // ✅ LOADING STATE
+  // Loading
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100">
@@ -369,7 +416,7 @@ export default function AdminPanel() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      {/* ✅ HEADER STYLISÉ */}
+      {/* HEADER */}
       <div className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-40">
         <div className="container mx-auto px-6 py-5">
           <div className="flex items-center justify-between">
@@ -412,7 +459,7 @@ export default function AdminPanel() {
             </div>
           </div>
 
-          {/* ✅ TABS STYLISÉS */}
+          {/* TABS */}
           <div className="flex space-x-1 mt-8 bg-gray-100 rounded-2xl p-1">
             {tabs.map((tab) => (
               <button
@@ -444,7 +491,7 @@ export default function AdminPanel() {
       </div>
 
       <div className="container mx-auto px-6 py-8">
-        {/* ✅ DASHBOARD TAB */}
+        {/* DASHBOARD */}
         {activeTab === "dashboard" && (
           <div className="space-y-8">
             <div className="text-center mb-8">
@@ -456,7 +503,7 @@ export default function AdminPanel() {
               </p>
             </div>
 
-            {/* Cards statistiques */}
+            {/* Stat cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
               <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl p-6 border border-blue-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
                 <div className="flex items-center justify-between">
@@ -465,10 +512,10 @@ export default function AdminPanel() {
                       Utilisateurs Total
                     </p>
                     <p className="text-4xl font-bold text-blue-800">
-                      {stats.users?.totalUsers || 0}
+                      {stats?.users?.totalUsers ?? users.length}
                     </p>
                     <p className="text-sm text-blue-600 mt-2">
-                      +{stats.users?.recentUsers || 0} ce mois
+                      +{stats?.users?.recentUsers ?? 0} ce mois
                     </p>
                   </div>
                   <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
@@ -484,7 +531,7 @@ export default function AdminPanel() {
                       Parfums
                     </p>
                     <p className="text-4xl font-bold text-purple-800">
-                      {stats.parfums?.totalParfums || parfums.length}
+                      {stats?.parfums?.totalParfums ?? parfums.length}
                     </p>
                     <p className="text-sm text-purple-600 mt-2">
                       Dans la collection
@@ -503,7 +550,7 @@ export default function AdminPanel() {
                       Notes Olfactives
                     </p>
                     <p className="text-4xl font-bold text-green-800">
-                      {stats.notes?.total || notes.length}
+                      {stats?.notes?.total ?? notes.length}
                     </p>
                     <p className="text-sm text-green-600 mt-2">Références</p>
                   </div>
@@ -531,7 +578,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* État du système */}
+            {/* System status */}
             <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100">
               <div className="flex items-center space-x-3 mb-6">
                 <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center">
@@ -567,7 +614,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ✅ USERS TAB */}
+        {/* USERS */}
         {activeTab === "users" && (
           <div className="space-y-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -584,14 +631,17 @@ export default function AdminPanel() {
 
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => setShowUserForm(true)}
+                  onClick={() => {
+                    setEditingItem(null);
+                    setUserForm({ username: "", email: "", password: "" });
+                    setShowUserForm(true);
+                  }}
                   className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Nouvel utilisateur</span>
                 </button>
 
-                {/* ✅ Bouton Export CSV corrigé */}
                 <button
                   onClick={handleExportUsers}
                   className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
@@ -649,7 +699,9 @@ export default function AdminPanel() {
                           <div className="flex items-center">
                             <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
                               <span className="text-white text-sm font-bold">
-                                {currentUser.username.charAt(0).toUpperCase()}
+                                {(currentUser.username || "?")
+                                  .charAt(0)
+                                  .toUpperCase()}
                               </span>
                             </div>
                             <div className="ml-4">
@@ -657,7 +709,7 @@ export default function AdminPanel() {
                                 {currentUser.username}
                               </div>
                               <div className="text-sm text-gray-500">
-                                ID: {currentUser._id.slice(-8)}
+                                ID: {String(currentUser._id).slice(-8)}
                               </div>
                             </div>
                           </div>
@@ -692,9 +744,11 @@ export default function AdminPanel() {
                           )}
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-500">
-                          {new Date(currentUser.createdAt).toLocaleDateString(
-                            "fr-FR"
-                          )}
+                          {currentUser.createdAt
+                            ? new Date(
+                                currentUser.createdAt
+                              ).toLocaleDateString("fr-FR")
+                            : "-"}
                         </td>
                         <td className="px-8 py-6 whitespace-nowrap text-sm font-medium">
                           <div className="flex items-center space-x-3">
@@ -712,9 +766,9 @@ export default function AdminPanel() {
                                   currentUser.isAdmin
                                 )
                               }
-                              disabled={currentUser._id === user._id}
+                              disabled={currentUser._id === user?._id}
                               className={`p-2 rounded-lg transition-colors ${
-                                currentUser._id === user._id
+                                currentUser._id === user?._id
                                   ? "bg-gray-100 text-gray-400 cursor-not-allowed"
                                   : currentUser.isAdmin
                                   ? "bg-orange-100 text-orange-600 hover:bg-orange-200"
@@ -734,7 +788,7 @@ export default function AdminPanel() {
                             </button>
                             <button
                               onClick={() => deleteUser(currentUser._id)}
-                              disabled={currentUser._id === user._id}
+                              disabled={currentUser._id === user?._id}
                               className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
                               title="Supprimer"
                             >
@@ -751,7 +805,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ✅ PARFUMS TAB */}
+        {/* PARFUMS */}
         {activeTab === "parfums" && (
           <div className="space-y-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -768,11 +822,28 @@ export default function AdminPanel() {
 
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => setShowParfumForm(true)}
+                  onClick={() => {
+                    setEditingItem(null);
+                    setParfumForm({
+                      nom: "",
+                      marque: "",
+                      genre: "mixte",
+                      description: "",
+                    });
+                    setShowParfumForm(true);
+                  }}
                   className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
                 >
                   <Plus className="w-5 h-5" />
                   <span>Nouveau parfum</span>
+                </button>
+
+                <button
+                  onClick={handleExportParfums}
+                  className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
+                >
+                  <Download className="w-5 h-5" />
+                  <span>Export CSV</span>
                 </button>
               </div>
             </div>
@@ -840,7 +911,7 @@ export default function AdminPanel() {
                       </span>
                     </div>
                     <div className="absolute top-3 right-3 flex space-x-2">
-                      {parfum.popularite > 80 && (
+                      {Number(parfum.popularite) > 80 && (
                         <div className="bg-orange-500 text-white p-2 rounded-full">
                           <Star className="w-4 h-4" />
                         </div>
@@ -861,7 +932,7 @@ export default function AdminPanel() {
                             key={index}
                             className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
                           >
-                            {typeof note === "string" ? note : note.nom}
+                            {typeof note === "string" ? note : note?.nom}
                           </span>
                         ))}
                         {parfum.notes.length > 3 && (
@@ -914,7 +985,16 @@ export default function AdminPanel() {
                     : "Aucun parfum dans la base de données"}
                 </p>
                 <button
-                  onClick={() => setShowParfumForm(true)}
+                  onClick={() => {
+                    setEditingItem(null);
+                    setParfumForm({
+                      nom: "",
+                      marque: "",
+                      genre: "mixte",
+                      description: "",
+                    });
+                    setShowParfumForm(true);
+                  }}
                   className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-purple-700"
                 >
                   Créer le premier parfum
@@ -924,7 +1004,7 @@ export default function AdminPanel() {
           </div>
         )}
 
-        {/* ✅ NOTES TAB */}
+        {/* NOTES */}
         {activeTab === "notes" && (
           <div className="space-y-6">
             <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
@@ -941,7 +1021,11 @@ export default function AdminPanel() {
 
               <div className="flex items-center space-x-3">
                 <button
-                  onClick={() => setShowNoteForm(true)}
+                  onClick={() => {
+                    setEditingItem(null);
+                    setNoteForm({ nom: "", type: "tête", description: "" });
+                    setShowNoteForm(true);
+                  }}
                   className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
                 >
                   <Plus className="w-5 h-5" />
@@ -949,7 +1033,7 @@ export default function AdminPanel() {
                 </button>
               </div>
             </div>
-            {activeTab === "contact" && <ContactSection />}
+
             {/* Recherche & filtres notes */}
             <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
@@ -979,7 +1063,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            {/* Grille notes par type */}
+            {/* Grilles par type */}
             {["tête", "cœur", "fond"].map((type) => {
               const notesType = filteredNotes.filter(
                 (note) => note.type === type
@@ -1086,7 +1170,11 @@ export default function AdminPanel() {
                     : "Aucune note dans la base de données"}
                 </p>
                 <button
-                  onClick={() => setShowNoteForm(true)}
+                  onClick={() => {
+                    setEditingItem(null);
+                    setNoteForm({ nom: "", type: "tête", description: "" });
+                    setShowNoteForm(true);
+                  }}
                   className="bg-green-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-green-700"
                 >
                   Créer la première note
@@ -1095,10 +1183,12 @@ export default function AdminPanel() {
             )}
           </div>
         )}
+
+        {/* CONTACT */}
+        {activeTab === "contact" && <ContactSection />}
       </div>
 
-      {/* ✅ MODALS FORMULAIRES */}
-
+      {/* MODALES */}
       {/* Modal Utilisateur */}
       {showUserForm && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1124,14 +1214,7 @@ export default function AdminPanel() {
             </div>
 
             <form
-              onSubmit={
-                editingItem
-                  ? (e) => {
-                      e.preventDefault();
-                      /* updateUser à implémenter si souhaité */
-                    }
-                  : createUser
-              }
+              onSubmit={editingItem ? updateUser : createUser}
               className="p-6 space-y-4"
             >
               <div>
