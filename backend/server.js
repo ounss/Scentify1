@@ -1,4 +1,4 @@
-// backend/server.js - AJOUT VÉRIFICATION EMAIL AU DÉMARRAGE
+// backend/server.js - VERSION CORRIGÉE
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -20,9 +20,12 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
-app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Serveur sur port ${PORT}`);
-});
+
+// ❌ SUPPRIME CETTE LIGNE - C'EST LE PROBLÈME !
+// app.listen(PORT, "0.0.0.0", () => {
+//   console.log(`Serveur sur port ${PORT}`);
+// });
+
 // ✅ CORS CONFIGURATION POUR PRODUCTION
 const corsOptions = {
   origin: function (origin, callback) {
@@ -164,10 +167,10 @@ const startServer = async () => {
   }
 
   // 2. Vérification email (non bloquant)
-  //await checkEmailConfiguration();
+  // await checkEmailConfiguration();
 
-  // 3. Démarrage serveur
-  app.listen(PORT, () => {
+  // 3. ✅ DÉMARRAGE SERVEUR - UN SEUL app.listen() !
+  app.listen(PORT, "0.0.0.0", () => {
     console.log(`\n🎉 Serveur Scentify démarré avec succès !`);
     console.log(`🌐 Port: ${PORT}`);
     console.log(
