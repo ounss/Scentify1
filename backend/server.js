@@ -165,7 +165,7 @@ const startServer = async () => {
   }
 
   // 2. Vérification email (non bloquant)
-  await checkEmailConfiguration();
+  //await checkEmailConfiguration();
 
   // 3. Démarrage serveur
   app.listen(PORT, () => {
