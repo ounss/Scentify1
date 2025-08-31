@@ -1,0 +1,700 @@
+/* ParfumDetail.module.css - Design moderne cohérent avec Home */
+
+/* === Variables CSS === */
+:root {
+  --brand-primary: #b9a48d;
+  --brand-primary-light: #d8c0a5;
+  --brand-primary-dark: #8b7355;
+  --brand-secondary: #a44949;
+  --brand-bg: #f1e0cc;
+  --text-primary: #2c2c2c;
+  --text-secondary: #5a5a5a;
+  --text-muted: #9ca3af;
+  --white: #ffffff;
+  --gray-50: #f9fafb;
+  --gray-100: #f3f4f6;
+  --gray-200: #e5e7eb;
+  --gray-800: #1f2937;
+
+  /* Shadows */
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+    0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
+
+  /* Radius */
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+  --radius-2xl: 2rem;
+}
+
+/* === Base Layout === */
+.page {
+  min-height: 100vh;
+  background: linear-gradient(
+    135deg,
+    var(--brand-bg) 0%,
+    var(--white) 50%,
+    var(--gray-50) 100%
+  );
+}
+
+/* === Header Sticky === */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  backdrop-filter: saturate(1.8) blur(20px);
+  background: rgba(255, 255, 255, 0.85);
+  border-bottom: 1px solid rgba(185, 164, 141, 0.2);
+  box-shadow: var(--shadow-sm);
+}
+
+.headerInner {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.back:hover {
+  background: rgba(185, 164, 141, 0.1);
+  transform: translateX(-2px);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.iconButton {
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: var(--radius-lg);
+  border: none;
+  cursor: pointer;
+  background: var(--white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+  color: var(--text-secondary);
+}
+
+.iconButton:hover {
+  background: var(--brand-primary);
+  color: var(--white);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.iconButton.favActive {
+  background: var(--brand-secondary);
+  color: var(--white);
+}
+
+.iconButton.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* === Main Container === */
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 4rem;
+}
+
+/* === Grid Layout === */
+.grid {
+  display: grid;
+  gap: 3rem;
+  grid-template-columns: 1fr;
+}
+
+@media (min-width: 768px) {
+  .grid {
+    grid-template-columns: 1fr 1.5fr;
+    gap: 4rem;
+  }
+}
+
+/* === Left Column - Image === */
+.left {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.photoCard {
+  position: relative;
+  background: var(--white);
+  border-radius: var(--radius-2xl);
+  overflow: hidden;
+  box-shadow: var(--shadow-xl);
+  aspect-ratio: 4/5;
+}
+
+.photo {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.3s ease;
+}
+
+.photoCard:hover .photo {
+  transform: scale(1.02);
+}
+
+.badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  backdrop-filter: blur(10px);
+}
+
+.badgeFemme {
+  background: rgba(236, 72, 153, 0.9);
+  color: var(--white);
+}
+
+.badgeHomme {
+  background: rgba(59, 130, 246, 0.9);
+  color: var(--white);
+}
+
+.badgeMixte {
+  background: rgba(168, 85, 247, 0.9);
+  color: var(--white);
+}
+
+.badgeDefault {
+  background: rgba(107, 114, 128, 0.9);
+  color: var(--white);
+}
+
+.badgePop {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  padding: 0.5rem 1rem;
+  background: rgba(245, 158, 11, 0.95);
+  color: var(--white);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  backdrop-filter: blur(10px);
+}
+
+.tiles {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.tile {
+  background: var(--white);
+  padding: 1.5rem;
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-md);
+  text-align: center;
+  transition: transform 0.2s ease;
+}
+
+.tile:hover {
+  transform: translateY(-2px);
+}
+
+.tileLabel {
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.tileValue {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: var(--text-primary);
+  text-transform: capitalize;
+}
+
+/* === Right Column - Content === */
+.right {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.titleBlock {
+  background: var(--white);
+  padding: 2rem;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
+}
+
+@media (max-width: 768px) {
+  .title {
+    font-size: 2rem;
+  }
+}
+
+.brand {
+  font-size: 1.25rem;
+  color: var(--brand-primary-dark);
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.popRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--brand-bg), rgba(245, 158, 11, 0.1));
+  border-radius: var(--radius-lg);
+  border-left: 4px solid var(--brand-secondary);
+}
+
+.popScore {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.star {
+  color: #f59e0b;
+}
+
+.dot {
+  color: var(--text-muted);
+}
+
+.muted {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+}
+
+.description {
+  color: var(--text-secondary);
+  line-height: 1.7;
+  font-size: 1.1rem;
+}
+
+/* === Cards/Sections === */
+.card {
+  background: var(--white);
+  padding: 2rem;
+  border-radius: var(--radius-2xl);
+  box-shadow: var(--shadow-lg);
+  border: 1px solid rgba(185, 164, 141, 0.1);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.sectionHeadAlt {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+.sectionTitle {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.primary {
+  color: var(--brand-primary);
+}
+
+.purple {
+  color: #8b5cf6;
+}
+
+/* === Notes Olfactives === */
+.notes {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.noteGroup {
+  padding: 1.5rem;
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.noteGroup:hover {
+  border-color: var(--brand-primary);
+  transform: translateY(-1px);
+}
+
+.noteGroupHead {
+  background: rgba(234, 179, 8, 0.15);
+  border-color: rgba(234, 179, 8, 0.3);
+}
+
+.noteGroupHeart {
+  background: rgba(236, 72, 153, 0.1);
+  border-color: rgba(236, 72, 153, 0.2);
+}
+
+.noteGroupBase {
+  background: rgba(168, 85, 247, 0.1);
+  border-color: rgba(168, 85, 247, 0.2);
+}
+
+.noteType {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  text-transform: capitalize;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.noteTypeHead {
+  color: #d97706;
+}
+
+.noteTypeHeart {
+  color: #ec4899;
+}
+
+.noteTypeBase {
+  color: #8b5cf6;
+}
+
+.noteChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.chip {
+  padding: 0.5rem 1rem;
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  cursor: default;
+}
+
+.chipHead {
+  background: rgba(234, 179, 8, 0.2);
+  color: #92400e;
+  border: 1px solid rgba(234, 179, 8, 0.3);
+}
+
+.chipHeart {
+  background: rgba(236, 72, 153, 0.2);
+  color: #be185d;
+  border: 1px solid rgba(236, 72, 153, 0.3);
+}
+
+.chipBase {
+  background: rgba(168, 85, 247, 0.2);
+  color: #7c3aed;
+  border: 1px solid rgba(168, 85, 247, 0.3);
+}
+
+.chipDefault {
+  background: var(--gray-200);
+  color: var(--text-secondary);
+  border: 1px solid var(--gray-200);
+}
+
+.chip:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* === Liens Marchands === */
+.merchants {
+  display: grid;
+  gap: 1rem;
+}
+
+.merchant {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.5rem;
+  background: var(--gray-50);
+  border-radius: var(--radius-lg);
+  border: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.merchant:hover {
+  border-color: var(--brand-primary);
+  background: var(--white);
+  box-shadow: var(--shadow-md);
+}
+
+.merchantInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.merchantName {
+  font-weight: 600;
+  color: var(--text-primary);
+  font-size: 1.125rem;
+}
+
+.priceInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.priceRow {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.priceNow {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--brand-secondary);
+}
+
+.priceOriginal {
+  font-size: 1.125rem;
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
+
+.priceDiscount {
+  padding: 0.25rem 0.5rem;
+  background: #ef4444;
+  color: var(--white);
+  border-radius: var(--radius-sm);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.priceMuted {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.offer {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: var(--brand-primary);
+  color: var(--white);
+  text-decoration: none;
+  border-radius: var(--radius-lg);
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.offer:hover {
+  background: var(--brand-primary-dark);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.iconInverse {
+  width: 1rem;
+  height: 1rem;
+}
+
+.disclaimer {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem;
+  background: rgba(185, 164, 141, 0.1);
+  border-radius: var(--radius-lg);
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  margin-top: 1rem;
+}
+
+.iconMuted {
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+}
+
+/* === Parfums Similaires === */
+.similar {
+  margin-top: 3rem;
+}
+
+.similarGrid {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+.emptySimilar {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: var(--text-muted);
+  font-style: italic;
+  background: var(--white);
+  border-radius: var(--radius-xl);
+  box-shadow: var(--shadow-sm);
+}
+
+/* === Loading States === */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60vh;
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--gray-200);
+  border-top-color: var(--brand-primary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.error {
+  text-align: center;
+  padding: 3rem 2rem;
+  color: #ef4444;
+  background: #fef2f2;
+  border-radius: var(--radius-xl);
+  margin: 2rem 0;
+}
+
+/* === Responsive Design === */
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem 1rem 3rem;
+  }
+
+  .grid {
+    gap: 2rem;
+  }
+
+  .titleBlock,
+  .card {
+    padding: 1.5rem;
+  }
+
+  .tiles {
+    grid-template-columns: 1fr;
+  }
+
+  .merchant {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+  }
+
+  .merchantInfo {
+    text-align: center;
+  }
+
+  .noteChips {
+    justify-content: center;
+  }
+}
+
+/* === Animation Utilities === */
+.fadeIn {
+  animation: fadeIn 0.5s ease forwards;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slideUp {
+  animation: slideUp 0.3s ease forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

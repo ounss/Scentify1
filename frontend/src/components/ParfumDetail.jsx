@@ -5,20 +5,16 @@ import {
   ArrowLeft,
   Heart,
   Star,
-  ShoppingBag,
   Share2,
-  Eye,
   Clock,
   Sparkles,
   ExternalLink,
-  Tag,
-  Truck,
 } from "lucide-react";
 import { parfumAPI, favoriAPI, historyAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "./ParfumCard";
 import toast from "react-hot-toast";
-import styles from "../styles/ParfumDetail.css";
+import styles from "../styles/ParfumDetail.module.css";
 
 export default function ParfumDetail() {
   const { id } = useParams();
@@ -29,29 +25,191 @@ export default function ParfumDetail() {
   const [similarParfums, setSimilarParfums] = useState([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [similarLoading, setSimilarLoading] = useState(true); // Nouveau state pour les similaires
   const [error, setError] = useState(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  // Helpers classes
+  // Charger les données du parfum
+  useEffect(() => {
+    loadParfumData();
+  }, [id]);
+
+  // Ajouter à l'historique si utilisateur connecté
+  useEffect(() => {
+    if (parfum && isAuthenticated) {
+      addToHistory();
+    }
+  }, [parfum, isAuthenticated]);
+
+  const loadParfumData = async () => {
+    if (!id) {
+      setError("ID de parfum manquant");
+      setLoading(false);
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      setSimilarLoading(true); // Reset du loading des similaires
+
+      // Charger le parfum principal d'abord
+      const parfumResponse = await parfumAPI.getById(id);
+
+      if (!parfumResponse.data) {
+        throw new Error("Parfum non trouvé");
+      }
+
+      setParfum(parfumResponse.data);
+      setLoading(false); // Le parfum principal est chargé
+
+      // Charger les parfums similaires en parallèle (mais séparément)
+      try {
+        const similarResponse = await parfumAPI.getSimilar(id);
+        setSimilarParfums(similarResponse.data.parfums || []);
+      } catch (similarError) {
+        console.warn("Erreur chargement parfums similaires:", similarError);
+        setSimilarParfums([]);
+      } finally {
+        setSimilarLoading(false); // Les similaires sont chargés (avec ou sans succès)
+      }
+
+      // Vérifier si en favoris
+      if (isAuthenticated) {
+        try {
+          const favoritesResponse = await favoriAPI.getAll();
+          const isInFavorites = favoritesResponse.data.some(
+            (fav) => fav.parfum?._id === id
+          );
+          setIsFavorite(isInFavorites);
+        } catch (error) {
+          console.warn("Erreur lors de la vérification des favoris:", error);
+        }
+      }
+    } catch (error) {
+      console.error("Erreur lors du chargement:", error);
+      setError(
+        error.response?.data?.message ||
+          error.message ||
+          "Erreur lors du chargement du parfum"
+      );
+      setLoading(false);
+      setSimilarLoading(false);
+    }
+  };
+
+  const addToHistory = async () => {
+    try {
+      await historyAPI.add(parfum._id);
+    } catch (error) {
+      console.warn("Erreur ajout historique:", error);
+    }
+  };
+
+  const toggleFavorite = async () => {
+    if (!isAuthenticated) {
+      toast.error("Connectez-vous pour ajouter aux favoris");
+      return;
+    }
+
+    try {
+      setFavoriteLoading(true);
+
+      if (isFavorite) {
+        await favoriAPI.remove(parfum._id);
+        setIsFavorite(false);
+        toast.success("Retiré des favoris");
+      } else {
+        await favoriAPI.add(parfum._id);
+        setIsFavorite(true);
+        toast.success("Ajouté aux favoris");
+      }
+    } catch (error) {
+      console.error("Erreur favoris:", error);
+      toast.error(error.response?.data?.message || "Erreur lors de l'action");
+    } finally {
+      setFavoriteLoading(false);
+    }
+  };
+
+  const handleShare = async () => {
+    const shareData = {
+      title: `${parfum.nom} - ${parfum.marque}`,
+      text: parfum.description || `Découvrez ${parfum.nom} de ${parfum.marque}`,
+      url: window.location.href,
+    };
+
+    try {
+      if (navigator.share && navigator.canShare(shareData)) {
+        await navigator.share(shareData);
+      } else {
+        // Fallback: copier l'URL
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Lien copié dans le presse-papier");
+      }
+    } catch (error) {
+      console.warn("Erreur partage:", error);
+      // Fallback silencieux
+      try {
+        await navigator.clipboard.writeText(window.location.href);
+        toast.success("Lien copié dans le presse-papier");
+      } catch (clipboardError) {
+        toast.error("Impossible de partager");
+      }
+    }
+  };
+
+  // Helpers pour les classes CSS
   const getGenreClass = (genre) => {
     const g = (genre || "").toLowerCase();
-    if (g === "homme") return styles.badgeHomme;
-    if (g === "femme") return styles.badgeFemme;
-    if (g === "mixte") return styles.badgeMixte;
-    return styles.badgeDefault;
+    switch (g) {
+      case "homme":
+        return styles.badgeHomme;
+      case "femme":
+        return styles.badgeFemme;
+      case "mixte":
+        return styles.badgeMixte;
+      default:
+        return styles.badgeDefault;
+    }
   };
 
   const getNoteTypeClass = (type) => {
     const t = (type || "").toLowerCase();
-    if (t === "tête" || t === "tete") return styles.chipHead;
-    if (t === "cœur" || t === "coeur") return styles.chipHeart;
-    if (t === "fond") return styles.chipBase;
-    return styles.chipDefault;
+    switch (t) {
+      case "tête":
+      case "tete":
+        return {
+          groupClass: styles.noteGroupHead,
+          typeClass: styles.noteTypeHead,
+          chipClass: styles.chipHead,
+        };
+      case "cœur":
+      case "coeur":
+        return {
+          groupClass: styles.noteGroupHeart,
+          typeClass: styles.noteTypeHeart,
+          chipClass: styles.chipHeart,
+        };
+      case "fond":
+        return {
+          groupClass: styles.noteGroupBase,
+          typeClass: styles.noteTypeBase,
+          chipClass: styles.chipBase,
+        };
+      default:
+        return {
+          groupClass: "",
+          typeClass: "",
+          chipClass: styles.chipDefault,
+        };
+    }
   };
 
   const formatPrix = (lien) => {
     if (!lien?.prix && !lien?.prixOriginal) return null;
-    if (lien?.enPromotion && lien?.prixOriginal) {
+
+    if (lien?.enPromotion && lien?.prixOriginal && lien?.prix) {
       const reduction = Math.round(
         ((lien.prixOriginal - lien.prix) / lien.prixOriginal) * 100
       );
@@ -62,165 +220,49 @@ export default function ParfumDetail() {
         isPromo: true,
       };
     }
-    return { prix: lien?.prix ? `${lien.prix}€` : undefined, isPromo: false };
-  };
 
-  // Load + historique
-  useEffect(() => {
-    const loadParfumData = async () => {
-      if (!id) {
-        setError("ID de parfum manquant");
-        setLoading(false);
-        return;
-      }
-      try {
-        setLoading(true);
-        setError(null);
-
-        const parfumResponse = await parfumAPI.getById(id);
-        const parfumData = parfumResponse.data;
-        setParfum(parfumData);
-
-        if (isAuthenticated) {
-          try {
-            await historyAPI.addToHistory(id);
-            window.dispatchEvent(
-              new CustomEvent("historyUpdated", {
-                detail: { parfum: parfumData },
-              })
-            );
-          } catch (e) {
-            console.warn("Historique non bloquant:", e?.message || e);
-          }
-        }
-
-        try {
-          const similarResponse = await parfumAPI.getSimilar(id);
-          setSimilarParfums(similarResponse.data || []);
-        } catch {
-          setSimilarParfums([]);
-        }
-      } catch (err) {
-        setError(
-          err?.response?.status === 404
-            ? "Parfum non trouvé"
-            : err?.response?.data?.message || "Erreur lors du chargement"
-        );
-      } finally {
-        setLoading(false);
-      }
+    return {
+      prix: lien?.prix ? `${lien.prix}€` : null,
+      isPromo: false,
     };
-    loadParfumData();
-  }, [id, isAuthenticated]);
-
-  // Sync favoris
-  useEffect(() => {
-    if (user?.favorisParfums && parfum?._id) {
-      const isInFavorites = user.favorisParfums.some((fav) => {
-        const favId = typeof fav === "string" ? fav : fav?._id;
-        return favId === parfum._id;
-      });
-      setIsFavorite(isInFavorites);
-    } else {
-      setIsFavorite(false);
-    }
-  }, [user?.favorisParfums, parfum?._id]);
-
-  // Favoris
-  const toggleFavorite = async () => {
-    if (!isAuthenticated) {
-      toast.error("Connectez-vous pour ajouter des favoris");
-      navigate("/auth");
-      return;
-    }
-    if (!parfum?._id || favoriteLoading) return;
-
-    setFavoriteLoading(true);
-    const prev = isFavorite;
-    setIsFavorite(!isFavorite);
-
-    try {
-      if (prev) {
-        await favoriAPI.removeParfum(parfum._id);
-        toast.success(`${parfum.nom} retiré des favoris`);
-      } else {
-        await favoriAPI.addParfum(parfum._id);
-        toast.success(`${parfum.nom} ajouté aux favoris !`);
-      }
-      window.dispatchEvent(
-        new CustomEvent("favorisUpdated", {
-          detail: { parfumId: parfum._id, action: prev ? "remove" : "add" },
-        })
-      );
-    } catch (err) {
-      setIsFavorite(prev);
-      if (err?.response?.status === 401) {
-        toast.error("Session expirée, reconnectez-vous");
-        navigate("/auth");
-      } else {
-        toast.error(
-          err?.response?.data?.message || "Erreur lors de la modification"
-        );
-      }
-    } finally {
-      setFavoriteLoading(false);
-    }
   };
 
-  // Partage
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success("Lien copié dans le presse-papiers");
-    } catch {
-      toast.error("Impossible de copier le lien");
-    }
-  };
-  const handleShare = async () => {
-    if (!parfum) return;
-    const shareData = {
-      title: `${parfum.nom} - ${parfum.marque}`,
-      text: `Découvrez ce parfum sur Scentify`,
-      url: window.location.href,
-    };
-    if (navigator.share && navigator.canShare?.(shareData)) {
-      try {
-        await navigator.share(shareData);
-      } catch (err) {
-        if (err?.name !== "AbortError") copyToClipboard();
-      }
-    } else {
-      copyToClipboard();
-    }
-  };
-
+  // States de chargement et d'erreur
   if (loading) {
     return (
-      <div className={styles.fullPageCenter}>
-        <div className={styles.loaderCard}>
+      <div className={styles.page}>
+        <div className={styles.loading}>
           <div className={styles.spinner} />
-          <p className={styles.muted}>Chargement du parfum...</p>
         </div>
       </div>
     );
   }
 
-  if (error || !parfum) {
+  if (error) {
     return (
-      <div className={styles.fullPageCenter}>
-        <div className={styles.errorCard}>
-          <Eye className={styles.errorIcon} />
-          <h2 className={styles.errorTitle}>{error || "Parfum non trouvé"}</h2>
-          <p className={styles.muted}>
-            Ce parfum n'existe pas ou a été supprimé.
-          </p>
-          <div className={styles.errorActions}>
-            <button onClick={() => navigate(-1)} className={styles.btnGhost}>
-              <ArrowLeft className={styles.icon} />
+      <div className={styles.page}>
+        <div className={styles.container}>
+          <div className={styles.error}>
+            <h2>Erreur</h2>
+            <p>{error}</p>
+            <button onClick={() => navigate(-1)} className={styles.offer}>
               Retour
             </button>
-            <button onClick={() => navigate("/")} className={styles.btnPrimary}>
-              Accueil
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!parfum) {
+    return (
+      <div className={styles.page}>
+        <div className={styles.container}>
+          <div className={styles.error}>
+            <h2>Parfum non trouvé</h2>
+            <p>Le parfum demandé n'existe pas ou n'est plus disponible.</p>
+            <button onClick={() => navigate("/")} className={styles.offer}>
+              Retour à l'accueil
             </button>
           </div>
         </div>
@@ -230,34 +272,44 @@ export default function ParfumDetail() {
 
   return (
     <div className={styles.page}>
-      {/* Header */}
+      {/* Header sticky */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
-          <button className={styles.back} onClick={() => navigate(-1)}>
+          <button
+            onClick={() => navigate(-1)}
+            className={styles.back}
+            aria-label="Retour à la page précédente"
+          >
             <ArrowLeft className={styles.icon} />
-            <span>Retour</span>
+            Retour
           </button>
+
           <div className={styles.headerActions}>
             <button
-              className={styles.iconButton}
               onClick={handleShare}
-              title="Partager"
+              className={styles.iconButton}
+              aria-label="Partager ce parfum"
             >
               <Share2 className={styles.icon} />
             </button>
-            <button
-              className={`${styles.iconButton} ${
-                isFavorite ? styles.favActive : ""
-              } ${favoriteLoading ? styles.disabled : ""}`}
-              onClick={toggleFavorite}
-              disabled={favoriteLoading}
-              title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
-            >
-              <Heart
-                className={styles.icon}
-                {...(isFavorite ? { fill: "currentColor" } : {})}
-              />
-            </button>
+
+            {isAuthenticated && (
+              <button
+                className={`${styles.iconButton} ${
+                  isFavorite ? styles.favActive : ""
+                } ${favoriteLoading ? styles.disabled : ""}`}
+                onClick={toggleFavorite}
+                disabled={favoriteLoading}
+                aria-label={
+                  isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
+                }
+              >
+                <Heart
+                  className={styles.icon}
+                  fill={isFavorite ? "currentColor" : "none"}
+                />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -272,19 +324,22 @@ export default function ParfumDetail() {
                 className={styles.photo}
                 src={
                   parfum.photo ||
-                  "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop"
+                  "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop&auto=format"
                 }
-                alt={parfum.nom}
+                alt={`Photo du parfum ${parfum.nom} de ${parfum.marque}`}
                 onError={(e) => {
                   e.currentTarget.src =
-                    "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop";
+                    "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop&auto=format";
+                  e.currentTarget.onerror = null; // Éviter la boucle infinie
                 }}
               />
+
               <span
                 className={`${styles.badge} ${getGenreClass(parfum.genre)}`}
               >
                 {parfum.genre}
               </span>
+
               {parfum.popularite > 80 && (
                 <span className={styles.badgePop}>
                   <Star className={styles.icon} />
@@ -293,6 +348,7 @@ export default function ParfumDetail() {
               )}
             </article>
 
+            {/* Tuiles d'informations */}
             <div className={styles.tiles}>
               <div className={styles.tile}>
                 <div className={styles.tileLabel}>Marque</div>
@@ -300,16 +356,15 @@ export default function ParfumDetail() {
               </div>
               <div className={styles.tile}>
                 <div className={styles.tileLabel}>Genre</div>
-                <div className={`${styles.tileValue} ${styles.cap}`}>
-                  {parfum.genre}
-                </div>
+                <div className={`${styles.tileValue}`}>{parfum.genre}</div>
               </div>
             </div>
           </div>
 
           {/* Colonne contenu */}
           <div className={styles.right}>
-            <header className={styles.titleBlock}>
+            {/* En-tête titre */}
+            <header className={`${styles.titleBlock} ${styles.fadeIn}`}>
               <h1 className={styles.title}>{parfum.nom}</h1>
               <p className={styles.brand}>{parfum.marque}</p>
 
@@ -330,9 +385,9 @@ export default function ParfumDetail() {
               )}
             </header>
 
-            {/* Notes */}
+            {/* Notes olfactives */}
             {parfum.notes?.length > 0 && (
-              <section className={styles.card}>
+              <section className={`${styles.card} ${styles.slideUp}`}>
                 <div className={styles.sectionHead}>
                   <Sparkles className={`${styles.icon} ${styles.primary}`} />
                   <h2 className={styles.sectionTitle}>Notes olfactives</h2>
@@ -340,20 +395,33 @@ export default function ParfumDetail() {
 
                 <div className={styles.notes}>
                   {["tête", "cœur", "fond"].map((type) => {
-                    const notes = parfum.notes.filter((n) => n.type === type);
+                    const notes = parfum.notes.filter(
+                      (n) =>
+                        (n.type || "").toLowerCase() === type.toLowerCase() ||
+                        (n.type === "coeur" && type === "cœur") ||
+                        (n.type === "tete" && type === "tête")
+                    );
+
                     if (!notes.length) return null;
+
+                    const { groupClass, typeClass, chipClass } =
+                      getNoteTypeClass(type);
+
                     return (
-                      <div key={type} className={styles.noteGroup}>
-                        <h3 className={styles.noteTitle}>Notes de {type}</h3>
-                        <div className={styles.badges}>
-                          {notes.map((n, i) => (
+                      <div
+                        key={type}
+                        className={`${styles.noteGroup} ${groupClass}`}
+                      >
+                        <h3 className={`${styles.noteType} ${typeClass}`}>
+                          Notes de {type}
+                        </h3>
+                        <div className={styles.noteChips}>
+                          {notes.map((note, index) => (
                             <span
-                              key={n._id || i}
-                              className={`${styles.chip} ${getNoteTypeClass(
-                                type
-                              )}`}
+                              key={`${note._id}-${index}`}
+                              className={`${styles.chip} ${chipClass}`}
                             >
-                              {n.nom}
+                              {note.nom}
                             </span>
                           ))}
                         </div>
@@ -364,72 +432,46 @@ export default function ParfumDetail() {
               </section>
             )}
 
-            {/* Marchands */}
+            {/* Liens marchands */}
             {parfum.liensMarchands?.length > 0 && (
-              <section className={styles.card}>
+              <section className={`${styles.card} ${styles.slideUp}`}>
                 <div className={styles.sectionHead}>
-                  <ShoppingBag className={`${styles.icon} ${styles.success}`} />
-                  <h2 className={styles.sectionTitle}>Où l'acheter</h2>
-                  {parfum.meilleurPrix && (
-                    <span className={styles.bestPrice}>
-                      À partir de {parfum.meilleurPrix}€
-                    </span>
-                  )}
+                  <ExternalLink
+                    className={`${styles.icon} ${styles.primary}`}
+                  />
+                  <h2 className={styles.sectionTitle}>Où acheter</h2>
                 </div>
 
                 <div className={styles.merchants}>
                   {parfum.liensMarchands
-                    .filter((l) => l?.disponible !== false)
-                    .map((m, idx) => {
-                      const prix = formatPrix(m);
+                    .filter((m) => m?.nom && m?.url)
+                    .map((merchant, index) => {
+                      const prix = formatPrix(merchant);
                       return (
-                        <div key={idx} className={styles.merchantRow}>
-                          <div className={styles.merchantLeft}>
-                            <div className={styles.merchantLogo}>
-                              <ShoppingBag className={styles.iconInverse} />
+                        <div
+                          key={`${merchant._id || index}`}
+                          className={styles.merchant}
+                        >
+                          <div className={styles.merchantInfo}>
+                            <div className={styles.merchantName}>
+                              {merchant.nom}
                             </div>
-                            <div>
-                              <div className={styles.merchantTitleLine}>
-                                <span className={styles.merchantName}>
-                                  {m?.nom || m?.site || "Boutique"}
-                                </span>
-                                {m?.label && (
-                                  <span className={styles.merchantTag}>
-                                    {m.label}
-                                  </span>
-                                )}
-                              </div>
-                              {m?.format && (
-                                <div className={styles.merchantMeta}>
-                                  <Tag className={styles.iconMuted} />
-                                  {m.format}
-                                </div>
-                              )}
-                              {m?.delaiLivraison && (
-                                <div className={styles.merchantMeta}>
-                                  <Truck className={styles.iconMuted} />
-                                  {m.delaiLivraison}
-                                </div>
-                              )}
-                            </div>
-                          </div>
 
-                          <div className={styles.merchantRight}>
-                            {prix?.isPromo ? (
-                              <div className={styles.priceBlock}>
-                                <div className={styles.priceNow}>
-                                  {prix.prix}
-                                </div>
-                                <div className={styles.priceWas}>
-                                  {prix.prixOriginal}
-                                </div>
-                                <div className={styles.priceDiscount}>
-                                  -{prix.reduction}
-                                </div>
-                              </div>
-                            ) : (
-                              <div className={styles.priceBlock}>
-                                {prix?.prix ? (
+                            {prix && (
+                              <div className={styles.priceInfo}>
+                                {prix.isPromo ? (
+                                  <div className={styles.priceRow}>
+                                    <div className={styles.priceNow}>
+                                      {prix.prix}
+                                    </div>
+                                    <div className={styles.priceOriginal}>
+                                      {prix.prixOriginal}
+                                    </div>
+                                    <div className={styles.priceDiscount}>
+                                      -{prix.reduction}
+                                    </div>
+                                  </div>
+                                ) : prix.prix ? (
                                   <div className={styles.priceNow}>
                                     {prix.prix}
                                   </div>
@@ -440,50 +482,51 @@ export default function ParfumDetail() {
                                 )}
                               </div>
                             )}
-
-                            {m?.url && (
-                              <a
-                                href={m.url}
-                                target="_blank"
-                                rel="noreferrer noopener"
-                                className={styles.offer}
-                              >
-                                Voir l'offre{" "}
-                                <ExternalLink className={styles.iconInverse} />
-                              </a>
-                            )}
                           </div>
+
+                          <a
+                            href={merchant.url}
+                            target="_blank"
+                            rel="noreferrer noopener"
+                            className={styles.offer}
+                            aria-label={`Voir l'offre sur ${merchant.nom}`}
+                          >
+                            Voir l'offre
+                            <ExternalLink className={styles.iconInverse} />
+                          </a>
                         </div>
                       );
                     })}
                 </div>
 
-                <p className={styles.disclaimer}>
+                <div className={styles.disclaimer}>
                   <Clock className={styles.iconMuted} />
                   Les prix et disponibilités sont indicatifs et peuvent varier
                   selon les boutiques.
-                </p>
+                </div>
               </section>
             )}
           </div>
         </section>
 
-        {/* Similaires */}
-        <section className={styles.similar}>
+        {/* Parfums similaires */}
+        <section className={`${styles.similar} ${styles.slideUp}`}>
           <div className={styles.sectionHeadAlt}>
             <Sparkles className={`${styles.icon} ${styles.purple}`} />
             <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
-          {similarParfums?.length ? (
+          {similarParfums?.length > 0 ? (
             <div className={styles.similarGrid}>
-              {similarParfums.map((p) => (
+              {similarParfums.slice(0, 6).map((p) => (
                 <ParfumCard key={p._id} parfum={p} />
               ))}
             </div>
           ) : (
             <div className={styles.emptySimilar}>
-              Aucun parfum similaire trouvé pour le moment.
+              {loading
+                ? "Recherche de parfums similaires..."
+                : "Aucun parfum similaire trouvé pour le moment."}
             </div>
           )}
         </section>
