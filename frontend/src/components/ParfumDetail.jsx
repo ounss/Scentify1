@@ -10,7 +10,7 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
-import { parfumAPI, favoriAPI, historyAPI } from "../services/api";
+import { parfumAPI, favoritesAPI, historyAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "./ParfumCard";
 import toast from "react-hot-toast";
@@ -77,7 +77,7 @@ export default function ParfumDetail() {
       // Vérifier si en favoris
       if (isAuthenticated) {
         try {
-          const favoritesResponse = await favoriAPI.getFavorites();
+          const favoritesResponse = await favoritesAPI.getFavorites();
           const isInFavorites = favoritesResponse.data.some(
             (fav) => fav.parfum?._id === id
           );
@@ -116,11 +116,11 @@ export default function ParfumDetail() {
       setFavoriteLoading(true);
 
       if (isFavorite) {
-        await favoriAPI.removeParfum(parfum._id);
+        await favoritesAPI.removeParfum(parfum._id);
         setIsFavorite(false);
         toast.success("Retiré des favoris");
       } else {
-        await favoriAPI.addParfum(parfum._id);
+        await favoritesAPI.addParfum(parfum._id);
         setIsFavorite(true);
         toast.success("Ajouté aux favoris");
       }

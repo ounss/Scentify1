@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Heart } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { favoriAPI } from "../services/api";
+import { favoritesAPI } from "../services/api";
 import toast from "react-hot-toast";
 
 export default function ParfumCard({ parfum }) {
@@ -79,10 +79,10 @@ export default function ParfumCard({ parfum }) {
 
     try {
       if (previous) {
-        await favoriAPI.removeParfum(parfum._id);
+        await favoritesAPI.removeParfum(parfum._id);
         toast.success(`${parfum.nom} retiré des favoris`);
       } else {
-        await favoriAPI.addParfum(parfum._id);
+        await favoritesAPI.addParfum(parfum._id);
         toast.success(`${parfum.nom} ajouté aux favoris !`);
       }
       window.dispatchEvent(new CustomEvent("favorisUpdated"));

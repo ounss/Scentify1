@@ -16,7 +16,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { favoriAPI, historyAPI } from "../services/api";
+import { favoritesAPI, historyAPI } from "../services/api";
 import ParfumCard from "../components/ParfumCard";
 import { toast } from "react-hot-toast";
 import styles from "../styles/Profile.module.css";
@@ -59,7 +59,7 @@ export default function Profile() {
       console.log("🔄 Chargement des données utilisateur...");
 
       const [favResponse, historyResponse] = await Promise.all([
-        favoriAPI.getFavorites().catch((err) => {
+        favoritesAPI.getFavorites().catch((err) => {
           console.warn("Erreur favoris:", err);
           return { data: { parfums: [], notes: [] } };
         }),
@@ -130,7 +130,7 @@ export default function Profile() {
     if (!window.confirm("Retirer ce parfum des favoris ?")) return;
 
     try {
-      await favoriAPI.removeParfum(parfumId);
+      await favoritesAPI.removeParfum(parfumId);
       setFavorites((prev) => ({
         ...prev,
         parfums: prev.parfums.filter((p) => p._id !== parfumId),

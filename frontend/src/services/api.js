@@ -1,12 +1,23 @@
 import axios from "axios";
 
-// Configuration API
+// ✅ Configuration API CORRIGÉE
 const BASE_URL =
-  process.env.REACT_APP_API_URL || process.env.NODE_ENV === "production"
-    ? "https://scentify-perfume.onrender.com/"
-    : "http://localhost:10000";
+  process.env.REACT_APP_API_URL ||
+  (process.env.NODE_ENV === "production"
+    ? "https://scentify-perfume.onrender.com/api" // ✅ Sans slash final + /api
+    : "http://localhost:10000/api");
 
-// ✅ Intercepteur requête - JWT automatique CORRIGÉ
+console.log("🔗 Base URL configurée:", BASE_URL);
+
+const api = axios.create({
+  baseURL: BASE_URL,
+  timeout: 15000, // ✅ Timeout pour éviter les blocages
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+// ✅ Intercepteur requête - JWT automatique
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
@@ -24,7 +35,7 @@ api.interceptors.request.use(
   }
 );
 
-// ✅ Intercepteur réponse - Gestion erreurs CORRIGÉ
+// ✅ Intercepteur réponse - Gestion erreurs améliorée
 api.interceptors.response.use(
   (response) => {
     console.log("✅ Réponse API:", response.config.url, response.status);
@@ -34,11 +45,18 @@ api.interceptors.response.use(
     console.error("❌ Erreur API:", error.config?.url, error.response?.status);
     console.error("❌ Détails erreur:", error.response?.data);
 
+    // Gestion spécifique des erreurs réseau
+    if (error.code === "NETWORK_ERROR" || error.code === "ECONNREFUSED") {
+      console.error("🌐 Erreur de connexion réseau - Serveur inaccessible");
+    }
+
     if (error.response?.status === 401) {
       console.log("🚪 Token invalide/expiré, suppression...");
       localStorage.removeItem("token");
-      // Ne pas rediriger automatiquement, laisser l'app gérer
-      // window.location.href = "/auth";
+      // Redirection optionnelle
+      if (window.location.pathname !== "/auth") {
+        window.location.href = "/auth";
+      }
     }
     return Promise.reject(error);
   }
@@ -51,83 +69,51 @@ export const authAPI = {
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data) => api.put("/users/profile", data),
   forgotPassword: (email) => api.post("/users/forgot-password", { email }),
-  resetPassword: (data) => api.post("/users/reset-password", data),
+  resetPassword: (data) => api.post("/users/reset-password", data), // ✅ CORRIGÉ
 };
 
 // 🌸 PARFUM SERVICES
 export const parfumAPI = {
   getAll: (params = {}) => api.get("/parfums", { params }),
   getById: (id) => api.get(`/parfums/${id}`),
-  search: (query) => api.get("/parfums/search", { params: { q: query } }),
-  getSimilar: (id) => api.get(`/parfums/${id}/similar`),
   create: (data) => api.post("/parfums", data),
   update: (id, data) => api.put(`/parfums/${id}`, data),
   delete: (id) => api.delete(`/parfums/${id}`),
-  getStats: () => api.get("/parfums/stats"),
-  getBySimilarity: (parfumIds, params = {}) =>
-    api.post("/parfums/similarity", { parfumIds }, { params }),
-  getByNotes: (noteIds, params = {}) =>
-    api.get("/parfums", { params: { notes: noteIds.join(","), ...params } }),
+  search: (query, params = {}) =>
+    api.get("/parfums/search", { params: { q: query, ...params } }),
 };
 
-// 🏷️ NOTE SERVICES
+// 📝 NOTE SERVICES
 export const noteAPI = {
   getAll: (params = {}) => api.get("/notes", { params }),
   getById: (id) => api.get(`/notes/${id}`),
-  getByType: (type) => api.get(`/notes/type/${type}`),
-  search: (query) => api.get("/notes/search", { params: { q: query } }),
   create: (data) => api.post("/notes", data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),
-  getStats: () => api.get("/notes/stats"),
 };
 
-// ❤️ FAVORIS SERVICES - CORRIGÉ URGENCE
-export const favoriAPI = {
-  getFavorites: () => {
-    console.log("📡 Appel getFavorites...");
-    return api.get("/users/favorites");
-  },
-  addParfum: (id) => {
-    console.log("📡 Appel addParfum:", id);
-    return api.post(`/users/favorites/parfum/${id}`);
-  },
-  removeParfum: (id) => {
-    console.log("📡 Appel removeParfum:", id);
-    return api.delete(`/users/favorites/parfum/${id}`);
-  },
-  addNote: (id) => {
-    console.log("📡 Appel addNote:", id);
-    return api.post(`/users/favorites/note/${id}`);
-  },
-  removeNote: (id) => {
-    console.log("📡 Appel removeNote:", id);
-    return api.delete(`/users/favorites/note/${id}`);
-  },
+// ❤️ FAVORIS SERVICES
+export const favoritesAPI = {
+  getFavorites: (params = {}) => api.get("/users/favorites", { params }),
+  addParfum: (id) => api.post(`/users/favorites/parfum/${id}`),
+  removeParfum: (id) => api.delete(`/users/favorites/parfum/${id}`),
+  addNote: (id) => api.post(`/users/favorites/note/${id}`),
+  removeNote: (id) => api.delete(`/users/favorites/note/${id}`),
 };
 
-// 📚 HISTORIQUE SERVICES - CORRIGÉ URGENCE
+// 📚 HISTORIQUE SERVICES
 export const historyAPI = {
-  getHistory: (params = {}) => {
-    console.log("📡 Appel getHistory...");
-    return api.get("/users/history", { params });
-  },
-  addToHistory: (id) => {
-    console.log("📡 Appel addToHistory:", id);
-    return api.post(`/users/history/${id}`);
-  },
-  clearHistory: () => {
-    console.log("📡 Appel clearHistory...");
-    return api.delete("/users/history");
-  },
+  getHistory: (params = {}) => api.get("/users/history", { params }),
+  addToHistory: (id) => api.post(`/users/history/${id}`),
+  clearHistory: () => api.delete("/users/history"),
 };
 
 // 👨‍💼 ADMIN SERVICES
 export const adminAPI = {
-  getUsers: (params = {}) => api.get("/users", { params }),
-  getUserStats: () => api.get("/users/stats"),
-  exportUsers: () => api.get("/users/export", { responseType: "blob" }),
-  toggleAdmin: (id) => api.patch(`/users/${id}/admin`),
+  getUsers: (params = {}) => api.get("/admin/users", { params }), // ✅ Route corrigée
+  getUserStats: () => api.get("/admin/stats/users"),
+  exportUsers: () => api.get("/admin/users/export", { responseType: "blob" }),
+  toggleAdmin: (id) => api.patch(`/admin/users/${id}/admin`),
 };
 
 // 📷 UPLOAD SERVICE
@@ -135,14 +121,14 @@ export const uploadAPI = {
   uploadParfumImage: (file) => {
     const formData = new FormData();
     formData.append("photo", file);
-    return api.post("/parfums", formData, {
+    return api.post("/parfums/upload", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
   uploadUserAvatar: (file) => {
     const formData = new FormData();
     formData.append("photo", file);
-    return api.put("/users/profile", formData, {
+    return api.put("/users/profile/avatar", formData, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },

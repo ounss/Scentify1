@@ -10,7 +10,7 @@ import {
   Eye,
   Calendar,
 } from "lucide-react";
-import { historyAPI, favoriAPI } from "../services/api";
+import { historyAPI, favoritesAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ScentifyLogo from "../components/ScentifyLogo";
 import toast from "react-hot-toast";
@@ -88,7 +88,7 @@ export default function HistoryFavoritesPage() {
       setLoading(true);
       const [historyResponse, favoritesResponse] = await Promise.all([
         historyAPI.getHistory({ limit: 50 }),
-        favoriAPI.getFavorites(), // ✅ On récupère { parfums, notes }
+        favoritesAPI.getFavorites(), // ✅ On récupère { parfums, notes }
       ]);
 
       setHistory(
@@ -123,7 +123,7 @@ export default function HistoryFavoritesPage() {
   // ✅ CORRECTION : retirer un favori (API corrigée)
   const removeFavorite = async (parfumId) => {
     try {
-      await favoriAPI.removeParfum(parfumId); // ✅ CORRIGÉ
+      await favoritesAPI.removeParfum(parfumId); // ✅ CORRIGÉ
       setFavorites((prev) => ({
         ...prev,
         parfums: (prev?.parfums || []).filter((p) => p._id !== parfumId),
