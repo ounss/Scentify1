@@ -11,6 +11,7 @@ import {
   X,
   Settings,
   Shield,
+  Mail,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
@@ -34,10 +35,11 @@ export default function Header() {
   // Navigation items pour desktop
   const navItems = [
     { to: "/", label: "Accueil", icon: Home },
+    { to: "/contact", label: "Contact", icon: Mail },
     ...(isAuthenticated
       ? [
           { to: "/history", label: "Historique", icon: Clock },
-          { to: "/favorites", label: "Favoris", icon: Heart },
+          { to: "/history?tab=favorites", label: "Favoris", icon: Heart }, // ✅ MODIFICATION
           { to: "/profile", label: "Profil", icon: User },
         ]
       : []),
@@ -262,17 +264,18 @@ export default function Header() {
             <Home className="nav-icon" />
             <span className="nav-label">Accueil</span>
           </Link>
-
           <Link
-            to={isAuthenticated ? "/history" : "/auth"}
+            to={isAuthenticated ? "/history?tab=favorites" : "/auth"} // ✅ MODIFICATION
             className={`nav-item ${
-              location.pathname.startsWith("/history") ? "active" : ""
+              location.pathname.startsWith("/history") &&
+              location.search.includes("favorites")
+                ? "active"
+                : ""
             }`}
           >
-            <Clock className="nav-icon" />
-            <span className="nav-label">Historique</span>
+            <Heart className="nav-icon" />
+            <span className="nav-label">Favoris</span>
           </Link>
-
           <Link
             to={isAuthenticated ? "/profile" : "/auth"}
             className={`nav-item ${
@@ -283,6 +286,15 @@ export default function Header() {
             <span className="nav-label">Profil</span>
           </Link>
         </div>
+        <Link
+          to="/contact"
+          className={`nav-item ${
+            location.pathname === "/contact" ? "active" : ""
+          }`}
+        >
+          <Mail className="nav-icon" />
+          <span className="nav-label">Contact</span>
+        </Link>
       </nav>
     </>
   );

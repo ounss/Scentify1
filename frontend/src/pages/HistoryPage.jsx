@@ -1,6 +1,6 @@
 // frontend/src/pages/HistoryFavoritesPage.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   ArrowLeft,
   Clock,
@@ -19,9 +19,17 @@ import styles from "../styles/HistoryPage.module.css";
 export default function HistoryFavoritesPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // ✅ MODIFICATION : Détecter l'onglet initial via les paramètres URL
+  const getInitialTab = () => {
+    const searchParams = new URLSearchParams(location.search);
+    const tab = searchParams.get("tab");
+    return tab === "favorites" ? "favorites" : "history";
+  };
 
   // États
-  const [activeTab, setActiveTab] = useState("history");
+  const [activeTab, setActiveTab] = useState(getInitialTab());
   const [history, setHistory] = useState([]);
   const [favorites, setFavorites] = useState({ parfums: [], notes: [] });
   const [loading, setLoading] = useState(true);
