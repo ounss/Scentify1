@@ -16,7 +16,7 @@ const createTransporter = () => {
   } else {
     // ✅ Configuration SMTP pour développement (utiliser un vrai SMTP même en dev)
     return nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      // ❌      host: process.env.SMTP_HOST || "smtp.gmail.com",
       port: process.env.SMTP_PORT || 587,
       secure: false, // true pour 465, false pour autres ports
       auth: {
