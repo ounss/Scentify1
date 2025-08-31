@@ -1,0 +1,732 @@
+/* frontend/src/styles/ParfumForm.module.css */
+
+/* === LAYOUT PRINCIPAL === */
+.page {
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  background-color: #f8fafc;
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #e2e8f0;
+  border-top: 3px solid #dc2626;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loadingText {
+  margin-top: 16px;
+  color: #64748b;
+  font-size: 16px;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+/* === HEADER === */
+.header {
+  background: white;
+  border-bottom: 1px solid #e2e8f0;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.headerInner {
+  max-width: 448px;
+  margin: 0 auto;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.backButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.spacer {
+  width: 32px;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* === FORMULAIRE === */
+.form {
+  max-width: 448px;
+  margin: 0 auto;
+  padding: 24px 16px 120px;
+}
+
+.section {
+  background: white;
+  border-radius: 16px;
+  padding: 24px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  border: 1px solid #f1f5f9;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+
+/* === IMAGE SECTION === */
+.imagePreview {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.previewImage {
+  width: 100%;
+  height: 240px;
+  object-fit: cover;
+  border-radius: 12px;
+  border: 2px solid #e2e8f0;
+}
+
+.removeImageButton {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  border: none;
+  border-radius: 50%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ef4444;
+  transition: all 0.2s ease;
+}
+
+.removeImageButton:hover {
+  background: white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.imagePlaceholder {
+  height: 240px;
+  background: #f8fafc;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+  transition: all 0.2s ease;
+}
+
+.imagePlaceholder:hover {
+  border-color: #94a3b8;
+  background: #f1f5f9;
+}
+
+.placeholderIcon {
+  width: 48px;
+  height: 48px;
+  color: #94a3b8;
+  margin-bottom: 8px;
+}
+
+.placeholderText {
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+/* === CHAMPS DE FORMULAIRE === */
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formRow {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+@media (max-width: 480px) {
+  .formRow {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.labelIcon {
+  width: 16px;
+  height: 16px;
+  color: #6b7280;
+}
+
+.required {
+  color: #ef4444;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 12px;
+  font-size: 16px;
+  color: #1f2937;
+  transition: all 0.2s ease;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  outline: none;
+  kerning: 2px solid #dc2626;
+  border-color: #dc2626;
+}
+
+.inputWithIcon {
+  position: relative;
+}
+
+.inputWithIcon .input {
+  padding-left: 44px;
+}
+
+.inputIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  color: #9ca3af;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 100px;
+}
+
+/* === RANGE SLIDER === */
+.rangeGroup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.range {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: #e5e7eb;
+  outline: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  cursor: pointer;
+}
+
+.range::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #dc2626;
+  cursor: pointer;
+  border: none;
+}
+
+.rangeValue {
+  font-weight: 600;
+  color: #dc2626;
+  min-width: 32px;
+  text-align: center;
+}
+
+/* === NOTES OLFACTIVES === */
+.notesGroup {
+  margin-bottom: 32px;
+}
+
+.notesTitle {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notesTete {
+  color: #d97706;
+}
+
+.notesCoeur {
+  color: #ec4899;
+}
+
+.notesFond {
+  color: #7c3aed;
+}
+
+.notesIcon {
+  width: 18px;
+  height: 18px;
+}
+
+.notesGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 8px;
+}
+
+.noteButton {
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  border: 1px solid;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  background: white;
+}
+
+.noteUnselected {
+  color: #6b7280;
+  border-color: #d1d5db;
+}
+
+.noteUnselected:hover {
+  border-color: #9ca3af;
+  background-color: #f9fafb;
+}
+
+.noteSelected {
+  border-width: 2px;
+  font-weight: 600;
+}
+
+.noteTeteSelected {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #f59e0b;
+}
+
+.noteCoeurSelected {
+  background-color: #fce7f3;
+  color: #be185d;
+  border-color: #ec4899;
+}
+
+.noteFondSelected {
+  background-color: #ede9fe;
+  color: #6b21a8;
+  border-color: #7c3aed;
+}
+
+.noNotesText {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  padding: 24px;
+  background-color: #f9fafb;
+  border-radius: 8px;
+}
+
+/* === LIENS MARCHANDS === */
+.addButton {
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.addButton:hover {
+  background: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.merchantList {
+  margin-bottom: 16px;
+}
+
+.merchantItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.merchantInfo {
+  flex: 1;
+}
+
+.merchantName {
+  font-weight: 600;
+  color: #1e293b;
+  margin-bottom: 4px;
+}
+
+.merchantUrl {
+  color: #3b82f6;
+  text-decoration: none;
+  font-size: 14px;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.merchantUrl:hover {
+  text-decoration: underline;
+}
+
+.merchantPrice {
+  font-weight: 600;
+  color: #059669;
+  font-size: 14px;
+}
+
+.removeButton {
+  background: #fee2e2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.removeButton:hover {
+  background: #fecaca;
+  transform: scale(1.05);
+}
+
+.noMerchantsText {
+  color: #9ca3af;
+  font-style: italic;
+  text-align: center;
+  padding: 32px 16px;
+  background-color: #f9fafb;
+  border: 1px dashed #d1d5db;
+  border-radius: 12px;
+}
+
+.merchantForm {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 16px;
+}
+
+.formActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+
+.cancelButton {
+  background: #f8fafc;
+  color: #64748b;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.cancelButton:hover {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.addMerchantButton {
+  background: #059669;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+}
+
+.addMerchantButton:hover {
+  background: #047857;
+  transform: translateY(-1px);
+}
+
+/* === BOUTON DE SOUMISSION === */
+.submitSection {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: white;
+  border-top: 1px solid #e2e8f0;
+  padding: 16px;
+  box-shadow: 0 -4px 6px -1px rgba(0, 0, 0, 0.1);
+}
+
+.submitButton {
+  width: 100%;
+  max-width: 448px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, #dc2626 0%, #ec4899 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 16px 24px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 14px 0 rgba(220, 38, 38, 0.35);
+}
+
+.submitButton:hover:not(:disabled) {
+  background: linear-gradient(135deg, #b91c1c 0%, #db2777 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px 0 rgba(220, 38, 38, 0.45);
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: 0 4px 14px 0 rgba(220, 38, 38, 0.2);
+}
+
+.loadingSubmit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+/* === RESPONSIVE === */
+@media (max-width: 768px) {
+  .form {
+    padding: 16px 12px 120px;
+  }
+
+  .section {
+    padding: 20px 16px;
+  }
+
+  .headerInner {
+    padding: 12px 16px;
+  }
+
+  .notesGrid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  }
+
+  .merchantItem {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .removeButton {
+    align-self: flex-end;
+  }
+
+  .formActions {
+    flex-direction: column;
+  }
+
+  .cancelButton,
+  .addMerchantButton {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 480px) {
+  .headerInner {
+    padding: 12px;
+  }
+
+  .form {
+    padding: 12px 8px 120px;
+  }
+
+  .section {
+    padding: 16px 12px;
+    margin-bottom: 16px;
+  }
+
+  .sectionTitle {
+    font-size: 16px;
+  }
+
+  .notesGrid {
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+
+  .noteButton {
+    padding: 10px 12px;
+    font-size: 13px;
+  }
+
+  .submitSection {
+    padding: 12px;
+  }
+
+  .submitButton {
+    font-size: 16px;
+    padding: 14px 20px;
+  }
+}
+
+/* === ANIMATIONS === */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.section {
+  animation: fadeIn 0.3s ease-out;
+}
+
+.merchantForm {
+  animation: fadeIn 0.2s ease-out;
+}
+
+/* === FOCUS ET ACCESSIBILITÉ === */
+.input:focus,
+.select:focus,
+.textarea:focus,
+.noteButton:focus,
+.submitButton:focus {
+  outline: 2px solid #dc2626;
+  outline-offset: 2px;
+}
+
+.noteButton:focus {
+  outline-offset: 1px;
+}
+
+/* États hover pour une meilleure UX */
+.input:hover,
+.select:hover,
+.textarea:hover {
+  border-color: #9ca3af;
+}
+
+.merchantItem:hover {
+  background-color: #f1f5f9;
+  border-color: #cbd5e1;
+}

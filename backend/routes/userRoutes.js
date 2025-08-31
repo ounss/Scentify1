@@ -72,6 +72,7 @@ router.post(
   handleValidationErrors,
   registerUser
 );
+router.get("/verify-email", verifyEmail);
 router.post("/login", validateLogin, handleValidationErrors, loginUser);
 router.post("/verify-email", verifyEmail);
 router.post("/forgot-password", forgotPassword);

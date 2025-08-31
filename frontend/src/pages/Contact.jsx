@@ -19,12 +19,25 @@ export default function Contact() {
     e.preventDefault();
     setIsLoading(true);
     try {
-      // TODO: Remplacer par ton emailService côté backend
-      await new Promise((r) => setTimeout(r, 1500));
+      // Remplacer le mock par l'appel API réel
+      const response = await fetch("/api/contact/send", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(formData),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.message || "Erreur lors de l'envoi");
+      }
+
       toast.success("Message envoyé avec succès !");
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
-      toast.error("Erreur lors de l'envoi du message");
+      toast.error(err.message || "Erreur lors de l'envoi du message");
     } finally {
       setIsLoading(false);
     }

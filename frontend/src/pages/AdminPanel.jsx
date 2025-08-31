@@ -1,4 +1,4 @@
-// frontend/src/pages/AdminPanel.jsx - Version élégante cohérente avec le design
+// frontend/src/pages/AdminPanel.jsx - Version sans Tailwind avec CSS Modules (clean, redirections Parfum)
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -12,24 +12,17 @@ import {
   Crown,
   User,
   ArrowLeft,
-  TrendingUp,
-  AlertTriangle,
   RefreshCw,
   Plus,
   Edit3,
   Trash2,
   Eye,
-  Filter,
   X,
   Save,
   Star,
   MessageSquare,
   Shield,
-  Database,
   Activity,
-  Settings,
-  Check,
-  Clock,
 } from "lucide-react";
 import { adminAPI } from "../services/adminAPI.js";
 import { parfumAPI, noteAPI, authAPI } from "../services/api.js";
@@ -58,23 +51,16 @@ export default function AdminPanel() {
   const [filterGenre, setFilterGenre] = useState("tous");
   const [filterNoteType, setFilterNoteType] = useState("tous");
 
-  // Modales & édition
+  // Modales & édition (UTILISATEUR/NOTE uniquement)
   const [showUserForm, setShowUserForm] = useState(false);
-  const [showParfumForm, setShowParfumForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
   const [editingItem, setEditingItem] = useState(null);
 
-  // Formulaires
+  // Formulaires (UTILISATEUR/NOTE uniquement)
   const [userForm, setUserForm] = useState({
     username: "",
     email: "",
     password: "",
-  });
-  const [parfumForm, setParfumForm] = useState({
-    nom: "",
-    marque: "",
-    genre: "mixte",
-    description: "",
   });
   const [noteForm, setNoteForm] = useState({
     nom: "",
@@ -82,13 +68,14 @@ export default function AdminPanel() {
     famille: "",
   });
 
-  // Vérification des droits admin
+  // Vérification des droits admin + chargement initial
   useEffect(() => {
     if (!isAdmin) {
       navigate("/");
       return;
     }
     loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, navigate]);
 
   // Chargement des données
@@ -246,39 +233,7 @@ export default function AdminPanel() {
     }
   };
 
-  // === GESTION PARFUMS ===
-  const createParfum = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await parfumAPI.create(parfumForm);
-      const created = response?.data?.parfum || response?.data || parfumForm;
-      setParfums((prev) => [...prev, created]);
-      setShowParfumForm(false);
-      setEditingItem(null);
-      setParfumForm({ nom: "", marque: "", genre: "mixte", description: "" });
-      toast.success("Parfum créé");
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Erreur création parfum");
-    }
-  };
-
-  const updateParfum = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await parfumAPI.update(editingItem._id, parfumForm);
-      const updated = response?.data?.parfum || response?.data || parfumForm;
-      setParfums((prev) =>
-        prev.map((p) => (p._id === editingItem._id ? { ...p, ...updated } : p))
-      );
-      setShowParfumForm(false);
-      setEditingItem(null);
-      setParfumForm({ nom: "", marque: "", genre: "mixte", description: "" });
-      toast.success("Parfum modifié");
-    } catch (error) {
-      toast.error("Erreur modification parfum");
-    }
-  };
-
+  // === GESTION PARFUMS (SUPPRESSION uniquement ici) ===
   const deleteParfum = async (parfumId) => {
     if (!window.confirm("Supprimer ce parfum ?")) return;
     try {
@@ -336,24 +291,24 @@ export default function AdminPanel() {
 
   // === FILTRES ===
   const filteredUsers = users.filter(
-    (user) =>
-      user.username.toLowerCase().includes(searchUsers.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchUsers.toLowerCase())
+    (u) =>
+      u.username?.toLowerCase().includes(searchUsers.toLowerCase()) ||
+      u.email?.toLowerCase().includes(searchUsers.toLowerCase())
   );
 
-  const filteredParfums = parfums.filter((parfum) => {
+  const filteredParfums = parfums.filter((p) => {
     const matchSearch =
-      parfum.nom.toLowerCase().includes(searchParfums.toLowerCase()) ||
-      parfum.marque.toLowerCase().includes(searchParfums.toLowerCase());
-    const matchGenre = filterGenre === "tous" || parfum.genre === filterGenre;
+      p.nom?.toLowerCase().includes(searchParfums.toLowerCase()) ||
+      p.marque?.toLowerCase().includes(searchParfums.toLowerCase());
+    const matchGenre = filterGenre === "tous" || p.genre === filterGenre;
     return matchSearch && matchGenre;
   });
 
-  const filteredNotes = notes.filter((note) => {
-    const matchSearch = note.nom
-      .toLowerCase()
+  const filteredNotes = notes.filter((n) => {
+    const matchSearch = n.nom
+      ?.toLowerCase()
       .includes(searchNotes.toLowerCase());
-    const matchType = filterNoteType === "tous" || note.type === filterNoteType;
+    const matchType = filterNoteType === "tous" || n.type === filterNoteType;
     return matchSearch && matchType;
   });
 
@@ -367,29 +322,22 @@ export default function AdminPanel() {
   ];
 
   // === FONCTIONS D'ÉDITION ===
-  const startEditUser = (user) => {
-    setEditingItem(user);
-    setUserForm({ username: user.username, email: user.email, password: "" });
+  const startEditUser = (u) => {
+    setEditingItem(u);
+    setUserForm({
+      username: u.username || "",
+      email: u.email || "",
+      password: "",
+    });
     setShowUserForm(true);
   };
 
-  const startEditParfum = (parfum) => {
-    setEditingItem(parfum);
-    setParfumForm({
-      nom: parfum.nom,
-      marque: parfum.marque,
-      genre: parfum.genre,
-      description: parfum.description || "",
-    });
-    setShowParfumForm(true);
-  };
-
-  const startEditNote = (note) => {
-    setEditingItem(note);
+  const startEditNote = (n) => {
+    setEditingItem(n);
     setNoteForm({
-      nom: note.nom,
-      type: note.type,
-      famille: note.famille || "",
+      nom: n.nom || "",
+      type: n.type || "tete",
+      famille: n.famille || "",
     });
     setShowNoteForm(true);
   };
@@ -408,7 +356,7 @@ export default function AdminPanel() {
 
   return (
     <div className={styles.page}>
-      {/* Header avec navigation */}
+      {/* Header */}
       <header className={styles.header}>
         <div className={styles.headerInner}>
           <button onClick={() => navigate(-1)} className={styles.backButton}>
@@ -465,6 +413,7 @@ export default function AdminPanel() {
 
         {/* Contenu principal */}
         <div className={styles.content}>
+          {/* DASHBOARD */}
           {activeTab === "dashboard" && (
             <div className={styles.dashboard}>
               <div className={styles.sectionHeader}>
@@ -587,6 +536,7 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* UTILISATEURS */}
           {activeTab === "users" && (
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
@@ -668,9 +618,11 @@ export default function AdminPanel() {
                         </div>
                         <div className={styles.tableCell}>
                           <p className={styles.dateText}>
-                            {new Date(userItem.createdAt).toLocaleDateString(
-                              "fr-FR"
-                            )}
+                            {userItem.createdAt
+                              ? new Date(userItem.createdAt).toLocaleDateString(
+                                  "fr-FR"
+                                )
+                              : "-"}
                           </p>
                         </div>
                         <div className={styles.tableCell}>
@@ -725,13 +677,16 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* PARFUMS */}
           {activeTab === "parfums" && (
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
                 <h2 className={styles.sectionTitle}>Gestion des parfums</h2>
                 <div className={styles.sectionActions}>
+                  {/* ✅ Redirection vers le formulaire dédié */}
+                  // Ligne 446 - Bouton "Nouveau parfum"
                   <button
-                    onClick={() => setShowParfumForm(true)}
+                    onClick={() => navigate("/parfum/new")} // ✅ Corrigé : /parfum/new au lieu de /parfums/new
                     className={styles.primaryButton}
                   >
                     <Plus className={styles.icon} />
@@ -790,24 +745,27 @@ export default function AdminPanel() {
                       </div>
                       {parfum.description && (
                         <p className={styles.cardDescription}>
-                          {parfum.description.substring(0, 100)}...
+                          {parfum.description.length > 120
+                            ? `${parfum.description.substring(0, 120)}...`
+                            : parfum.description}
                         </p>
                       )}
                     </div>
                     <div className={styles.cardActions}>
+                      {/* ✅ Redirection vers l’édition dédiée */}
                       <button
-                        onClick={() => startEditParfum(parfum)}
+                        onClick={() => navigate(`/parfums/edit/${parfum._id}`)}
                         className={styles.iconButton}
                         title="Modifier"
                       >
                         <Edit3 className={styles.icon} />
                       </button>
                       <button
-                        onClick={() => navigate(`/parfum/${parfum._id}`)}
+                        onClick={() => navigate(`/parfum/edit/${parfum._id}`)} // ✅ Corrigé : /parfum/edit au lieu de /parfums/edit
                         className={styles.iconButton}
-                        title="Voir détails"
+                        title="Modifier"
                       >
-                        <Eye className={styles.icon} />
+                        <Edit3 className={styles.icon} />
                       </button>
                       <button
                         onClick={() => deleteParfum(parfum._id)}
@@ -823,6 +781,7 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* NOTES */}
           {activeTab === "notes" && (
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
@@ -908,6 +867,7 @@ export default function AdminPanel() {
             </div>
           )}
 
+          {/* CONTACT */}
           {activeTab === "contact" && (
             <div className={styles.section}>
               <ContactSection />
@@ -998,99 +958,7 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* Modale Parfum */}
-      {showParfumForm && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setShowParfumForm(false)}
-        >
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>
-                {editingItem ? "Modifier le parfum" : "Nouveau parfum"}
-              </h3>
-              <button
-                onClick={() => setShowParfumForm(false)}
-                className={styles.modalClose}
-              >
-                <X className={styles.icon} />
-              </button>
-            </div>
-            <form
-              onSubmit={editingItem ? updateParfum : createParfum}
-              className={styles.modalForm}
-            >
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Nom du parfum</label>
-                <input
-                  type="text"
-                  value={parfumForm.nom}
-                  onChange={(e) =>
-                    setParfumForm({ ...parfumForm, nom: e.target.value })
-                  }
-                  className={styles.formInput}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Marque</label>
-                <input
-                  type="text"
-                  value={parfumForm.marque}
-                  onChange={(e) =>
-                    setParfumForm({ ...parfumForm, marque: e.target.value })
-                  }
-                  className={styles.formInput}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Genre</label>
-                <select
-                  value={parfumForm.genre}
-                  onChange={(e) =>
-                    setParfumForm({ ...parfumForm, genre: e.target.value })
-                  }
-                  className={styles.formSelect}
-                  required
-                >
-                  <option value="femme">Femme</option>
-                  <option value="homme">Homme</option>
-                  <option value="mixte">Mixte</option>
-                </select>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Description</label>
-                <textarea
-                  value={parfumForm.description}
-                  onChange={(e) =>
-                    setParfumForm({
-                      ...parfumForm,
-                      description: e.target.value,
-                    })
-                  }
-                  className={styles.formTextarea}
-                  rows="4"
-                  placeholder="Description du parfum..."
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowParfumForm(false)}
-                  className={styles.secondaryButton}
-                >
-                  Annuler
-                </button>
-                <button type="submit" className={styles.primaryButton}>
-                  <Save className={styles.icon} />
-                  {editingItem ? "Mettre à jour" : "Créer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* ✅ Modale Parfum SUPPRIMÉE — remplacée par des pages dédiées */}
 
       {/* Modale Note */}
       {showNoteForm && (

@@ -1,148 +1,252 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, Mail, Lock, User } from "lucide-react";
+import {
+  Eye,
+  EyeOff,
+  Mail,
+  Lock,
+  User,
+  ArrowLeft,
+  Sparkles,
+  Heart,
+} from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import toast from "react-hot-toast";
+import { useNavigate } from "react-router-dom";
+import styles from "../styles/auth.css";
 
-export default function Auth() {
+const AuthPage = () => {
   const [isLogin, setIsLogin] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
+    username: "",
     email: "",
     password: "",
-    username: "",
   });
-  const [loading, setLoading] = useState(false);
-  const { login, register } = useAuth();
+
+  const { login, register, loading, error, clearError } = useAuth();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    clearError(); // Effacer les erreurs précédentes
 
     try {
-      const result = isLogin
-        ? await login({ email: formData.email, password: formData.password })
-        : await register(formData);
+      if (isLogin) {
+        // Connexion
+        console.log("🔐 Tentative de connexion avec:", formData.email);
+        const result = await login({
+          email: formData.email,
+          password: formData.password,
+        });
 
-      if (result.success) {
-        toast.success(isLogin ? "Connexion réussie!" : "Compte créé!");
+        if (result.success) {
+          console.log("✅ Connexion réussie, redirection...");
+          navigate("/");
+        } else {
+          console.log("❌ Erreur de connexion:", result.error);
+        }
       } else {
-        toast.error(result.error);
+        // Inscription
+        console.log(
+          "📝 Tentative d'inscription avec:",
+          formData.username,
+          formData.email
+        );
+        const result = await register({
+          username: formData.username,
+          email: formData.email,
+          password: formData.password,
+        });
+
+        if (result.success) {
+          console.log("✅ Inscription réussie, redirection...");
+          navigate("/");
+        } else {
+          console.log("❌ Erreur d'inscription:", result.error);
+        }
       }
-    } finally {
-      setLoading(false);
+    } catch (err) {
+      console.error("❌ Erreur inattendue:", err);
     }
   };
 
+  const toggleMode = () => {
+    setIsLogin(!isLogin);
+    setFormData({ username: "", email: "", password: "" });
+    clearError();
+  };
+
+  const handleBackClick = () => {
+    navigate(-1); // Retour à la page précédente
+  };
+
   return (
-    <div
-      className="min-h-screen flex items-center justify-center p-4"
-      style={{
-        background: "linear-gradient(135deg, var(--bg), var(--bg-light))",
-      }}
-    >
-      <div className="bg-white rounded-lg shadow-xl p-8 w-full max-w-md">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <div className="logo-icon mx-auto mb-4">S</div>
-          <h1 className="text-2xl font-bold text-gray-900 mb-2">
-            {isLogin ? "Bon retour" : "Bienvenue"}
-          </h1>
-          <p className="text-gray-600">
-            {isLogin ? "Connectez-vous à votre compte" : "Créez votre compte"}
-          </p>
-        </div>
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {!isLogin && (
-            <div className="form-group">
-              <div className="relative">
-                <User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
-                <input
-                  type="text"
-                  className="form-input pl-10"
-                  placeholder="Nom d'utilisateur"
-                  value={formData.username}
-                  onChange={(e) =>
-                    setFormData({ ...formData, username: e.target.value })
-                  }
-                  required
-                />
-              </div>
+    <div className="auth-page">
+      {/* Header avec navigation retour */}
+      <div className="auth-header">
+        <div className="auth-header-content">
+          <button className="back-button" onClick={handleBackClick}>
+            <ArrowLeft className="w-5 h-5" />
+          </button>
+          <div className="auth-logo">
+            <div className="logo-icon">
+              <div className="perfume-bottle"></div>
             </div>
-          )}
+            <span className="logo-text">SCENTIFY</span>
+          </div>
+          <div className="spacer"></div>
+        </div>
+      </div>
 
-          <div className="form-group">
-            <div className="relative">
-              <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input
-                type="email"
-                className="form-input pl-10"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) =>
-                  setFormData({ ...formData, email: e.target.value })
-                }
-                required
-              />
+      {/* Contenu principal */}
+      <div className="auth-container">
+        <div className="auth-card">
+          {/* Illustration décorative */}
+          <div className="auth-illustration">
+            <div className="floating-elements">
+              <Sparkles className="sparkle sparkle-1" />
+              <Heart className="sparkle sparkle-2" />
+              <Sparkles className="sparkle sparkle-3" />
+            </div>
+            <div className="main-perfume-bottle">
+              <div className="bottle-shadow"></div>
             </div>
           </div>
 
-          <div className="form-group">
-            <div className="relative">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-500" />
-              <input
-                type={showPassword ? "text" : "password"}
-                className="form-input pl-10 pr-10"
-                placeholder="Mot de passe"
-                value={formData.password}
-                onChange={(e) =>
-                  setFormData({ ...formData, password: e.target.value })
-                }
-                required
-              />
+          {/* Contenu du formulaire */}
+          <div className="auth-content">
+            {/* En-tête du formulaire */}
+            <div className="form-header">
+              <h1 className="form-title">
+                {isLogin ? "Bon retour" : "Bienvenue"}
+              </h1>
+              <p className="form-subtitle">
+                {isLogin
+                  ? "Reconnectez-vous à votre univers olfactif"
+                  : "Découvrez votre signature olfactive parfaite"}
+              </p>
+            </div>
+
+            {/* Affichage des erreurs */}
+            {error && (
+              <div className="error-message">
+                <p>{error}</p>
+                <button onClick={clearError} className="error-close">
+                  ×
+                </button>
+              </div>
+            )}
+
+            {/* Formulaire */}
+            <div className="auth-form" onSubmit={handleSubmit}>
+              {!isLogin && (
+                <div className="form-group">
+                  <div className="input-wrapper">
+                    <User className="input-icon" />
+                    <input
+                      type="text"
+                      className="form-input"
+                      placeholder="Nom d'utilisateur"
+                      value={formData.username}
+                      onChange={(e) =>
+                        setFormData({ ...formData, username: e.target.value })
+                      }
+                      required={!isLogin}
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              )}
+
+              <div className="form-group">
+                <div className="input-wrapper">
+                  <Mail className="input-icon" />
+                  <input
+                    type="email"
+                    className="form-input"
+                    placeholder="Email"
+                    value={formData.email}
+                    onChange={(e) =>
+                      setFormData({ ...formData, email: e.target.value })
+                    }
+                    required
+                    disabled={loading}
+                  />
+                </div>
+              </div>
+
+              <div className="form-group">
+                <div className="input-wrapper">
+                  <Lock className="input-icon" />
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    className="form-input"
+                    placeholder="Mot de passe"
+                    value={formData.password}
+                    onChange={(e) =>
+                      setFormData({ ...formData, password: e.target.value })
+                    }
+                    required
+                    disabled={loading}
+                    minLength={6}
+                  />
+                  <button
+                    type="button"
+                    className="password-toggle"
+                    onClick={() => setShowPassword(!showPassword)}
+                    disabled={loading}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-5 h-5" />
+                    ) : (
+                      <Eye className="w-5 h-5" />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {isLogin && (
+                <div className="forgot-password">
+                  <a href="#" className="forgot-link">
+                    Mot de passe oublié ?
+                  </a>
+                </div>
+              )}
+
               <button
-                type="button"
-                className="absolute right-3 top-1/2 transform -translate-y-1/2"
-                onClick={() => setShowPassword(!showPassword)}
+                type="submit"
+                className="submit-button"
+                disabled={loading}
+                onClick={handleSubmit}
               >
-                {showPassword ? (
-                  <EyeOff className="w-5 h-5 text-gray-500" />
+                {loading ? (
+                  <div className="loading-spinner"></div>
                 ) : (
-                  <Eye className="w-5 h-5 text-gray-500" />
+                  <span>{isLogin ? "Se connecter" : "Créer mon compte"}</span>
                 )}
               </button>
             </div>
+
+            {/* Séparateur */}
+            <div className="auth-divider">
+              <div className="divider-line"></div>
+              <span className="divider-text">ou</span>
+              <div className="divider-line"></div>
+            </div>
+
+            {/* Bouton de basculement */}
+            <button
+              type="button"
+              className="toggle-button"
+              onClick={toggleMode}
+              disabled={loading}
+            >
+              {isLogin ? "Créer un compte" : "J'ai déjà un compte"}
+            </button>
           </div>
-
-          <button
-            type="submit"
-            className="btn btn-primary btn-full"
-            disabled={loading}
-          >
-            {loading ? (
-              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full spin"></div>
-            ) : isLogin ? (
-              "Se connecter"
-            ) : (
-              "S'inscrire"
-            )}
-          </button>
-        </form>
-
-        {/* Toggle */}
-        <div className="text-center mt-6">
-          <p className="text-gray-600 mb-2">
-            {isLogin ? "Pas de compte ?" : "Déjà un compte ?"}
-          </p>
-          <button
-            className="text-primary font-semibold"
-            onClick={() => setIsLogin(!isLogin)}
-          >
-            {isLogin ? "S'inscrire" : "Se connecter"}
-          </button>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default AuthPage;
