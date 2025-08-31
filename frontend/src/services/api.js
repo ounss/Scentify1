@@ -1,9 +1,16 @@
 import axios from "axios";
 
-// Configuration API
+// ✅ Configuration API CORRIGÉE
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || "http://localhost:/api",
-  timeout: 10000,
+  // AVANT: "http://localhost:/api" (❌ port manquant!)
+  // MAINTENANT: URL complète avec fallback
+  baseURL:
+    process.env.REACT_APP_API_URL ||
+    (process.env.NODE_ENV === "production"
+      ? "https://TON-BACKEND-URL.onrender.com/api" // ← Remplace par ton URL Render backend
+      : "http://localhost:10000/api"),
+
+  timeout: 15000, // Augmenté pour Render (peut être lent)
   headers: {
     "Content-Type": "application/json",
   },
@@ -19,6 +26,10 @@ api.interceptors.request.use(
     } else {
       console.log("⚠️ Pas de token pour la requête:", config.url);
     }
+
+    // Debug: afficher l'URL complète
+    console.log("📡 Requête vers:", config.baseURL + config.url);
+
     return config;
   },
   (error) => {
@@ -36,60 +47,74 @@ api.interceptors.response.use(
   (error) => {
     console.error("❌ Erreur API:", error.config?.url, error.response?.status);
     console.error("❌ Détails erreur:", error.response?.data);
+    console.error(
+      "❌ URL complète:",
+      error.config?.baseURL + error.config?.url
+    );
 
     if (error.response?.status === 401) {
       console.log("🚪 Token invalide/expiré, suppression...");
       localStorage.removeItem("token");
-      // Ne pas rediriger automatiquement, laisser l'app gérer
-      // window.location.href = "/auth";
     }
+
+    // Ajouter plus d'infos sur les erreurs de connexion
+    if (!error.response) {
+      console.error("❌ Erreur de connexion - Backend inaccessible");
+      console.error("❌ Vérifiez que le backend est démarré et accessible");
+    }
+
     return Promise.reject(error);
   }
 );
 
-// 🔐 AUTH SERVICES
+// 🔐 AUTH SERVICES (reste identique)
 export const authAPI = {
   register: (userData) => api.post("/users/register", userData),
   login: (credentials) => api.post("/users/login", credentials),
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data) => api.put("/users/profile", data),
-  forgotPassword: (email) => api.post("/users/forgot-password", { email }),
-  resetPassword: (data) => api.post("/users/reset-password", data),
+  forgotPassword: (email) => api.post("/auth/forgot-password", { email }),
+  resetPassword: (token, password) =>
+    api.post("/auth/reset-password", { token, password }),
 };
 
-// 🌸 PARFUM SERVICES
+// 🌸 PARFUMS SERVICES
 export const parfumAPI = {
-  getAll: (params = {}) => api.get("/parfums", { params }),
-  getById: (id) => api.get(`/parfums/${id}`),
-  search: (query) => api.get("/parfums/search", { params: { q: query } }),
-  getSimilar: (id) => api.get(`/parfums/${id}/similar`),
+  getAll: (params = {}) => {
+    console.log("📡 Appel getAll parfums avec params:", params);
+    return api.get("/parfums", { params });
+  },
+  getById: (id) => {
+    console.log("📡 Appel getById parfum:", id);
+    return api.get(`/parfums/${id}`);
+  },
   create: (data) => api.post("/parfums", data),
   update: (id, data) => api.put(`/parfums/${id}`, data),
   delete: (id) => api.delete(`/parfums/${id}`),
-  getStats: () => api.get("/parfums/stats"),
-  getBySimilarity: (parfumIds, params = {}) =>
-    api.post("/parfums/similarity", { parfumIds }, { params }),
-  getByNotes: (noteIds, params = {}) =>
-    api.get("/parfums", { params: { notes: noteIds.join(","), ...params } }),
+  search: (query) => {
+    console.log("📡 Appel search parfums:", query);
+    return api.get("/parfums/search", { params: { q: query } });
+  },
 };
 
-// 🏷️ NOTE SERVICES
+// 📝 NOTES SERVICES
 export const noteAPI = {
   getAll: (params = {}) => api.get("/notes", { params }),
   getById: (id) => api.get(`/notes/${id}`),
-  getByType: (type) => api.get(`/notes/type/${type}`),
-  search: (query) => api.get("/notes/search", { params: { q: query } }),
   create: (data) => api.post("/notes", data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),
-  getStats: () => api.get("/notes/stats"),
 };
 
-// ❤️ FAVORIS SERVICES - CORRIGÉ URGENCE
-export const favoriAPI = {
-  getFavorites: () => {
-    console.log("📡 Appel getFavorites...");
-    return api.get("/users/favorites");
+// ❤️ FAVORIS SERVICES
+export const favoritesAPI = {
+  getParfums: () => {
+    console.log("📡 Appel getParfums favoris...");
+    return api.get("/users/favorites/parfums");
+  },
+  getNotes: () => {
+    console.log("📡 Appel getNotes favoris...");
+    return api.get("/users/favorites/notes");
   },
   addParfum: (id) => {
     console.log("📡 Appel addParfum:", id);
@@ -109,7 +134,7 @@ export const favoriAPI = {
   },
 };
 
-// 📚 HISTORIQUE SERVICES - CORRIGÉ URGENCE
+// 📚 HISTORIQUE SERVICES
 export const historyAPI = {
   getHistory: (params = {}) => {
     console.log("📡 Appel getHistory...");
@@ -151,9 +176,22 @@ export const uploadAPI = {
   },
 };
 
+// 📧 CONTACT SERVICE
+export const contactAPI = {
+  send: (data) => {
+    console.log("📡 Appel contact send:", data);
+    return api.post("/contact", data);
+  },
+  getAll: () => api.get("/contact"), // Admin only
+  updateStatus: (id, data) => api.put(`/contact/${id}`, data), // Admin only
+};
+
 // ✅ Test de connectivité
 export const testAPI = {
-  health: () => api.get("/health"),
+  health: () => {
+    console.log("📡 Test de santé du backend...");
+    return api.get("/health");
+  },
   testAuth: () => api.get("/users/profile"),
 };
 

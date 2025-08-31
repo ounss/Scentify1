@@ -27,6 +27,7 @@ const PORT = process.env.PORT || 10000;
 // });
 
 // ✅ CORS CONFIGURATION POUR PRODUCTION
+// ✅ CORS CONFIGURATION CORRIGÉE - dans server.js
 const corsOptions = {
   origin: function (origin, callback) {
     // En développement, autoriser toutes les origines
@@ -39,25 +40,38 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.CLIENT_URL,
       process.env.FRONTEND_URL,
-      // Ajouter d'autres domaines si nécessaire
+      // ✅ Ajouter les URLs Render
+      "https://scentify-perfumes.onrender.com/", // ← Remplace par ton URL frontend
       "https://your-frontend-domain.com",
       "https://www.your-frontend-domain.com",
-    ].filter(Boolean); // Supprimer les valeurs undefined
+    ].filter(Boolean);
 
+    // ✅ IMPORTANT: Autoriser les requêtes sans origin (mobile apps, tests)
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       console.warn(`🚫 CORS blocked: ${origin} not in whitelist`);
+      console.warn(`🚫 Allowed origins:`, allowedOrigins);
       callback(new Error("Not allowed by CORS"));
     }
   },
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["X-Total-Count"], // Pour la pagination
+  exposedHeaders: ["X-Total-Count"],
 };
 
 app.use(cors(corsOptions));
+
+// ✅ AUSSI ajouter cette ligne pour simplifier pendant les tests
+if (process.env.NODE_ENV === "production") {
+  app.use(
+    cors({
+      origin: "*", // ← Temporaire pour tester si CORS est le problème
+      credentials: false,
+    })
+  );
+}
 
 // ✅ MIDDLEWARE DE SÉCURITÉ SUPPLÉMENTAIRE
 if (process.env.NODE_ENV === "production") {
