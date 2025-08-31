@@ -9,9 +9,13 @@ import {
   MessageSquare,
   User,
   Calendar,
+  Search,
+  X,
+  RefreshCw,
 } from "lucide-react";
 import toast from "react-hot-toast";
 import api from "../services/api";
+import styles from "../styles/AdminPanel.module.css";
 
 const ContactSection = () => {
   const [messages, setMessages] = useState([]);
@@ -19,20 +23,16 @@ const ContactSection = () => {
   const [selectedMessage, setSelectedMessage] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [adminNote, setAdminNote] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("tous");
 
-  // Charger les messages
   const loadMessages = async () => {
     try {
       const response = await api.get("/contact");
-      const data = response.data;
-      setMessages(data);
-
-      if (response.ok) {
-        const data = await response.json();
-        setMessages(data);
-      }
+      setMessages(response.data);
     } catch (error) {
       console.error("Erreur chargement messages:", error);
+      toast.error("Erreur lors du chargement");
     } finally {
       setLoading(false);
     }
@@ -42,19 +42,16 @@ const ContactSection = () => {
     loadMessages();
   }, []);
 
-  // Ouvrir un message
   const openMessage = (message) => {
     setSelectedMessage(message);
     setAdminNote(message.adminNote || "");
     setShowModal(true);
 
-    // Marquer comme lu si nouveau
     if (message.status === "nouveau") {
       updateMessageStatus(message._id, "lu");
     }
   };
 
-  // Mettre à jour le statut
   const updateMessageStatus = async (messageId, status, note = null) => {
     try {
       const response = await fetch(`/api/contact/${messageId}`, {
@@ -71,17 +68,12 @@ const ContactSection = () => {
 
       if (response.ok) {
         const updatedMessage = await response.json();
-
-        // Mettre à jour la liste
         setMessages(
           messages.map((m) => (m._id === messageId ? updatedMessage : m))
         );
-
-        // Mettre à jour le message sélectionné
         if (selectedMessage?._id === messageId) {
           setSelectedMessage(updatedMessage);
         }
-
         toast.success("Message mis à jour");
       }
     } catch (error) {
@@ -89,10 +81,8 @@ const ContactSection = () => {
     }
   };
 
-  // Sauvegarder la note
   const saveNote = async () => {
     if (!selectedMessage) return;
-
     await updateMessageStatus(
       selectedMessage._id,
       selectedMessage.status,
@@ -101,17 +91,20 @@ const ContactSection = () => {
     setShowModal(false);
   };
 
-  // Composant badge de statut
   const StatusBadge = ({ status }) => {
     const configs = {
       nouveau: {
-        color: "bg-red-100 text-red-800",
+        className: "admin-badge-danger",
         icon: AlertCircle,
         label: "Nouveau",
       },
-      lu: { color: "bg-blue-100 text-blue-800", icon: Eye, label: "Lu" },
+      lu: {
+        className: "admin-badge-info",
+        icon: Eye,
+        label: "Lu",
+      },
       traite: {
-        color: "bg-green-100 text-green-800",
+        className: "admin-badge-success",
         icon: CheckCircle,
         label: "Traité",
       },
@@ -121,263 +114,350 @@ const ContactSection = () => {
     const Icon = config.icon;
 
     return (
-      <span
-        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${config.color}`}
-      >
-        <Icon className="w-3 h-3 mr-1" />
+      <span className={`admin-badge ${config.className}`}>
+        <Icon className="w-3 h-3" />
         {config.label}
       </span>
     );
   };
 
+  // Filtrer les messages
+  const filteredMessages = messages.filter((message) => {
+    const matchesSearch =
+      message.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      message.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      message.subject.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "tous" || message.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
   if (loading) {
     return (
-      <div className="text-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
-        <p className="mt-2 text-sm text-gray-600">Chargement des messages...</p>
+      <div className={styles.main}>
+        <div className="text-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement des messages...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* En-tête */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">
-            Messages de contact
-          </h2>
-          <p className="text-sm text-gray-600">{messages.length} message(s)</p>
-        </div>
-        <button
-          onClick={loadMessages}
-          className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          Actualiser
-        </button>
-      </div>
-
-      {/* Statistiques rapides */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <AlertCircle className="h-8 w-8 text-red-500 mr-3" />
-            <div>
-              <p className="text-sm text-gray-600">Nouveaux</p>
-              <p className="text-xl font-bold">
-                {messages.filter((m) => m.status === "nouveau").length}
-              </p>
+    <div className={styles.main}>
+      <div className={styles.content}>
+        {/* En-tête de section */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <div className={styles.sectionMeta}>
+              <div className={styles.sectionIconWrapper}>
+                <MessageSquare className="w-6 h-6" />
+              </div>
+              <div>
+                <h2 className={styles.sectionTitle}>Messages de contact</h2>
+                <p className={styles.sectionSubtitle}>
+                  Gérez les messages des utilisateurs •{" "}
+                  {filteredMessages.length} message(s)
+                </p>
+              </div>
             </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <Clock className="h-8 w-8 text-blue-500 mr-3" />
-            <div>
-              <p className="text-sm text-gray-600">Lus</p>
-              <p className="text-xl font-bold">
-                {messages.filter((m) => m.status === "lu").length}
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white p-4 rounded-lg shadow border">
-          <div className="flex items-center">
-            <CheckCircle className="h-8 w-8 text-green-500 mr-3" />
-            <div>
-              <p className="text-sm text-gray-600">Traités</p>
-              <p className="text-xl font-bold">
-                {messages.filter((m) => m.status === "traite").length}
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Liste des messages */}
-      <div className="bg-white shadow-lg rounded-xl border">
-        {messages.length > 0 ? (
-          <div className="divide-y divide-gray-200">
-            {messages.map((message) => (
-              <div
-                key={message._id}
-                className="p-4 hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => openMessage(message)}
+            <div className={styles.sectionActions}>
+              <button
+                onClick={loadMessages}
+                className="inline-flex items-center gap-2 bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center space-x-3 mb-2">
-                      <div className="flex items-center space-x-2">
-                        <User className="h-4 w-4 text-gray-400" />
-                        <span className="text-sm font-medium text-gray-900">
-                          {message.name}
-                        </span>
-                      </div>
-                      <StatusBadge status={message.status} />
-                    </div>
+                <RefreshCw className="w-4 h-4" />
+                Actualiser
+              </button>
+            </div>
+          </div>
 
-                    <div className="flex items-center space-x-4 text-sm text-gray-500 mb-2">
-                      <span className="flex items-center">
-                        <Mail className="h-4 w-4 mr-1" />
-                        {message.email}
-                      </span>
-                      <span className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {new Date(message.createdAt).toLocaleDateString(
-                          "fr-FR"
-                        )}
-                      </span>
-                    </div>
+          {/* Barre de recherche et filtres */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <div className={styles.searchBar}>
+              <div className={styles.searchIcon}>
+                <Search className="w-5 h-5 text-gray-400" />
+              </div>
+              <input
+                type="text"
+                placeholder="Rechercher par nom, email ou sujet..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+              />
+            </div>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+            >
+              <option value="tous">Tous les statuts</option>
+              <option value="nouveau">Nouveaux</option>
+              <option value="lu">Lus</option>
+              <option value="traite">Traités</option>
+            </select>
+          </div>
 
-                    <h3 className="text-sm font-medium text-gray-900 mb-1">
-                      {message.subject}
-                    </h3>
-                    <p className="text-sm text-gray-600 line-clamp-2">
-                      {message.message.length > 100
-                        ? `${message.message.substring(0, 100)}...`
-                        : message.message}
-                    </p>
-                  </div>
-
-                  <div className="ml-4 flex-shrink-0">
-                    <Eye className="h-5 w-5 text-gray-400" />
-                  </div>
+          {/* Statistiques */}
+          <div className={styles.statsGrid}>
+            <div className={`${styles.statCard} ${styles.statUsers}`}>
+              <div className={styles.statContent}>
+                <div className={styles.statMeta}>
+                  <p className={styles.statLabel}>Nouveaux</p>
+                  <p className={styles.statValue}>
+                    {messages.filter((m) => m.status === "nouveau").length}
+                  </p>
+                  <p className={styles.statDetail}>Messages non lus</p>
+                </div>
+                <div className={styles.statIcon}>
+                  <AlertCircle className="w-6 h-6" />
                 </div>
               </div>
-            ))}
-          </div>
-        ) : (
-          <div className="text-center py-12">
-            <MessageSquare className="mx-auto h-12 w-12 text-gray-400" />
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              Aucun message
-            </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Les messages de contact apparaîtront ici.
-            </p>
-          </div>
-        )}
-      </div>
+            </div>
 
-      {/* Modal détail du message */}
-      {showModal && selectedMessage && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              {/* En-tête */}
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Détail du message
-                </h3>
-                <button
-                  onClick={() => setShowModal(false)}
-                  className="text-gray-400 hover:text-gray-600"
-                >
-                  <span className="sr-only">Fermer</span>
-                  <svg
-                    className="h-6 w-6"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              </div>
-
-              {/* Informations du message */}
-              <div className="space-y-4 mb-6">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-md font-medium text-gray-900">
-                    {selectedMessage.subject}
-                  </h4>
-                  <StatusBadge status={selectedMessage.status} />
+            <div className={`${styles.statCard} ${styles.statParfums}`}>
+              <div className={styles.statContent}>
+                <div className={styles.statMeta}>
+                  <p className={styles.statLabel}>Lus</p>
+                  <p className={styles.statValue}>
+                    {messages.filter((m) => m.status === "lu").length}
+                  </p>
+                  <p className={styles.statDetail}>En attente de traitement</p>
                 </div>
+                <div className={styles.statIcon}>
+                  <Clock className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
 
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="font-medium text-gray-700">De:</span>
-                    <p className="text-gray-900">{selectedMessage.name}</p>
+            <div className={`${styles.statCard} ${styles.statNotes}`}>
+              <div className={styles.statContent}>
+                <div className={styles.statMeta}>
+                  <p className={styles.statLabel}>Traités</p>
+                  <p className={styles.statValue}>
+                    {messages.filter((m) => m.status === "traite").length}
+                  </p>
+                  <p className={styles.statDetail}>Messages résolus</p>
+                </div>
+                <div className={styles.statIcon}>
+                  <CheckCircle className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Liste des messages */}
+          <div className={styles.tableContainer}>
+            {filteredMessages.length > 0 ? (
+              <div className={styles.table}>
+                <div className={styles.tableHeader}>
+                  <div className="grid grid-cols-12 gap-4 px-6 py-4">
+                    <div className="col-span-3 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                      Expéditeur
+                    </div>
+                    <div className="col-span-4 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                      Sujet
+                    </div>
+                    <div className="col-span-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                      Date
+                    </div>
+                    <div className="col-span-2 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                      Statut
+                    </div>
+                    <div className="col-span-1 text-sm font-semibold text-gray-700 uppercase tracking-wide">
+                      Action
+                    </div>
                   </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Email:</span>
-                    <p className="text-gray-900">{selectedMessage.email}</p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Date:</span>
-                    <p className="text-gray-900">
-                      {new Date(selectedMessage.createdAt).toLocaleString(
-                        "fr-FR"
-                      )}
-                    </p>
-                  </div>
-                  <div>
-                    <span className="font-medium text-gray-700">Statut:</span>
-                    <select
-                      value={selectedMessage.status}
-                      onChange={(e) =>
-                        updateMessageStatus(selectedMessage._id, e.target.value)
-                      }
-                      className="mt-1 block w-full px-3 py-1 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
+                </div>
+                <div className={styles.tableBody}>
+                  {filteredMessages.map((message) => (
+                    <div
+                      key={message._id}
+                      className="grid grid-cols-12 gap-4 px-6 py-4 hover:bg-gray-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
+                      onClick={() => openMessage(message)}
                     >
-                      <option value="nouveau">Nouveau</option>
-                      <option value="lu">Lu</option>
-                      <option value="traite">Traité</option>
-                    </select>
+                      <div className="col-span-3">
+                        <div className={styles.userInfo}>
+                          <div className={styles.avatar}>
+                            <User className="w-4 h-4" />
+                          </div>
+                          <div className={styles.userDetails}>
+                            <p className={styles.userName}>{message.name}</p>
+                            <p className={styles.userEmail}>{message.email}</p>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="col-span-4">
+                        <p className="font-medium text-gray-900 mb-1">
+                          {message.subject}
+                        </p>
+                        <p className="text-sm text-gray-600 line-clamp-1">
+                          {message.message.length > 80
+                            ? `${message.message.substring(0, 80)}...`
+                            : message.message}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <p className={styles.dateText}>
+                          {new Date(message.createdAt).toLocaleDateString(
+                            "fr-FR"
+                          )}
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <StatusBadge status={message.status} />
+                      </div>
+                      <div className="col-span-1">
+                        <Eye className="w-5 h-5 text-gray-400" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center py-16">
+                <MessageSquare className="mx-auto h-16 w-16 text-gray-300 mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">
+                  Aucun message
+                </h3>
+                <p className="text-gray-500">
+                  {searchTerm || statusFilter !== "tous"
+                    ? "Aucun message ne correspond à vos critères"
+                    : "Les messages de contact apparaîtront ici"}
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Modal détail du message */}
+        {showModal && selectedMessage && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+              <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 rounded-t-2xl">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xl font-bold text-gray-900">
+                    Détail du message
+                  </h3>
+                  <button
+                    onClick={() => setShowModal(false)}
+                    className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <X className="w-5 h-5 text-gray-500" />
+                  </button>
+                </div>
+              </div>
+
+              <div className="p-6">
+                {/* En-tête du message */}
+                <div className="bg-gradient-to-r from-gray-50 to-gray-100 rounded-xl p-6 mb-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <h4 className="text-lg font-semibold text-gray-900">
+                      {selectedMessage.subject}
+                    </h4>
+                    <StatusBadge status={selectedMessage.status} />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-center gap-2">
+                      <User className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <span className="text-gray-500">De:</span>
+                        <p className="font-medium text-gray-900">
+                          {selectedMessage.name}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Mail className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <span className="text-gray-500">Email:</span>
+                        <p className="font-medium text-gray-900">
+                          {selectedMessage.email}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-gray-500" />
+                      <div>
+                        <span className="text-gray-500">Date:</span>
+                        <p className="font-medium text-gray-900">
+                          {new Date(selectedMessage.createdAt).toLocaleString(
+                            "fr-FR"
+                          )}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
-                <div>
-                  <span className="font-medium text-gray-700">Message:</span>
-                  <div className="mt-2 p-3 bg-gray-50 rounded border">
-                    <p className="text-gray-900 whitespace-pre-line">
+                {/* Contenu du message */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Message
+                  </label>
+                  <div className="bg-white border border-gray-200 rounded-lg p-4">
+                    <p className="text-gray-900 whitespace-pre-line leading-relaxed">
                       {selectedMessage.message}
                     </p>
                   </div>
                 </div>
-              </div>
 
-              {/* Note admin */}
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                {/* Changement de statut */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
+                    Statut du message
+                  </label>
+                  <select
+                    value={selectedMessage.status}
+                    onChange={(e) =>
+                      updateMessageStatus(selectedMessage._id, e.target.value)
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  >
+                    <option value="nouveau">Nouveau</option>
+                    <option value="lu">Lu</option>
+                    <option value="traite">Traité</option>
+                  </select>
+                </div>
+
+                {/* Note administrative */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-3">
                     Note administrative (privée)
                   </label>
                   <textarea
                     value={adminNote}
                     onChange={(e) => setAdminNote(e.target.value)}
-                    rows={3}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Ajouter une note interne..."
+                    rows={4}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                    placeholder="Ajouter une note interne pour ce message..."
                   />
                 </div>
 
-                <div className="flex justify-between items-center">
-                  <a
-                    href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-                  >
-                    <Mail className="w-4 h-4 mr-2" />
+                {/* Actions */}
+                <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200">
+                  href=
+                  {`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}
+                  className="inline-flex items-center gap-2 px-6 py-3
+                  bg-green-600 text-white font-medium rounded-lg
+                  hover:bg-green-700 transition-colors shadow-md"
+                  <a>
+                    <Mail className="w-4 h-4" />
                     Répondre par email
                   </a>
-
-                  <div className="flex space-x-3">
+                  <div className="flex gap-3">
                     <button
                       onClick={() => setShowModal(false)}
-                      className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="px-6 py-3 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       Fermer
                     </button>
                     <button
                       onClick={saveNote}
-                      className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
+                      className="px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors shadow-md"
                     >
                       Sauvegarder
                     </button>
@@ -386,27 +466,10 @@ const ContactSection = () => {
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 };
 
 export default ContactSection;
-
-// ===============================================================
-// Instructions d'intégration dans AdminPanel.jsx existant :
-// ===============================================================
-
-/*
-1. Importer le composant :
-   import ContactSection from "../components/admin/ContactSection";
-
-2. Ajouter un onglet "Contact" dans la navigation :
-   Dans le state des onglets, ajouter :
-   { id: "contact", name: "Contact", icon: MessageSquare }
-
-3. Ajouter le cas dans le switch pour afficher la section :
-   case "contact":
-     return <ContactSection />;
-*/

@@ -118,16 +118,20 @@ export default function ParfumForm() {
 
   const loadNotes = async () => {
     try {
-      const types = ["tete", "coeur", "fond"];
+      const types = ["tête", "cœur", "fond"]; // Avec accents
       const notesData = {};
 
       for (const type of types) {
         try {
           const response = await noteAPI.getByType(type);
-          notesData[type] = response.data || [];
+          const typeKey =
+            type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
+          notesData[typeKey] = response.data || [];
         } catch (error) {
           console.warn(`Erreur chargement notes ${type}:`, error);
-          notesData[type] = [];
+          const typeKey =
+            type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
+          notesData[typeKey] = [];
         }
       }
 
@@ -224,7 +228,7 @@ export default function ParfumForm() {
         toast.success("Parfum modifié avec succès !");
       } else {
         await parfumAPI.create(parfumData);
-        toast.success("Parfum créé avec succès !");
+        toast.success("Parfum ajouté avec succès !");
       }
 
       navigate(`/parfum/${id || "nouveau"}`);

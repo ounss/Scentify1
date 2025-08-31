@@ -684,7 +684,6 @@ export default function AdminPanel() {
                 <h2 className={styles.sectionTitle}>Gestion des parfums</h2>
                 <div className={styles.sectionActions}>
                   {/* ✅ Redirection vers le formulaire dédié */}
-                  // Ligne 446 - Bouton "Nouveau parfum"
                   <button
                     onClick={() => navigate("/parfum/new")} // ✅ Corrigé : /parfum/new au lieu de /parfums/new
                     className={styles.primaryButton}
@@ -753,13 +752,6 @@ export default function AdminPanel() {
                     </div>
                     <div className={styles.cardActions}>
                       {/* ✅ Redirection vers l’édition dédiée */}
-                      <button
-                        onClick={() => navigate(`/parfums/edit/${parfum._id}`)}
-                        className={styles.iconButton}
-                        title="Modifier"
-                      >
-                        <Edit3 className={styles.icon} />
-                      </button>
                       <button
                         onClick={() => navigate(`/parfum/edit/${parfum._id}`)} // ✅ Corrigé : /parfum/edit au lieu de /parfums/edit
                         className={styles.iconButton}
