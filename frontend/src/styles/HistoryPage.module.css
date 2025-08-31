@@ -1,0 +1,527 @@
+/* === Variables === */
+:root {
+  --hf-primary: #b9a48d;
+  --hf-primary-light: #d8c0a5;
+  --hf-primary-dark: #8b7355;
+  --hf-secondary: #a44949;
+  --hf-bg: #f1e0cc;
+  --hf-text: #2c2c2c;
+  --hf-text-muted: #6b7280;
+  --hf-white: #ffffff;
+  --hf-gray-50: #f9fafb;
+  --hf-gray-100: #f3f4f6;
+  --hf-gray-200: #e5e7eb;
+  --hf-red: #ef4444;
+  --hf-green: #10b981;
+  --hf-blue: #3b82f6;
+  --hf-purple: #8b5cf6;
+  --hf-pink: #ec4899;
+}
+
+/* === Layout === */
+.page {
+  min-height: 100vh;
+  background: linear-gradient(
+    135deg,
+    var(--hf-bg) 0%,
+    var(--hf-white) 50%,
+    var(--hf-gray-50) 100%
+  );
+}
+
+.container {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 1rem 5rem;
+}
+
+/* === Header === */
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: saturate(180%) blur(20px);
+  border-bottom: 1px solid rgba(185, 164, 141, 0.2);
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.08);
+}
+
+.headerInner {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.headerSpacer {
+  width: 2.5rem;
+}
+
+.logo {
+  color: var(--hf-secondary);
+  flex: 1;
+  text-align: center;
+}
+
+/* === Buttons === */
+.backButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 1rem;
+  color: var(--hf-text);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.backButton:hover {
+  background: rgba(185, 164, 141, 0.1);
+}
+
+.clearButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  border-radius: 1rem;
+  color: var(--hf-red);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearButton:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.05);
+}
+
+/* === Search === */
+.searchContainer {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+.searchWrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 1rem;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--hf-text-muted);
+  z-index: 1;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 0.875rem 1rem 0.875rem 3rem;
+  background: var(--hf-white);
+  border: 2px solid var(--hf-gray-200);
+  border-radius: 1.5rem;
+  font-size: 1rem;
+  color: var(--hf-text);
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: var(--hf-primary);
+  box-shadow: 0 0 0 4px rgba(185, 164, 141, 0.1);
+}
+
+.clearSearch {
+  position: absolute;
+  right: 1rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  background: var(--hf-gray-200);
+  border: none;
+  border-radius: 50%;
+  color: var(--hf-text-muted);
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clearSearch:hover {
+  background: var(--hf-gray-100);
+  color: var(--hf-text);
+}
+
+/* === Tabs === */
+.tabsContainer {
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.tabs {
+  display: flex;
+  background: var(--hf-gray-100);
+  border-radius: 1.25rem;
+  padding: 0.25rem;
+}
+
+.tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem 1rem;
+  border: none;
+  background: transparent;
+  border-radius: 1rem;
+  color: var(--hf-text-muted);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tabActive {
+  background: var(--hf-white);
+  color: var(--hf-text);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.tabIcon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.tabBadge {
+  background: rgba(185, 164, 141, 0.2);
+  color: var(--hf-text);
+  padding: 0.125rem 0.5rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.tabActive .tabBadge {
+  background: var(--hf-primary);
+  color: var(--hf-white);
+}
+
+/* === Items List === */
+.itemsList {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.historyItem,
+.favoriteItem {
+  background: var(--hf-white);
+  border-radius: 1.5rem;
+  overflow: hidden;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  border: 1px solid rgba(185, 164, 141, 0.15);
+  transition: all 0.3s ease;
+}
+
+.historyItem:hover,
+.favoriteItem:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+  border-color: rgba(185, 164, 141, 0.3);
+}
+
+.itemContent {
+  padding: 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.itemInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.parfumName {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--hf-text);
+  margin: 0 0 0.5rem;
+  line-height: 1.3;
+}
+
+.parfumMeta {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.brand {
+  color: var(--hf-text-muted);
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.genre {
+  padding: 0.25rem 0.75rem;
+  border-radius: 1rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.genreHomme {
+  background: rgba(59, 130, 246, 0.1);
+  color: var(--hf-blue);
+}
+
+.genreFemme {
+  background: rgba(236, 72, 153, 0.1);
+  color: var(--hf-pink);
+}
+
+.genreMixte {
+  background: rgba(139, 92, 246, 0.1);
+  color: var(--hf-purple);
+}
+
+.visitDate,
+.favoriteDate {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--hf-text-muted);
+  font-size: 0.8125rem;
+}
+
+.dateIcon {
+  width: 0.875rem;
+  height: 0.875rem;
+}
+
+.favoriteActions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.viewButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: linear-gradient(
+    135deg,
+    var(--hf-primary),
+    var(--hf-primary-dark)
+  );
+  border: none;
+  border-radius: 1rem;
+  color: var(--hf-white);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.viewButton:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(139, 115, 85, 0.4);
+}
+
+.removeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  background: rgba(239, 68, 68, 0.1);
+  border: none;
+  border-radius: 1rem;
+  color: var(--hf-red);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.removeButton:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.05);
+}
+
+.deletedParfum .itemInfo {
+  opacity: 0.6;
+}
+
+/* === Empty States === */
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1rem;
+  min-height: 60vh;
+}
+
+.emptyIcon {
+  width: 4rem;
+  height: 4rem;
+  color: var(--hf-text-muted);
+  margin-bottom: 1.5rem;
+  opacity: 0.6;
+}
+
+.emptyState h2 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--hf-text);
+  margin: 0 0 0.75rem;
+}
+
+.emptyState p {
+  color: var(--hf-text-muted);
+  margin: 0 0 2rem;
+  max-width: 20rem;
+  line-height: 1.6;
+}
+
+.resetButton,
+.exploreButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(
+    135deg,
+    var(--hf-primary),
+    var(--hf-primary-dark)
+  );
+  border: none;
+  padding: 0.875rem 2rem;
+  border-radius: 1.25rem;
+  color: var(--hf-white);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+
+.resetButton:hover,
+.exploreButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 115, 85, 0.4);
+}
+
+/* === Loading === */
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  text-align: center;
+}
+
+.loading p {
+  color: var(--hf-text-muted);
+  margin-top: 1rem;
+}
+
+.spinner {
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--hf-gray-200);
+  border-top-color: var(--hf-secondary);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* === Common Icon Styles === */
+.icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+}
+
+/* === Responsive === */
+@media (min-width: 768px) {
+  .container,
+  .headerInner,
+  .searchContainer,
+  .tabsContainer {
+    max-width: 600px;
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+  }
+
+  .itemsList {
+    gap: 1.5rem;
+  }
+
+  .itemContent {
+    padding: 1.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .container,
+  .headerInner,
+  .searchContainer,
+  .tabsContainer {
+    max-width: 800px;
+  }
+}
+
+/* === Accessibility === */
+@media (prefers-reduced-motion: reduce) {
+  .historyItem,
+  .favoriteItem,
+  .backButton,
+  .clearButton,
+  .viewButton,
+  .removeButton,
+  .resetButton,
+  .exploreButton,
+  .tab {
+    transition: none;
+  }
+
+  .spinner {
+    animation: none;
+  }
+}
+
+/* === Focus Styles === */
+.backButton:focus-visible,
+.clearButton:focus-visible,
+.viewButton:focus-visible,
+.removeButton:focus-visible,
+.resetButton:focus-visible,
+.exploreButton:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--hf-primary);
+  outline-offset: 2px;
+}
+
+.searchInput:focus-visible {
+  outline: none;
+}

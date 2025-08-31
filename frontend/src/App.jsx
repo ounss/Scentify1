@@ -114,7 +114,6 @@ function App() {
                 </Layout>
               }
             />
-
             <Route
               path="/parfum/:id"
               element={
@@ -123,7 +122,6 @@ function App() {
                 </Layout>
               }
             />
-
             <Route
               path="/contact"
               element={
@@ -132,7 +130,6 @@ function App() {
                 </Layout>
               }
             />
-
             <Route
               path="/profile"
               element={
@@ -143,7 +140,6 @@ function App() {
                 </PrivateRoute>
               }
             />
-
             {/* Routes mobiles avec layout mobile */}
             <Route
               path="/parfum/new"
@@ -155,7 +151,6 @@ function App() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/parfum/edit/:id"
               element={
@@ -166,7 +161,6 @@ function App() {
                 </PrivateRoute>
               }
             />
-
             <Route
               path="/menu"
               element={
@@ -175,7 +169,6 @@ function App() {
                 </MobileLayout>
               }
             />
-
             <Route
               path="/favorites"
               element={
@@ -186,18 +179,19 @@ function App() {
                 </PrivateRoute>
               }
             />
-
+            // Dans App.jsx, assure-toi que la route HistoryPage utilise le
+            Layout :
             <Route
               path="/history"
               element={
                 <PrivateRoute>
-                  <MobileLayout>
+                  <Layout>
+                    {" "}
                     <HistoryPage />
-                  </MobileLayout>
+                  </Layout>
                 </PrivateRoute>
               }
             />
-
             {/* Route auth sans layout */}
             <Route
               path="/auth"
@@ -207,7 +201,6 @@ function App() {
                 </PublicRoute>
               }
             />
-
             {/* Route admin */}
             <Route
               path="/admin"
@@ -217,7 +210,6 @@ function App() {
                 </AdminRoute>
               }
             />
-
             {/* Redirection pour les routes inconnues */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

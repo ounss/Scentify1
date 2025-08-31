@@ -1,32 +1,70 @@
-// frontend/src/pages/HistoryPage.jsx (Version mise à jour)
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Clock, Search, Trash2, Eye } from "lucide-react";
-import { historyAPI } from "../services/api";
+import {
+  ArrowLeft,
+  Clock,
+  Heart,
+  Search,
+  Trash2,
+  Eye,
+  Calendar,
+  Filter,
+} from "lucide-react";
+import { historyAPI, favoriAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ScentifyLogo from "../components/ScentifyLogo";
 import toast from "react-hot-toast";
+import styles from "../styles/HistoryPage.module.css";
 
-export default function HistoryPage() {
+export default function HistoryFavoritesPage() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+
+  // États
+  const [activeTab, setActiveTab] = useState("history");
   const [history, setHistory] = useState([]);
+  const [favorites, setFavorites] = useState({ parfums: [], notes: [] });
   const [loading, setLoading] = useState(true);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredData, setFilteredData] = useState([]);
 
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/auth");
       return;
     }
-    loadHistory();
+    loadData();
   }, [isAuthenticated, navigate]);
 
-  const loadHistory = async () => {
+  useEffect(() => {
+    const currentData = activeTab === "history" ? history : favorites.parfums;
+    if (searchQuery) {
+      const filtered = currentData.filter(
+        (item) =>
+          (item.parfum?.nom || item.nom)
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase()) ||
+          (item.parfum?.marque || item.marque)
+            ?.toLowerCase()
+            .includes(searchQuery.toLowerCase())
+      );
+      setFilteredData(filtered);
+    } else {
+      setFilteredData(currentData);
+    }
+  }, [searchQuery, history, favorites.parfums, activeTab]);
+
+  const loadData = async () => {
     try {
-      const response = await historyAPI.getHistory({ limit: 50 });
-      setHistory(response.data);
+      const [historyResponse, favoritesResponse] = await Promise.all([
+        historyAPI.getHistory({ limit: 50 }),
+        favoriAPI.getFavorites(),
+      ]);
+
+      setHistory(historyResponse.data);
+      setFavorites(favoritesResponse.data || { parfums: [], notes: [] });
     } catch (error) {
-      console.error("Erreur chargement historique:", error);
+      console.error("Erreur chargement données:", error);
     } finally {
       setLoading(false);
     }
@@ -44,105 +82,290 @@ export default function HistoryPage() {
     }
   };
 
+  const removeFavorite = async (parfumId) => {
+    try {
+      await favoriAPI.removeFavoriteParfum(parfumId);
+      setFavorites((prev) => ({
+        ...prev,
+        parfums: prev.parfums.filter((p) => p._id !== parfumId),
+      }));
+      toast.success("Retiré des favoris");
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+    if (diffDays === 1) return "Aujourd'hui";
+    if (diffDays === 2) return "Hier";
+    if (diffDays <= 7) return `Il y a ${diffDays - 1} jours`;
+    return date.toLocaleDateString("fr-FR", {
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement de l'historique...</p>
+      <div className={styles.page}>
+        <div className={styles.loading}>
+          <div className={styles.spinner} />
+          <p>Chargement...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={styles.page}>
       {/* Header */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-30">
-        <div className="max-w-md mx-auto px-4 py-4">
-          <div className="flex items-center justify-between mb-4">
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <button
+            onClick={() => navigate(-1)}
+            className={styles.backButton}
+            aria-label="Retour"
+          >
+            <ArrowLeft className={styles.icon} />
+          </button>
+
+          <ScentifyLogo size={28} className={styles.logo} />
+
+          {activeTab === "history" && history.length > 0 && (
             <button
-              onClick={() => navigate(-1)}
-              className="p-2 hover:bg-gray-100 rounded-full"
+              onClick={clearHistory}
+              className={styles.clearButton}
+              aria-label="Vider l'historique"
             >
-              <ArrowLeft className="w-5 h-5 text-gray-600" />
+              <Trash2 className={styles.icon} />
             </button>
-            <ScentifyLogo size={24} className="text-red-500" />
-            {history.length > 0 && (
+          )}
+
+          {activeTab === "favorites" && <div className={styles.headerSpacer} />}
+        </div>
+
+        {/* Search */}
+        <div className={styles.searchContainer}>
+          <div className={styles.searchWrapper}>
+            <Search className={styles.searchIcon} />
+            <input
+              type="text"
+              placeholder={`Rechercher dans ${
+                activeTab === "history" ? "l'historique" : "les favoris"
+              }...`}
+              className={styles.searchInput}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
+            {searchQuery && (
               <button
-                onClick={clearHistory}
-                className="p-2 text-red-500 hover:bg-red-50 rounded-full"
+                onClick={() => setSearchQuery("")}
+                className={styles.clearSearch}
               >
-                <Trash2 className="w-5 h-5" />
+                ×
               </button>
             )}
           </div>
+        </div>
 
-          {/* Search bar */}
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Rechercher dans l'historique..."
-              className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-red-500"
-            />
+        {/* Tabs */}
+        <div className={styles.tabsContainer}>
+          <div className={styles.tabs}>
+            <button
+              onClick={() => setActiveTab("history")}
+              className={`${styles.tab} ${
+                activeTab === "history" ? styles.tabActive : ""
+              }`}
+            >
+              <Clock className={styles.tabIcon} />
+              <span>Historique</span>
+              <span className={styles.tabBadge}>{history.length}</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("favorites")}
+              className={`${styles.tab} ${
+                activeTab === "favorites" ? styles.tabActive : ""
+              }`}
+            >
+              <Heart className={styles.tabIcon} />
+              <span>Favoris</span>
+              <span className={styles.tabBadge}>
+                {favorites.parfums.length}
+              </span>
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-md mx-auto px-4 py-6 pb-20">
-        {history.length > 0 ? (
-          <div className="space-y-4">
-            {history.map((item, index) => (
-              <div
-                key={index}
-                className="bg-white rounded-2xl p-4 shadow-sm border cursor-pointer hover:shadow-md transition-all"
-                onClick={() => navigate(`/parfum/${item.parfum._id}`)}
-              >
-                <div className="flex items-center space-x-4">
-                  <img
-                    src={
-                      item.parfum.photo ||
-                      "https://images.unsplash.com/photo-1541643600914-78b084683601?w=80&h=80&fit=crop"
-                    }
-                    alt={item.parfum.nom}
-                    className="w-16 h-16 object-cover rounded-xl"
-                  />
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-gray-800">
-                      {item.parfum.nom}
-                    </h3>
-                    <p className="text-gray-600 text-sm">
-                      {item.parfum.marque}
-                    </p>
-                    <p className="text-gray-400 text-xs mt-1">
-                      Consulté le{" "}
-                      {new Date(item.viewedAt).toLocaleDateString("fr-FR")}
-                    </p>
+      {/* Content */}
+      <main className={styles.container}>
+        {activeTab === "history" ? (
+          // Contenu Historique
+          filteredData.length > 0 ? (
+            <div className={styles.itemsList}>
+              {filteredData.map((item) => (
+                <article key={item._id} className={styles.historyItem}>
+                  <div className={styles.itemContent}>
+                    {item.parfum ? (
+                      <>
+                        <div className={styles.itemInfo}>
+                          <h3 className={styles.parfumName}>
+                            {item.parfum.nom}
+                          </h3>
+                          <div className={styles.parfumMeta}>
+                            {item.parfum.marque && (
+                              <span className={styles.brand}>
+                                {item.parfum.marque}
+                              </span>
+                            )}
+                            {item.parfum.genre && (
+                              <span
+                                className={`${styles.genre} ${
+                                  styles[`genre${item.parfum.genre}`]
+                                }`}
+                              >
+                                {item.parfum.genre}
+                              </span>
+                            )}
+                          </div>
+                          <div className={styles.visitDate}>
+                            <Calendar className={styles.dateIcon} />
+                            <span>
+                              {formatDate(item.dateVisite || item.consultedAt)}
+                            </span>
+                          </div>
+                        </div>
+
+                        <button
+                          onClick={() => navigate(`/parfum/${item.parfum._id}`)}
+                          className={styles.viewButton}
+                          aria-label={`Voir le parfum ${item.parfum.nom}`}
+                        >
+                          <Eye className={styles.icon} />
+                        </button>
+                      </>
+                    ) : (
+                      <div className={styles.deletedParfum}>
+                        <div className={styles.itemInfo}>
+                          <h3 className={styles.parfumName}>Parfum supprimé</h3>
+                          <div className={styles.visitDate}>
+                            <Calendar className={styles.dateIcon} />
+                            <span>
+                              {formatDate(item.dateVisite || item.consultedAt)}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                  <Eye className="w-5 h-5 text-gray-400" />
+                </article>
+              ))}
+            </div>
+          ) : history.length > 0 && searchQuery ? (
+            <div className={styles.emptyState}>
+              <Search className={styles.emptyIcon} />
+              <h2>Aucun résultat</h2>
+              <p>Aucun parfum trouvé pour "{searchQuery}"</p>
+              <button
+                onClick={() => setSearchQuery("")}
+                className={styles.resetButton}
+              >
+                Voir tout l'historique
+              </button>
+            </div>
+          ) : (
+            <div className={styles.emptyState}>
+              <Clock className={styles.emptyIcon} />
+              <h2>Historique vide</h2>
+              <p>Vos parfums consultés apparaîtront ici.</p>
+              <button
+                onClick={() => navigate("/")}
+                className={styles.exploreButton}
+              >
+                Explorer les parfums
+              </button>
+            </div>
+          )
+        ) : // Contenu Favoris
+        filteredData.length > 0 ? (
+          <div className={styles.itemsList}>
+            {filteredData.map((parfum) => (
+              <article key={parfum._id} className={styles.favoriteItem}>
+                <div className={styles.itemContent}>
+                  <div className={styles.itemInfo}>
+                    <h3 className={styles.parfumName}>{parfum.nom}</h3>
+                    <div className={styles.parfumMeta}>
+                      {parfum.marque && (
+                        <span className={styles.brand}>{parfum.marque}</span>
+                      )}
+                      {parfum.genre && (
+                        <span
+                          className={`${styles.genre} ${
+                            styles[`genre${parfum.genre}`]
+                          }`}
+                        >
+                          {parfum.genre}
+                        </span>
+                      )}
+                    </div>
+                    <div className={styles.favoriteDate}>
+                      <Heart className={styles.dateIcon} />
+                      <span>Ajouté aux favoris</span>
+                    </div>
+                  </div>
+
+                  <div className={styles.favoriteActions}>
+                    <button
+                      onClick={() => navigate(`/parfum/${parfum._id}`)}
+                      className={styles.viewButton}
+                      aria-label={`Voir le parfum ${parfum.nom}`}
+                    >
+                      <Eye className={styles.icon} />
+                    </button>
+                    <button
+                      onClick={() => removeFavorite(parfum._id)}
+                      className={styles.removeButton}
+                      aria-label={`Retirer ${parfum.nom} des favoris`}
+                    >
+                      <Trash2 className={styles.icon} />
+                    </button>
+                  </div>
                 </div>
-              </div>
+              </article>
             ))}
           </div>
+        ) : favorites.parfums.length > 0 && searchQuery ? (
+          <div className={styles.emptyState}>
+            <Search className={styles.emptyIcon} />
+            <h2>Aucun résultat</h2>
+            <p>Aucun parfum trouvé pour "{searchQuery}"</p>
+            <button
+              onClick={() => setSearchQuery("")}
+              className={styles.resetButton}
+            >
+              Voir tous les favoris
+            </button>
+          </div>
         ) : (
-          <div className="text-center py-16">
-            <Clock className="w-20 h-20 text-gray-200 mx-auto mb-6" />
-            <h3 className="text-xl font-bold text-gray-600 mb-4">
-              Aucun historique
-            </h3>
-            <p className="text-gray-500 mb-8 px-4">
-              Vos parfums consultés apparaîtront ici
-            </p>
+          <div className={styles.emptyState}>
+            <Heart className={styles.emptyIcon} />
+            <h2>Aucun favori</h2>
+            <p>Explorez nos parfums et ajoutez vos coups de cœur !</p>
             <button
               onClick={() => navigate("/")}
-              className="bg-red-600 text-white px-8 py-3 rounded-xl font-semibold"
+              className={styles.exploreButton}
             >
               Découvrir des parfums
             </button>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }
