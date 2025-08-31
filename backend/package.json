@@ -6,7 +6,7 @@
   "type": "module",
   "scripts": {
     "start": "node server.js",
-    "build": "npm build",
+    "build": "npm install",
     "dev": "nodemon server.js",
     "seed": "node scripts/seedData.js",
     "test": "echo 'No tests specified'",
