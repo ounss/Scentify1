@@ -77,7 +77,7 @@ export default function ParfumDetail() {
       // Vérifier si en favoris
       if (isAuthenticated) {
         try {
-          const favoritesResponse = await favoriAPI.getAll();
+          const favoritesResponse = await favoriAPI.getFavorites();
           const isInFavorites = favoritesResponse.data.some(
             (fav) => fav.parfum?._id === id
           );
@@ -100,7 +100,7 @@ export default function ParfumDetail() {
 
   const addToHistory = async () => {
     try {
-      await historyAPI.add(parfum._id);
+      await historyAPI.addToHistory(parfum._id);
     } catch (error) {
       console.warn("Erreur ajout historique:", error);
     }
@@ -116,11 +116,11 @@ export default function ParfumDetail() {
       setFavoriteLoading(true);
 
       if (isFavorite) {
-        await favoriAPI.remove(parfum._id);
+        await favoriAPI.removeParfum(parfum._id);
         setIsFavorite(false);
         toast.success("Retiré des favoris");
       } else {
-        await favoriAPI.add(parfum._id);
+        await favoriAPI.addParfum(parfum._id);
         setIsFavorite(true);
         toast.success("Ajouté aux favoris");
       }
