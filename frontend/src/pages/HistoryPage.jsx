@@ -1,3 +1,4 @@
+// frontend/src/pages/HistoryFavoritesPage.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import {
@@ -8,7 +9,6 @@ import {
   Trash2,
   Eye,
   Calendar,
-  Filter,
 } from "lucide-react";
 import { historyAPI, favoriAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
@@ -28,6 +28,16 @@ export default function HistoryFavoritesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredData, setFilteredData] = useState([]);
 
+  // ✅ CORRECTION : Historique — helper utilisable quand on "voit" un parfum
+  const addToHistory = async (parfumId) => {
+    try {
+      if (!parfumId) return;
+      await historyAPI.addToHistory(parfumId); // ✅ CORRIGÉ
+    } catch (error) {
+      console.warn("Erreur ajout historique:", error);
+    }
+  };
+
   useEffect(() => {
     if (!isAuthenticated) {
       navigate("/auth");
@@ -36,35 +46,54 @@ export default function HistoryFavoritesPage() {
     loadData();
   }, [isAuthenticated, navigate]);
 
+  // Filtrage live sur l’onglet actif
   useEffect(() => {
-    const currentData = activeTab === "history" ? history : favorites.parfums;
+    const currentData =
+      activeTab === "history" ? history : favorites?.parfums || [];
+
     if (searchQuery) {
-      const filtered = currentData.filter(
-        (item) =>
-          (item.parfum?.nom || item.nom)
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase()) ||
-          (item.parfum?.marque || item.marque)
-            ?.toLowerCase()
-            .includes(searchQuery.toLowerCase())
-      );
+      const q = searchQuery.toLowerCase();
+      const filtered = currentData.filter((item) => {
+        // item d'historique : { parfum, consultedAt/dateVisite, ... }
+        if (activeTab === "history") {
+          const name = item?.parfum?.nom || "";
+          const brand = item?.parfum?.marque || "";
+          return (
+            name.toLowerCase().includes(q) || brand.toLowerCase().includes(q)
+          );
+        }
+        // item de favoris : objet parfum direct
+        const name = item?.nom || "";
+        const brand = item?.marque || "";
+        return (
+          name.toLowerCase().includes(q) || brand.toLowerCase().includes(q)
+        );
+      });
       setFilteredData(filtered);
     } else {
       setFilteredData(currentData);
     }
-  }, [searchQuery, history, favorites.parfums, activeTab]);
+  }, [searchQuery, history, favorites?.parfums, activeTab]);
 
   const loadData = async () => {
     try {
+      setLoading(true);
       const [historyResponse, favoritesResponse] = await Promise.all([
         historyAPI.getHistory({ limit: 50 }),
-        favoriAPI.getFavorites(),
+        favoriAPI.getFavorites(), // ✅ On récupère { parfums, notes }
       ]);
 
-      setHistory(historyResponse.data);
-      setFavorites(favoritesResponse.data || { parfums: [], notes: [] });
+      setHistory(
+        Array.isArray(historyResponse?.data) ? historyResponse.data : []
+      );
+      setFavorites(
+        favoritesResponse?.data && typeof favoritesResponse.data === "object"
+          ? favoritesResponse.data
+          : { parfums: [], notes: [] }
+      );
     } catch (error) {
       console.error("Erreur chargement données:", error);
+      toast.error("Impossible de charger les données.");
     } finally {
       setLoading(false);
     }
@@ -75,6 +104,7 @@ export default function HistoryFavoritesPage() {
       try {
         await historyAPI.clearHistory();
         setHistory([]);
+        setFilteredData(activeTab === "history" ? [] : filteredData);
         toast.success("Historique vidé");
       } catch (error) {
         toast.error("Erreur lors de la suppression");
@@ -82,21 +112,34 @@ export default function HistoryFavoritesPage() {
     }
   };
 
+  // ✅ CORRECTION : retirer un favori (API corrigée)
   const removeFavorite = async (parfumId) => {
     try {
-      await favoriAPI.removeFavoriteParfum(parfumId);
+      await favoriAPI.removeParfum(parfumId); // ✅ CORRIGÉ
       setFavorites((prev) => ({
         ...prev,
-        parfums: prev.parfums.filter((p) => p._id !== parfumId),
+        parfums: (prev?.parfums || []).filter((p) => p._id !== parfumId),
       }));
+      // Si recherche active, mettre à jour la liste filtrée
+      setFilteredData((prev) => prev.filter((p) => p._id !== parfumId));
       toast.success("Retiré des favoris");
     } catch (error) {
+      console.warn("Erreur lors de la suppression du favori:", error);
       toast.error("Erreur lors de la suppression");
     }
   };
 
+  // Voir un parfum : on ajoute à l'historique puis on navigue
+  const handleViewParfum = async (parfumId) => {
+    await addToHistory(parfumId);
+    navigate(`/parfum/${parfumId}`);
+  };
+
   const formatDate = (dateString) => {
+    if (!dateString) return "";
     const date = new Date(dateString);
+    if (Number.isNaN(date.getTime())) return "";
+
     const now = new Date();
     const diffTime = Math.abs(now - date);
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -167,6 +210,7 @@ export default function HistoryFavoritesPage() {
               <button
                 onClick={() => setSearchQuery("")}
                 className={styles.clearSearch}
+                aria-label="Effacer la recherche"
               >
                 ×
               </button>
@@ -196,7 +240,7 @@ export default function HistoryFavoritesPage() {
               <Heart className={styles.tabIcon} />
               <span>Favoris</span>
               <span className={styles.tabBadge}>
-                {favorites.parfums.length}
+                {favorites?.parfums?.length || 0}
               </span>
             </button>
           </div>
@@ -243,7 +287,7 @@ export default function HistoryFavoritesPage() {
                         </div>
 
                         <button
-                          onClick={() => navigate(`/parfum/${item.parfum._id}`)}
+                          onClick={() => handleViewParfum(item.parfum._id)}
                           className={styles.viewButton}
                           aria-label={`Voir le parfum ${item.parfum.nom}`}
                         >
@@ -322,7 +366,7 @@ export default function HistoryFavoritesPage() {
 
                   <div className={styles.favoriteActions}>
                     <button
-                      onClick={() => navigate(`/parfum/${parfum._id}`)}
+                      onClick={() => handleViewParfum(parfum._id)}
                       className={styles.viewButton}
                       aria-label={`Voir le parfum ${parfum.nom}`}
                     >
@@ -340,7 +384,7 @@ export default function HistoryFavoritesPage() {
               </article>
             ))}
           </div>
-        ) : favorites.parfums.length > 0 && searchQuery ? (
+        ) : (favorites?.parfums?.length || 0) > 0 && searchQuery ? (
           <div className={styles.emptyState}>
             <Search className={styles.emptyIcon} />
             <h2>Aucun résultat</h2>
