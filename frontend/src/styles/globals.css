@@ -292,7 +292,7 @@ body {
   gap: 0.5rem;
   padding: 0.875rem;
   background: rgba(239, 68, 68, 0.1);
-  color: #dc2626;
+  color: #8b3a3a;
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 0.75rem;
   font-weight: 500;
@@ -403,18 +403,18 @@ body {
 
 /* Variables pour le thème admin */
 :root {
-  --admin-primary: #dc2626;
+  --admin-primary: #8b3a3a;
   --admin-secondary: #7c3aed;
   --admin-success: #059669;
   --admin-warning: #d97706;
-  --admin-error: #dc2626;
+  --admin-error: #8b3a3a;
   --admin-blue: #2563eb;
   --admin-purple: #7c3aed;
   --admin-green: #059669;
   --admin-orange: #ea580c;
 
   /* Gradients */
-  --gradient-primary: linear-gradient(135deg, #dc2626, #b91c1c);
+  --gradient-primary: linear-gradient(135deg, #8b3a3a, #b91c1c);
   --gradient-blue: linear-gradient(135deg, #2563eb, #1d4ed8);
   --gradient-purple: linear-gradient(135deg, #7c3aed, #6d28d9);
   --gradient-green: linear-gradient(135deg, #059669, #047857);
@@ -885,7 +885,7 @@ body {
 
 .admin-action-delete {
   background: #fecaca;
-  color: #dc2626;
+  color: #8b3a3a;
 }
 
 .admin-action-delete:hover {
@@ -1632,7 +1632,7 @@ body {
 
 .admin-chip-remove:hover {
   background: rgba(239, 68, 68, 0.2);
-  color: #dc2626;
+  color: #8b3a3a;
   transform: scale(1.1);
 }
 

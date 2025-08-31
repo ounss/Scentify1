@@ -98,7 +98,7 @@ function App() {
               },
               error: {
                 style: {
-                  background: "#DC2626",
+                  background: "#8b3a3a",
                 },
               },
             }}

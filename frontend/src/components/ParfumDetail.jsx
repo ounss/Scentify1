@@ -1,4 +1,4 @@
-// frontend/src/components/ParfumDetail.jsx - CORRECTION HISTORIQUE ET AFFICHAGE
+// frontend/src/components/ParfumDetail.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -18,6 +18,7 @@ import { parfumAPI, favoriAPI, historyAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "./ParfumCard";
 import toast from "react-hot-toast";
+import styles from "../styles/ParfumDetail.css";
 
 export default function ParfumDetail() {
   const { id } = useParams();
@@ -31,7 +32,40 @@ export default function ParfumDetail() {
   const [error, setError] = useState(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  // ✅ CHARGEMENT DU PARFUM AVEC AJOUT AUTOMATIQUE À L'HISTORIQUE
+  // Helpers classes
+  const getGenreClass = (genre) => {
+    const g = (genre || "").toLowerCase();
+    if (g === "homme") return styles.badgeHomme;
+    if (g === "femme") return styles.badgeFemme;
+    if (g === "mixte") return styles.badgeMixte;
+    return styles.badgeDefault;
+  };
+
+  const getNoteTypeClass = (type) => {
+    const t = (type || "").toLowerCase();
+    if (t === "tête" || t === "tete") return styles.chipHead;
+    if (t === "cœur" || t === "coeur") return styles.chipHeart;
+    if (t === "fond") return styles.chipBase;
+    return styles.chipDefault;
+  };
+
+  const formatPrix = (lien) => {
+    if (!lien?.prix && !lien?.prixOriginal) return null;
+    if (lien?.enPromotion && lien?.prixOriginal) {
+      const reduction = Math.round(
+        ((lien.prixOriginal - lien.prix) / lien.prixOriginal) * 100
+      );
+      return {
+        prix: `${lien.prix}€`,
+        prixOriginal: `${lien.prixOriginal}€`,
+        reduction: `${reduction}%`,
+        isPromo: true,
+      };
+    }
+    return { prix: lien?.prix ? `${lien.prix}€` : undefined, isPromo: false };
+  };
+
+  // Load + historique
   useEffect(() => {
     const loadParfumData = async () => {
       if (!id) {
@@ -39,47 +73,34 @@ export default function ParfumDetail() {
         setLoading(false);
         return;
       }
-
       try {
         setLoading(true);
         setError(null);
 
-        // ✅ 1. Charger le parfum principal
         const parfumResponse = await parfumAPI.getById(id);
         const parfumData = parfumResponse.data;
         setParfum(parfumData);
 
-        // ✅ 2. AJOUT AUTOMATIQUE À L'HISTORIQUE si connecté
         if (isAuthenticated) {
           try {
             await historyAPI.addToHistory(id);
-            // ✅ Déclencher événement pour mise à jour contexte
             window.dispatchEvent(
               new CustomEvent("historyUpdated", {
                 detail: { parfum: parfumData },
               })
             );
-          } catch (histErr) {
-            console.warn(
-              "⚠️ Erreur ajout historique (non bloquant):",
-              histErr?.message || histErr
-            );
+          } catch (e) {
+            console.warn("Historique non bloquant:", e?.message || e);
           }
         }
 
-        // ✅ 3. Charger les parfums similaires (optionnel)
         try {
           const similarResponse = await parfumAPI.getSimilar(id);
           setSimilarParfums(similarResponse.data || []);
-        } catch (err) {
-          console.warn(
-            "⚠️ Parfums similaires non disponibles:",
-            err?.message || err
-          );
+        } catch {
           setSimilarParfums([]);
         }
       } catch (err) {
-        console.error("❌ Erreur chargement parfum:", err);
         setError(
           err?.response?.status === 404
             ? "Parfum non trouvé"
@@ -89,11 +110,10 @@ export default function ParfumDetail() {
         setLoading(false);
       }
     };
-
     loadParfumData();
   }, [id, isAuthenticated]);
 
-  // ✅ Vérifier si le parfum est en favori (sur base du contexte utilisateur)
+  // Sync favoris
   useEffect(() => {
     if (user?.favorisParfums && parfum?._id) {
       const isInFavorites = user.favorisParfums.some((fav) => {
@@ -106,182 +126,100 @@ export default function ParfumDetail() {
     }
   }, [user?.favorisParfums, parfum?._id]);
 
-  // ✅ GESTION FAVORIS
+  // Favoris
   const toggleFavorite = async () => {
     if (!isAuthenticated) {
       toast.error("Connectez-vous pour ajouter des favoris");
       navigate("/auth");
       return;
     }
-
-    if (!parfum?._id) {
-      toast.error("Erreur: données du parfum manquantes");
-      return;
-    }
-
-    if (favoriteLoading) return;
+    if (!parfum?._id || favoriteLoading) return;
 
     setFavoriteLoading(true);
-
-    // ✅ Mise à jour optimiste UI
-    const previousState = isFavorite;
+    const prev = isFavorite;
     setIsFavorite(!isFavorite);
 
     try {
-      if (previousState) {
+      if (prev) {
         await favoriAPI.removeParfum(parfum._id);
         toast.success(`${parfum.nom} retiré des favoris`);
       } else {
         await favoriAPI.addParfum(parfum._id);
         toast.success(`${parfum.nom} ajouté aux favoris !`);
       }
-
-      // ✅ Déclencher événement pour mise à jour contexte
       window.dispatchEvent(
         new CustomEvent("favorisUpdated", {
-          detail: {
-            parfumId: parfum._id,
-            action: previousState ? "remove" : "add",
-          },
+          detail: { parfumId: parfum._id, action: prev ? "remove" : "add" },
         })
       );
-    } catch (error) {
-      console.error("❌ Erreur favoris:", error);
-
-      // ✅ Rollback UI en cas d'erreur
-      setIsFavorite(previousState);
-
-      if (error?.response?.status === 401) {
+    } catch (err) {
+      setIsFavorite(prev);
+      if (err?.response?.status === 401) {
         toast.error("Session expirée, reconnectez-vous");
         navigate("/auth");
       } else {
-        const message =
-          error?.response?.data?.message || "Erreur lors de la modification";
-        toast.error(message);
+        toast.error(
+          err?.response?.data?.message || "Erreur lors de la modification"
+        );
       }
     } finally {
       setFavoriteLoading(false);
     }
   };
 
-  // ✅ PARTAGE
+  // Partage
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success("Lien copié dans le presse-papiers");
+    } catch {
+      toast.error("Impossible de copier le lien");
+    }
+  };
   const handleShare = async () => {
     if (!parfum) return;
-
     const shareData = {
       title: `${parfum.nom} - ${parfum.marque}`,
       text: `Découvrez ce parfum sur Scentify`,
       url: window.location.href,
     };
-
     if (navigator.share && navigator.canShare?.(shareData)) {
       try {
         await navigator.share(shareData);
       } catch (err) {
-        if (err?.name !== "AbortError") {
-          copyToClipboard();
-        }
+        if (err?.name !== "AbortError") copyToClipboard();
       }
     } else {
       copyToClipboard();
     }
   };
 
-  const copyToClipboard = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      toast.success("Lien copié dans le presse-papiers");
-    } catch (err) {
-      console.error("Erreur copie:", err);
-      toast.error("Impossible de copier le lien");
-    }
-  };
-
-  // ✅ UTILITAIRES UI
-  const getGenreColor = (genre) => {
-    switch (genre) {
-      case "homme":
-        return "from-blue-500 to-indigo-500";
-      case "femme":
-        return "from-pink-500 to-rose-500";
-      case "mixte":
-        return "from-purple-500 to-violet-500";
-      default:
-        return "from-gray-500 to-gray-600";
-    }
-  };
-
-  const getNoteTypeColor = (type) => {
-    switch (type) {
-      case "tête":
-        return "bg-yellow-100 text-yellow-800 border-yellow-300";
-      case "cœur":
-        return "bg-pink-100 text-pink-800 border-pink-300";
-      case "fond":
-        return "bg-purple-100 text-purple-800 border-purple-300";
-      default:
-        return "bg-gray-100 text-gray-800 border-gray-300";
-    }
-  };
-
-  const formatPrix = (lien) => {
-    if (!lien?.prix && !lien?.prixOriginal) return null;
-
-    if (lien?.enPromotion && lien?.prixOriginal) {
-      const reduction = Math.round(
-        ((lien.prixOriginal - lien.prix) / lien.prixOriginal) * 100
-      );
-      return {
-        prix: `${lien.prix}€`,
-        prixOriginal: `${lien.prixOriginal}€`,
-        reduction: `${reduction}%`,
-        isPromo: true,
-      };
-    }
-
-    return {
-      prix: lien?.prix ? `${lien.prix}€` : undefined,
-      isPromo: false,
-    };
-  };
-
-  // ✅ LOADING STATE
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du parfum...</p>
+      <div className={styles.fullPageCenter}>
+        <div className={styles.loaderCard}>
+          <div className={styles.spinner} />
+          <p className={styles.muted}>Chargement du parfum...</p>
         </div>
       </div>
     );
   }
 
-  // ✅ ERROR STATE
   if (error || !parfum) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center max-w-md">
-          <div className="text-gray-400 mb-6">
-            <Eye className="w-20 h-20 mx-auto mb-4" />
-          </div>
-          <h2 className="text-2xl font-bold text-gray-700 mb-4">
-            {error || "Parfum non trouvé"}
-          </h2>
-          <p className="text-gray-500 mb-8">
+      <div className={styles.fullPageCenter}>
+        <div className={styles.errorCard}>
+          <Eye className={styles.errorIcon} />
+          <h2 className={styles.errorTitle}>{error || "Parfum non trouvé"}</h2>
+          <p className={styles.muted}>
             Ce parfum n'existe pas ou a été supprimé.
           </p>
-          <div className="space-x-4">
-            <button
-              onClick={() => navigate(-1)}
-              className="bg-gray-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-gray-700 transition-colors"
-            >
+          <div className={styles.errorActions}>
+            <button onClick={() => navigate(-1)} className={styles.btnGhost}>
+              <ArrowLeft className={styles.icon} />
               Retour
             </button>
-            <button
-              onClick={() => navigate("/")}
-              className="bg-red-600 text-white px-6 py-3 rounded-xl font-semibold hover:bg-red-700 transition-colors"
-            >
+            <button onClick={() => navigate("/")} className={styles.btnPrimary}>
               Accueil
             </button>
           </div>
@@ -291,170 +229,131 @@ export default function ParfumDetail() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-12">
-      {/* ✅ HEADER AVEC NAVIGATION */}
-      <div className="bg-white shadow-sm border-b sticky top-0 z-30">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+    <div className={styles.page}>
+      {/* Header */}
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <button className={styles.back} onClick={() => navigate(-1)}>
+            <ArrowLeft className={styles.icon} />
+            <span>Retour</span>
+          </button>
+          <div className={styles.headerActions}>
             <button
-              onClick={() => navigate(-1)}
-              className="flex items-center space-x-2 text-gray-600 hover:text-gray-800 transition-colors"
+              className={styles.iconButton}
+              onClick={handleShare}
+              title="Partager"
             >
-              <ArrowLeft className="w-5 h-5" />
-              <span className="font-medium">Retour</span>
+              <Share2 className={styles.icon} />
             </button>
-
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleShare}
-                className="p-3 hover:bg-gray-100 rounded-xl transition-colors"
-                title="Partager"
-              >
-                <Share2 className="w-5 h-5 text-gray-600" />
-              </button>
-
-              <button
-                onClick={toggleFavorite}
-                disabled={favoriteLoading}
-                className={`p-3 rounded-xl transition-all ${
-                  isFavorite
-                    ? "bg-red-50 text-red-600"
-                    : "hover:bg-gray-100 text-gray-600"
-                } ${favoriteLoading ? "opacity-50 cursor-not-allowed" : ""}`}
-                title={
-                  isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"
-                }
-              >
-                <Heart
-                  className={`w-5 h-5 ${isFavorite ? "fill-current" : ""} ${
-                    favoriteLoading ? "animate-pulse" : ""
-                  }`}
-                />
-              </button>
-            </div>
+            <button
+              className={`${styles.iconButton} ${
+                isFavorite ? styles.favActive : ""
+              } ${favoriteLoading ? styles.disabled : ""}`}
+              onClick={toggleFavorite}
+              disabled={favoriteLoading}
+              title={isFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}
+            >
+              <Heart
+                className={styles.icon}
+                {...(isFavorite ? { fill: "currentColor" } : {})}
+              />
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* ✅ SECTION PRINCIPALE */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-16">
-          {/* Image et infos de base */}
-          <div className="space-y-6">
-            <div className="relative bg-white rounded-3xl p-8 shadow-lg">
+      <main className={styles.container}>
+        {/* Grille principale */}
+        <section className={styles.grid}>
+          {/* Colonne image */}
+          <div className={styles.left}>
+            <article className={styles.photoCard}>
               <img
+                className={styles.photo}
                 src={
                   parfum.photo ||
                   "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop"
                 }
                 alt={parfum.nom}
-                className="w-full max-w-sm h-96 object-cover rounded-2xl mx-auto shadow-lg"
                 onError={(e) => {
                   e.currentTarget.src =
                     "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop";
                 }}
               />
-
-              {/* Badge genre */}
-              <div
-                className={`absolute top-4 left-4 bg-gradient-to-r ${getGenreColor(
-                  parfum.genre
-                )} text-white px-4 py-2 rounded-full font-semibold shadow-lg`}
+              <span
+                className={`${styles.badge} ${getGenreClass(parfum.genre)}`}
               >
                 {parfum.genre}
-              </div>
-
-              {/* Badge popularité */}
+              </span>
               {parfum.popularite > 80 && (
-                <div className="absolute top-4 right-4 bg-orange-500 text-white px-3 py-2 rounded-full text-sm font-bold flex items-center space-x-1 shadow-lg">
-                  <Star className="w-4 h-4 fill-current" />
-                  <span>Populaire</span>
-                </div>
+                <span className={styles.badgePop}>
+                  <Star className={styles.icon} />
+                  Populaire
+                </span>
               )}
-            </div>
+            </article>
 
-            {/* Info rapides */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-white rounded-2xl p-4 shadow">
-                <div className="text-sm text-gray-500">Marque</div>
-                <div className="font-semibold text-gray-800">
-                  {parfum.marque}
-                </div>
+            <div className={styles.tiles}>
+              <div className={styles.tile}>
+                <div className={styles.tileLabel}>Marque</div>
+                <div className={styles.tileValue}>{parfum.marque}</div>
               </div>
-              <div className="bg-white rounded-2xl p-4 shadow">
-                <div className="text-sm text-gray-500">Genre</div>
-                <div className="font-semibold capitalize text-gray-800">
+              <div className={styles.tile}>
+                <div className={styles.tileLabel}>Genre</div>
+                <div className={`${styles.tileValue} ${styles.cap}`}>
                   {parfum.genre}
                 </div>
               </div>
             </div>
           </div>
 
-          {/* ✅ DÉTAILS DU PARFUM */}
-          <div className="space-y-8">
-            {/* En-tête */}
-            <div>
-              <h1 className="text-4xl font-bold text-gray-800 mb-4">
-                {parfum.nom}
-              </h1>
-              <p className="text-2xl text-gray-600 font-semibold mb-4">
-                {parfum.marque}
-              </p>
+          {/* Colonne contenu */}
+          <div className={styles.right}>
+            <header className={styles.titleBlock}>
+              <h1 className={styles.title}>{parfum.nom}</h1>
+              <p className={styles.brand}>{parfum.marque}</p>
 
               {parfum.popularite > 0 && (
-                <div className="flex items-center space-x-2 mb-6">
-                  <div className="flex items-center space-x-1">
-                    <Star className="w-5 h-5 text-yellow-500 fill-current" />
-                    <span className="font-semibold text-gray-800">
-                      {parfum.popularite}
-                    </span>
-                    <span className="text-gray-600">/100</span>
-                  </div>
-                  <span className="text-gray-400">•</span>
-                  <span className="text-gray-600">Note de popularité</span>
+                <div className={styles.popRow}>
+                  <span className={styles.popScore}>
+                    <Star className={`${styles.icon} ${styles.star}`} />
+                    <strong>{parfum.popularite}</strong>
+                    <span className={styles.muted}>/100</span>
+                  </span>
+                  <span className={styles.dot}>•</span>
+                  <span className={styles.muted}>Note de popularité</span>
                 </div>
               )}
 
               {parfum.description && (
-                <p className="text-gray-700 text-lg leading-relaxed">
-                  {parfum.description}
-                </p>
+                <p className={styles.description}>{parfum.description}</p>
               )}
-            </div>
+            </header>
 
-            {/* ✅ NOTES OLFACTIVES */}
-            {parfum.notes && parfum.notes.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-lg">
-                <div className="flex items-center space-x-2 mb-6">
-                  <Sparkles className="w-6 h-6 text-red-500" />
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    Notes olfactives
-                  </h2>
+            {/* Notes */}
+            {parfum.notes?.length > 0 && (
+              <section className={styles.card}>
+                <div className={styles.sectionHead}>
+                  <Sparkles className={`${styles.icon} ${styles.primary}`} />
+                  <h2 className={styles.sectionTitle}>Notes olfactives</h2>
                 </div>
 
-                <div className="space-y-6">
+                <div className={styles.notes}>
                   {["tête", "cœur", "fond"].map((type) => {
-                    const notesDeType =
-                      parfum.notes?.filter((note) => note.type === type) || [];
-                    if (notesDeType.length === 0) return null;
-
+                    const notes = parfum.notes.filter((n) => n.type === type);
+                    if (!notes.length) return null;
                     return (
-                      <div
-                        key={type}
-                        className="border-l-4 border-red-200 pl-4"
-                      >
-                        <h3 className="font-bold text-lg text-gray-800 capitalize mb-3">
-                          Notes de {type}
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                          {notesDeType.map((note, index) => (
+                      <div key={type} className={styles.noteGroup}>
+                        <h3 className={styles.noteTitle}>Notes de {type}</h3>
+                        <div className={styles.badges}>
+                          {notes.map((n, i) => (
                             <span
-                              key={note._id || index}
-                              className={`px-4 py-2 rounded-xl text-sm font-medium border ${getNoteTypeColor(
+                              key={n._id || i}
+                              className={`${styles.chip} ${getNoteTypeClass(
                                 type
                               )}`}
                             >
-                              {note.nom}
+                              {n.nom}
                             </span>
                           ))}
                         </div>
@@ -462,102 +361,95 @@ export default function ParfumDetail() {
                     );
                   })}
                 </div>
-              </div>
+              </section>
             )}
 
-            {/* ✅ LIENS MARCHANDS */}
-            {parfum.liensMarchands && parfum.liensMarchands.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-lg">
-                <div className="flex items-center gap-3 mb-6">
-                  <ShoppingBag className="w-6 h-6 text-green-600" />
-                  <h2 className="text-2xl font-bold text-gray-800">
-                    Où l'acheter
-                  </h2>
+            {/* Marchands */}
+            {parfum.liensMarchands?.length > 0 && (
+              <section className={styles.card}>
+                <div className={styles.sectionHead}>
+                  <ShoppingBag className={`${styles.icon} ${styles.success}`} />
+                  <h2 className={styles.sectionTitle}>Où l'acheter</h2>
                   {parfum.meilleurPrix && (
-                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full text-sm font-medium">
+                    <span className={styles.bestPrice}>
                       À partir de {parfum.meilleurPrix}€
                     </span>
                   )}
                 </div>
 
-                <div className="space-y-4">
+                <div className={styles.merchants}>
                   {parfum.liensMarchands
-                    .filter((lien) => lien?.disponible !== false)
-                    .map((marchand, index) => {
-                      const prixInfo = formatPrix(marchand);
-
+                    .filter((l) => l?.disponible !== false)
+                    .map((m, idx) => {
+                      const prix = formatPrix(m);
                       return (
-                        <div
-                          key={index}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors border border-gray-100"
-                        >
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-sm">
-                              <ShoppingBag className="w-6 h-6 text-white" />
+                        <div key={idx} className={styles.merchantRow}>
+                          <div className={styles.merchantLeft}>
+                            <div className={styles.merchantLogo}>
+                              <ShoppingBag className={styles.iconInverse} />
                             </div>
                             <div>
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-gray-900">
-                                  {marchand?.nom ||
-                                    marchand?.site ||
-                                    "Boutique"}
+                              <div className={styles.merchantTitleLine}>
+                                <span className={styles.merchantName}>
+                                  {m?.nom || m?.site || "Boutique"}
                                 </span>
-                                {marchand?.label && (
-                                  <span className="text-xs bg-gray-200 text-gray-700 px-2 py-0.5 rounded-full">
-                                    {marchand.label}
+                                {m?.label && (
+                                  <span className={styles.merchantTag}>
+                                    {m.label}
                                   </span>
                                 )}
                               </div>
-                              {marchand?.format && (
-                                <div className="text-sm text-gray-500 flex items-center gap-1">
-                                  <Tag className="w-4 h-4" /> {marchand.format}
+                              {m?.format && (
+                                <div className={styles.merchantMeta}>
+                                  <Tag className={styles.iconMuted} />
+                                  {m.format}
                                 </div>
                               )}
-                              {marchand?.delaiLivraison && (
-                                <div className="text-sm text-gray-500 flex items-center gap-1">
-                                  <Truck className="w-4 h-4" />{" "}
-                                  {marchand.delaiLivraison}
+                              {m?.delaiLivraison && (
+                                <div className={styles.merchantMeta}>
+                                  <Truck className={styles.iconMuted} />
+                                  {m.delaiLivraison}
                                 </div>
                               )}
                             </div>
                           </div>
 
-                          <div className="flex items-center gap-4">
-                            {prixInfo?.isPromo ? (
-                              <div className="text-right">
-                                <div className="text-lg font-bold text-gray-900">
-                                  {prixInfo.prix}
+                          <div className={styles.merchantRight}>
+                            {prix?.isPromo ? (
+                              <div className={styles.priceBlock}>
+                                <div className={styles.priceNow}>
+                                  {prix.prix}
                                 </div>
-                                <div className="text-sm text-gray-500 line-through">
-                                  {prixInfo.prixOriginal}
+                                <div className={styles.priceWas}>
+                                  {prix.prixOriginal}
                                 </div>
-                                <div className="text-xs text-green-700 font-semibold">
-                                  -{prixInfo.reduction}
+                                <div className={styles.priceDiscount}>
+                                  -{prix.reduction}
                                 </div>
                               </div>
                             ) : (
-                              <div className="text-right">
-                                {prixInfo?.prix ? (
-                                  <div className="text-lg font-bold text-gray-900">
-                                    {prixInfo.prix}
+                              <div className={styles.priceBlock}>
+                                {prix?.prix ? (
+                                  <div className={styles.priceNow}>
+                                    {prix.prix}
                                   </div>
                                 ) : (
-                                  <div className="text-sm text-gray-500">
+                                  <div className={styles.priceMuted}>
                                     Prix non communiqué
                                   </div>
                                 )}
                               </div>
                             )}
 
-                            {marchand?.url && (
+                            {m?.url && (
                               <a
-                                href={marchand.url}
+                                href={m.url}
                                 target="_blank"
                                 rel="noreferrer noopener"
-                                className="inline-flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-gray-800 transition-colors"
+                                className={styles.offer}
                               >
                                 Voir l'offre{" "}
-                                <ExternalLink className="w-4 h-4" />
+                                <ExternalLink className={styles.iconInverse} />
                               </a>
                             )}
                           </div>
@@ -566,39 +458,36 @@ export default function ParfumDetail() {
                     })}
                 </div>
 
-                {/* Disclaimer prix */}
-                <p className="text-xs text-gray-500 mt-4 flex items-center gap-1">
-                  <Clock className="w-3.5 h-3.5" />
+                <p className={styles.disclaimer}>
+                  <Clock className={styles.iconMuted} />
                   Les prix et disponibilités sont indicatifs et peuvent varier
                   selon les boutiques.
                 </p>
-              </div>
+              </section>
             )}
           </div>
-        </div>
+        </section>
 
-        {/* ✅ SECTION SIMILAIRES */}
-        <div className="space-y-6">
-          <div className="flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-purple-600" />
-            <h2 className="text-2xl font-bold text-gray-800">
-              Parfums similaires
-            </h2>
+        {/* Similaires */}
+        <section className={styles.similar}>
+          <div className={styles.sectionHeadAlt}>
+            <Sparkles className={`${styles.icon} ${styles.purple}`} />
+            <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
-          {similarParfums?.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {similarParfums?.length ? (
+            <div className={styles.similarGrid}>
               {similarParfums.map((p) => (
                 <ParfumCard key={p._id} parfum={p} />
               ))}
             </div>
           ) : (
-            <div className="bg-white rounded-2xl p-6 text-gray-600 shadow">
+            <div className={styles.emptySimilar}>
               Aucun parfum similaire trouvé pour le moment.
             </div>
           )}
-        </div>
-      </div>
+        </section>
+      </main>
     </div>
   );
 }
