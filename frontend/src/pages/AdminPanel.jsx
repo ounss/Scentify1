@@ -1,8 +1,6 @@
-// frontend/src/pages/AdminPanel.jsx - DASHBOARD ADMIN COMPLET - VERSION CORRIGÉE
+// frontend/src/pages/AdminPanel.jsx - Version élégante cohérente avec le design
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import ContactSection from "../admin/ContactSection";
-import { MessageSquare } from "lucide-react";
 import {
   Users,
   Package,
@@ -25,16 +23,26 @@ import {
   X,
   Save,
   Star,
+  MessageSquare,
+  Shield,
+  Database,
+  Activity,
+  Settings,
+  Check,
+  Clock,
 } from "lucide-react";
 import { adminAPI } from "../services/adminAPI.js";
 import { parfumAPI, noteAPI, authAPI } from "../services/api.js";
 import { useAuth } from "../contexts/AuthContext";
-import toast from "react-hot-toast";
+import { toast } from "react-hot-toast";
+import ContactSection from "../admin/ContactSection";
+import styles from "../styles/AdminPanel.module.css";
 
 export default function AdminPanel() {
   const { isAdmin, user } = useAuth();
   const navigate = useNavigate();
 
+  // États principaux
   const [activeTab, setActiveTab] = useState("dashboard");
   const [stats, setStats] = useState({});
   const [users, setUsers] = useState([]);
@@ -50,62 +58,46 @@ export default function AdminPanel() {
   const [filterGenre, setFilterGenre] = useState("tous");
   const [filterNoteType, setFilterNoteType] = useState("tous");
 
-  // Modales / édition
+  // Modales & édition
   const [showUserForm, setShowUserForm] = useState(false);
   const [showParfumForm, setShowParfumForm] = useState(false);
   const [showNoteForm, setShowNoteForm] = useState(false);
-  const [editingItem, setEditingItem] = useState(null); // contiendra l'objet en édition
+  const [editingItem, setEditingItem] = useState(null);
 
-  // Form states
+  // Formulaires
   const [userForm, setUserForm] = useState({
     username: "",
     email: "",
     password: "",
   });
-
   const [parfumForm, setParfumForm] = useState({
     nom: "",
     marque: "",
     genre: "mixte",
     description: "",
   });
-
   const [noteForm, setNoteForm] = useState({
     nom: "",
-    type: "tête",
-    description: "",
+    type: "tete",
+    famille: "",
   });
 
-  const tabs = [
-    { id: "dashboard", label: "Tableau de bord", icon: BarChart3 },
-    { id: "users", label: "Utilisateurs", icon: Users, count: users.length },
-    { id: "parfums", label: "Parfums", icon: Package, count: parfums.length },
-    { id: "notes", label: "Notes", icon: TrendingUp, count: notes.length },
-    { id: "contact", label: "Contact", icon: MessageSquare },
-  ];
-
-  // Accès
+  // Vérification des droits admin
   useEffect(() => {
     if (!isAdmin) {
-      toast.error("Accès non autorisé");
       navigate("/");
       return;
     }
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin, navigate]);
 
-  // Chargement global
+  // Chargement des données
   const loadData = async () => {
+    setLoading(true);
     try {
-      setLoading(true);
       const [statsData, usersData, parfumsData, notesData] = await Promise.all([
-        adminAPI
-          .getStats()
-          .catch(() => ({ users: {}, parfums: {}, notes: {} })),
-        adminAPI
-          .getUsers({ limit: 100 })
-          .catch(() => ({ data: { users: [] } })),
+        adminAPI.getStats().catch(() => ({})),
+        adminAPI.getUsers().catch(() => ({ data: { users: [] } })),
         parfumAPI
           .getAll({ limit: 100 })
           .catch(() => ({ data: { parfums: [] } })),
@@ -132,7 +124,7 @@ export default function AdminPanel() {
     setRefreshing(false);
   };
 
-  // Exports CSV
+  // === EXPORTS CSV ===
   const handleExportUsers = async () => {
     try {
       const response = await adminAPI.exportUsers();
@@ -175,7 +167,7 @@ export default function AdminPanel() {
     }
   };
 
-  // USERS
+  // === GESTION UTILISATEURS ===
   const createUser = async (e) => {
     e.preventDefault();
     try {
@@ -254,7 +246,7 @@ export default function AdminPanel() {
     }
   };
 
-  // PARFUMS
+  // === GESTION PARFUMS ===
   const createParfum = async (e) => {
     e.preventDefault();
     try {
@@ -293,12 +285,12 @@ export default function AdminPanel() {
       await parfumAPI.delete(parfumId);
       setParfums((prev) => prev.filter((p) => p._id !== parfumId));
       toast.success("Parfum supprimé");
-    } catch {
+    } catch (error) {
       toast.error("Erreur suppression parfum");
     }
   };
 
-  // NOTES
+  // === GESTION NOTES ===
   const createNote = async (e) => {
     e.preventDefault();
     try {
@@ -307,7 +299,7 @@ export default function AdminPanel() {
       setNotes((prev) => [...prev, created]);
       setShowNoteForm(false);
       setEditingItem(null);
-      setNoteForm({ nom: "", type: "tête", description: "" });
+      setNoteForm({ nom: "", type: "tete", famille: "" });
       toast.success("Note créée");
     } catch (error) {
       toast.error(error?.response?.data?.message || "Erreur création note");
@@ -324,9 +316,9 @@ export default function AdminPanel() {
       );
       setShowNoteForm(false);
       setEditingItem(null);
-      setNoteForm({ nom: "", type: "tête", description: "" });
+      setNoteForm({ nom: "", type: "tete", famille: "" });
       toast.success("Note modifiée");
-    } catch {
+    } catch (error) {
       toast.error("Erreur modification note");
     }
   };
@@ -337,918 +329,643 @@ export default function AdminPanel() {
       await noteAPI.delete(noteId);
       setNotes((prev) => prev.filter((n) => n._id !== noteId));
       toast.success("Note supprimée");
-    } catch {
+    } catch (error) {
       toast.error("Erreur suppression note");
     }
   };
 
-  // Filtres
+  // === FILTRES ===
   const filteredUsers = users.filter(
-    (u) =>
-      u?.username?.toLowerCase().includes(searchUsers.toLowerCase()) ||
-      u?.email?.toLowerCase().includes(searchUsers.toLowerCase())
+    (user) =>
+      user.username.toLowerCase().includes(searchUsers.toLowerCase()) ||
+      user.email.toLowerCase().includes(searchUsers.toLowerCase())
   );
 
   const filteredParfums = parfums.filter((parfum) => {
     const matchSearch =
-      (parfum?.nom || "").toLowerCase().includes(searchParfums.toLowerCase()) ||
-      (parfum?.marque || "")
-        .toLowerCase()
-        .includes(searchParfums.toLowerCase());
-    const matchGenre =
-      filterGenre === "tous" ||
-      (parfum?.genre &&
-        parfum.genre.toLowerCase() === filterGenre.toLowerCase());
+      parfum.nom.toLowerCase().includes(searchParfums.toLowerCase()) ||
+      parfum.marque.toLowerCase().includes(searchParfums.toLowerCase());
+    const matchGenre = filterGenre === "tous" || parfum.genre === filterGenre;
     return matchSearch && matchGenre;
   });
 
   const filteredNotes = notes.filter((note) => {
-    const matchSearch = (note?.nom || "")
+    const matchSearch = note.nom
       .toLowerCase()
       .includes(searchNotes.toLowerCase());
-    const matchType =
-      filterNoteType === "tous" || note?.type === filterNoteType;
+    const matchType = filterNoteType === "tous" || note.type === filterNoteType;
     return matchSearch && matchType;
   });
 
-  // Utilitaires
-  const openEditForm = (item, type) => {
-    setEditingItem(item);
-    if (type === "user") {
-      setUserForm({
-        username: item.username || "",
-        email: item.email || "",
-        password: "",
-      });
-      setShowUserForm(true);
-    } else if (type === "parfum") {
-      setParfumForm({
-        nom: item.nom || "",
-        marque: item.marque || "",
-        genre: item.genre || "mixte",
-        description: item.description || "",
-      });
-      setShowParfumForm(true);
-    } else if (type === "note") {
-      setNoteForm({
-        nom: item.nom || "",
-        type: item.type || "tête",
-        description: item.description || "",
-      });
-      setShowNoteForm(true);
-    }
+  // === ONGLETS DE NAVIGATION ===
+  const tabs = [
+    { id: "dashboard", label: "Tableau de bord", icon: BarChart3 },
+    { id: "users", label: "Utilisateurs", icon: Users, count: users.length },
+    { id: "parfums", label: "Parfums", icon: Package, count: parfums.length },
+    { id: "notes", label: "Notes", icon: Star, count: notes.length },
+    { id: "contact", label: "Messages", icon: MessageSquare },
+  ];
+
+  // === FONCTIONS D'ÉDITION ===
+  const startEditUser = (user) => {
+    setEditingItem(user);
+    setUserForm({ username: user.username, email: user.email, password: "" });
+    setShowUserForm(true);
   };
 
-  // Loading
+  const startEditParfum = (parfum) => {
+    setEditingItem(parfum);
+    setParfumForm({
+      nom: parfum.nom,
+      marque: parfum.marque,
+      genre: parfum.genre,
+      description: parfum.description || "",
+    });
+    setShowParfumForm(true);
+  };
+
+  const startEditNote = (note) => {
+    setEditingItem(note);
+    setNoteForm({
+      nom: note.nom,
+      type: note.type,
+      famille: note.famille || "",
+    });
+    setShowNoteForm(true);
+  };
+
+  // Gestion du chargement
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 via-white to-gray-100">
-        <div className="text-center p-8 bg-white rounded-3xl shadow-xl border border-gray-100">
-          <div className="w-16 h-16 border-4 border-red-500 border-t-transparent rounded-full animate-spin mx-auto mb-6"></div>
-          <h2 className="text-xl font-bold text-gray-800 mb-2">
-            Chargement du panel admin
-          </h2>
-          <p className="text-gray-600">Récupération des données...</p>
-        </div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner}></div>
+        <p className={styles.loadingText}>
+          Chargement du panneau d'administration...
+        </p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-gray-100">
-      {/* HEADER */}
-      <div className="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-40">
-        <div className="container mx-auto px-6 py-5">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-6">
-              <button
-                onClick={() => navigate("/")}
-                className="flex items-center space-x-3 text-gray-600 hover:text-gray-800 transition-all duration-200 hover:bg-gray-100 px-3 py-2 rounded-xl"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                <span className="font-medium">Retour</span>
-              </button>
+    <div className={styles.page}>
+      {/* Header avec navigation */}
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <button onClick={() => navigate(-1)} className={styles.backButton}>
+            <ArrowLeft className={styles.icon} />
+            <span>Retour</span>
+          </button>
 
-              <div className="border-l border-gray-300 pl-6">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-gray-800 to-gray-600 bg-clip-text text-transparent">
-                  Administration Scentify
-                </h1>
-                <p className="text-gray-600 mt-1">
-                  Gestion complète de l'application
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-4">
-              <button
-                onClick={handleRefresh}
-                disabled={refreshing}
-                className="flex items-center space-x-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors disabled:opacity-50 font-medium"
-                title="Actualiser"
-              >
-                <RefreshCw
-                  className={`w-4 h-4 ${refreshing ? "animate-spin" : ""}`}
-                />
-                <span className="hidden md:inline">Actualiser</span>
-              </button>
-
-              <div className="bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 px-5 py-3 rounded-xl text-sm font-bold flex items-center space-x-2 border border-orange-200 shadow-sm">
-                <Crown className="w-4 h-4" />
-                <span>Admin: {user?.username}</span>
-              </div>
+          <div className={styles.headerCenter}>
+            <div className={styles.adminBadge}>
+              <Shield className={styles.icon} />
+              <span>Panneau d'Administration</span>
             </div>
           </div>
 
-          {/* TABS */}
-          <div className="flex space-x-1 mt-8 bg-gray-100 rounded-2xl p-1">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center space-x-3 px-6 py-4 rounded-xl font-semibold transition-all duration-300 ${
-                  activeTab === tab.id
-                    ? "bg-white text-red-600 shadow-md transform scale-[1.02]"
-                    : "text-gray-600 hover:text-gray-800 hover:bg-white/50"
-                }`}
-              >
-                <tab.icon className="w-5 h-5" />
-                <span>{tab.label}</span>
-                {tab.count !== undefined && (
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-bold ${
-                      activeTab === tab.id
-                        ? "bg-red-100 text-red-700"
-                        : "bg-gray-200 text-gray-700"
-                    }`}
-                  >
-                    {tab.count}
-                  </span>
-                )}
-              </button>
-            ))}
+          <div className={styles.headerActions}>
+            <button
+              onClick={handleRefresh}
+              className={`${styles.refreshButton} ${
+                refreshing ? styles.refreshing : ""
+              }`}
+              disabled={refreshing}
+            >
+              <RefreshCw className={styles.icon} />
+              {refreshing ? "Actualisation..." : "Actualiser"}
+            </button>
           </div>
         </div>
-      </div>
+      </header>
 
-      <div className="container mx-auto px-6 py-8">
-        {/* DASHBOARD */}
-        {activeTab === "dashboard" && (
-          <div className="space-y-8">
-            <div className="text-center mb-8">
-              <h2 className="text-3xl font-bold text-gray-800 mb-3">
-                Tableau de bord
-              </h2>
-              <p className="text-gray-600">
-                Vue d'ensemble de votre application Scentify
-              </p>
-            </div>
-
-            {/* Stat cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-3xl p-6 border border-blue-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-blue-600 font-semibold mb-2">
-                      Utilisateurs Total
-                    </p>
-                    <p className="text-4xl font-bold text-blue-800">
-                      {stats?.users?.totalUsers ?? users.length}
-                    </p>
-                    <p className="text-sm text-blue-600 mt-2">
-                      +{stats?.users?.recentUsers ?? 0} ce mois
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 bg-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Users className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-3xl p-6 border border-purple-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-purple-600 font-semibold mb-2">
-                      Parfums
-                    </p>
-                    <p className="text-4xl font-bold text-purple-800">
-                      {stats?.parfums?.totalParfums ?? parfums.length}
-                    </p>
-                    <p className="text-sm text-purple-600 mt-2">
-                      Dans la collection
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 bg-purple-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Package className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-3xl p-6 border border-green-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-green-600 font-semibold mb-2">
-                      Notes Olfactives
-                    </p>
-                    <p className="text-4xl font-bold text-green-800">
-                      {stats?.notes?.total ?? notes.length}
-                    </p>
-                    <p className="text-sm text-green-600 mt-2">Références</p>
-                  </div>
-                  <div className="w-16 h-16 bg-green-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <TrendingUp className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-br from-orange-50 to-orange-100 rounded-3xl p-6 border border-orange-200 hover:shadow-lg transition-all duration-300 hover:scale-105">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-orange-600 font-semibold mb-2">Admins</p>
-                    <p className="text-4xl font-bold text-orange-800">
-                      {users.filter((u) => u.isAdmin).length}
-                    </p>
-                    <p className="text-sm text-orange-600 mt-2">
-                      Administrateurs
-                    </p>
-                  </div>
-                  <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg">
-                    <Crown className="w-8 h-8 text-white" />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* System status */}
-            <div className="bg-white rounded-3xl p-8 shadow-xl border border-gray-100">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-amber-600" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800">
-                  État du système
-                </h3>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-5 bg-green-50 rounded-2xl border border-green-200">
-                  <span className="text-green-800 font-semibold flex items-center">
-                    <span className="w-3 h-3 bg-green-500 rounded-full mr-3"></span>
-                    API Fonctionnelle
-                  </span>
-                  <span className="text-green-600 text-sm font-medium bg-green-100 px-3 py-1 rounded-full">
-                    En ligne
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-5 bg-blue-50 rounded-2xl border border-blue-200">
-                  <span className="text-blue-800 font-semibold flex items-center">
-                    <span className="w-3 h-3 bg-blue-500 rounded-full mr-3"></span>
-                    Base de données
-                  </span>
-                  <span className="text-blue-600 text-sm font-medium bg-blue-100 px-3 py-1 rounded-full">
-                    Connectée
-                  </span>
-                </div>
-              </div>
-            </div>
+      <main className={styles.main}>
+        {/* Navigation par onglets */}
+        <nav className={styles.navigation}>
+          <div className={styles.navInner}>
+            {tabs.map((tab) => {
+              const TabIcon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`${styles.navTab} ${
+                    activeTab === tab.id ? styles.navTabActive : ""
+                  }`}
+                >
+                  <TabIcon className={styles.icon} />
+                  <span className={styles.navLabel}>{tab.label}</span>
+                  {tab.count !== undefined && (
+                    <span className={styles.navCount}>{tab.count}</span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-        )}
+        </nav>
 
-        {/* USERS */}
-        {activeTab === "users" && (
-          <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800">
-                  Gestion des utilisateurs
-                </h2>
-                <p className="text-gray-600 mt-1">
-                  {filteredUsers.length} utilisateur
-                  {filteredUsers.length > 1 ? "s" : ""} trouvé
-                  {filteredUsers.length > 1 ? "s" : ""}
+        {/* Contenu principal */}
+        <div className={styles.content}>
+          {activeTab === "dashboard" && (
+            <div className={styles.dashboard}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Tableau de bord</h2>
+                <p className={styles.sectionSubtitle}>
+                  Vue d'ensemble de votre plateforme Scentify
                 </p>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => {
-                    setEditingItem(null);
-                    setUserForm({ username: "", email: "", password: "" });
-                    setShowUserForm(true);
-                  }}
-                  className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Nouvel utilisateur</span>
-                </button>
+              {/* Statistiques */}
+              <div className={styles.statsGrid}>
+                <div className={`${styles.statCard} ${styles.statUsers}`}>
+                  <div className={styles.statContent}>
+                    <div className={styles.statMeta}>
+                      <p className={styles.statLabel}>Utilisateurs</p>
+                      <p className={styles.statValue}>{users.length}</p>
+                      <p className={styles.statDetail}>Membres inscrits</p>
+                    </div>
+                    <div className={styles.statIcon}>
+                      <Users className={styles.icon} />
+                    </div>
+                  </div>
+                </div>
 
-                <button
-                  onClick={handleExportUsers}
-                  className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
-                >
-                  <Download className="w-5 h-5" />
-                  <span>Export CSV</span>
-                </button>
+                <div className={`${styles.statCard} ${styles.statParfums}`}>
+                  <div className={styles.statContent}>
+                    <div className={styles.statMeta}>
+                      <p className={styles.statLabel}>Parfums</p>
+                      <p className={styles.statValue}>{parfums.length}</p>
+                      <p className={styles.statDetail}>Dans la base</p>
+                    </div>
+                    <div className={styles.statIcon}>
+                      <Package className={styles.icon} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`${styles.statCard} ${styles.statNotes}`}>
+                  <div className={styles.statContent}>
+                    <div className={styles.statMeta}>
+                      <p className={styles.statLabel}>Notes</p>
+                      <p className={styles.statValue}>{notes.length}</p>
+                      <p className={styles.statDetail}>Références</p>
+                    </div>
+                    <div className={styles.statIcon}>
+                      <Star className={styles.icon} />
+                    </div>
+                  </div>
+                </div>
+
+                <div className={`${styles.statCard} ${styles.statAdmins}`}>
+                  <div className={styles.statContent}>
+                    <div className={styles.statMeta}>
+                      <p className={styles.statLabel}>Admins</p>
+                      <p className={styles.statValue}>
+                        {users.filter((u) => u.isAdmin).length}
+                      </p>
+                      <p className={styles.statDetail}>Administrateurs</p>
+                    </div>
+                    <div className={styles.statIcon}>
+                      <Crown className={styles.icon} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* État du système */}
+              <div className={styles.systemStatus}>
+                <div className={styles.sectionHeader}>
+                  <div className={styles.sectionMeta}>
+                    <div className={styles.sectionIconWrapper}>
+                      <Activity className={styles.icon} />
+                    </div>
+                    <h3 className={styles.sectionTitle}>État du système</h3>
+                  </div>
+                </div>
+
+                <div className={styles.statusGrid}>
+                  <div
+                    className={`${styles.statusItem} ${styles.statusSuccess}`}
+                  >
+                    <div className={styles.statusIndicator}></div>
+                    <span className={styles.statusLabel}>
+                      API Fonctionnelle
+                    </span>
+                    <span className={styles.statusBadge}>OK</span>
+                  </div>
+                  <div
+                    className={`${styles.statusItem} ${styles.statusSuccess}`}
+                  >
+                    <div className={styles.statusIndicator}></div>
+                    <span className={styles.statusLabel}>Base de données</span>
+                    <span className={styles.statusBadge}>OK</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Actions rapides */}
+              <div className={styles.quickActions}>
+                <div className={styles.sectionHeader}>
+                  <h3 className={styles.sectionTitle}>Actions rapides</h3>
+                </div>
+                <div className={styles.actionGrid}>
+                  <button
+                    onClick={handleExportUsers}
+                    className={styles.actionButton}
+                  >
+                    <Download className={styles.icon} />
+                    <span>Export Utilisateurs</span>
+                  </button>
+                  <button
+                    onClick={handleExportParfums}
+                    className={styles.actionButton}
+                  >
+                    <Download className={styles.icon} />
+                    <span>Export Parfums</span>
+                  </button>
+                </div>
               </div>
             </div>
+          )}
 
-            {/* Recherche utilisateurs */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="relative max-w-md">
-                <Search className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+          {activeTab === "users" && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
+                  Gestion des utilisateurs
+                </h2>
+                <div className={styles.sectionActions}>
+                  <button
+                    onClick={() => setShowUserForm(true)}
+                    className={styles.primaryButton}
+                  >
+                    <Plus className={styles.icon} />
+                    <span>Nouvel utilisateur</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Barre de recherche */}
+              <div className={styles.searchBar}>
+                <Search className={styles.searchIcon} />
                 <input
                   type="text"
                   placeholder="Rechercher un utilisateur..."
                   value={searchUsers}
                   onChange={(e) => setSearchUsers(e.target.value)}
-                  className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  className={styles.searchInput}
                 />
               </div>
-            </div>
 
-            {/* Table utilisateurs */}
-            <div className="bg-white rounded-3xl shadow-xl border border-gray-100 overflow-hidden">
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gradient-to-r from-gray-50 to-gray-100">
-                    <tr>
-                      <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                        Utilisateur
-                      </th>
-                      <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                        Email
-                      </th>
-                      <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                        Statut
-                      </th>
-                      <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                        Inscription
-                      </th>
-                      <th className="px-8 py-6 text-left text-sm font-bold text-gray-700 uppercase tracking-wider">
-                        Actions
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {filteredUsers.map((currentUser) => (
-                      <tr
-                        key={currentUser._id}
-                        className="hover:bg-gray-50 transition-colors"
-                      >
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="flex items-center">
-                            <div className="w-12 h-12 bg-gradient-to-r from-red-500 to-pink-500 rounded-2xl flex items-center justify-center shadow-lg">
-                              <span className="text-white text-sm font-bold">
-                                {(currentUser.username || "?")
-                                  .charAt(0)
-                                  .toUpperCase()}
-                              </span>
+              {/* Liste des utilisateurs */}
+              <div className={styles.tableContainer}>
+                <div className={styles.table}>
+                  <div className={styles.tableHeader}>
+                    <div className={styles.tableRow}>
+                      <div className={styles.tableCell}>Utilisateur</div>
+                      <div className={styles.tableCell}>Email</div>
+                      <div className={styles.tableCell}>Statut</div>
+                      <div className={styles.tableCell}>Inscrit le</div>
+                      <div className={styles.tableCell}>Actions</div>
+                    </div>
+                  </div>
+                  <div className={styles.tableBody}>
+                    {filteredUsers.map((userItem) => (
+                      <div key={userItem._id} className={styles.tableRow}>
+                        <div className={styles.tableCell}>
+                          <div className={styles.userInfo}>
+                            <div
+                              className={`${styles.avatar} ${
+                                userItem.isAdmin ? styles.avatarAdmin : ""
+                              }`}
+                            >
+                              {userItem.isAdmin ? (
+                                <Crown className={styles.icon} />
+                              ) : (
+                                <User className={styles.icon} />
+                              )}
                             </div>
-                            <div className="ml-4">
-                              <div className="text-base font-semibold text-gray-900">
-                                {currentUser.username}
-                              </div>
-                              <div className="text-sm text-gray-500">
-                                ID: {String(currentUser._id).slice(-8)}
-                              </div>
+                            <div className={styles.userDetails}>
+                              <p className={styles.userName}>
+                                {userItem.username}
+                              </p>
+                              {userItem.isAdmin && (
+                                <span className={styles.adminBadgeSmall}>
+                                  Admin
+                                </span>
+                              )}
                             </div>
                           </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          <div className="text-sm text-gray-900">
-                            {currentUser.email}
-                          </div>
-                          <div
-                            className={`text-xs font-medium ${
-                              currentUser.isVerified
-                                ? "text-green-600"
-                                : "text-orange-600"
-                            }`}
+                        </div>
+                        <div className={styles.tableCell}>
+                          <p className={styles.userEmail}>{userItem.email}</p>
+                        </div>
+                        <div className={styles.tableCell}>
+                          <span
+                            className={`${styles.statusBadge} ${styles.statusSuccess}`}
                           >
-                            {currentUser.isVerified
-                              ? "✓ Vérifié"
-                              : "⚠ Non vérifié"}
-                          </div>
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap">
-                          {currentUser.isAdmin ? (
-                            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gradient-to-r from-orange-100 to-amber-100 text-orange-800 border border-orange-200">
-                              <Crown className="w-4 h-4 mr-2" />
-                              Administrateur
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-semibold bg-gray-100 text-gray-800">
-                              <User className="w-4 h-4 mr-2" />
-                              Utilisateur
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm text-gray-500">
-                          {currentUser.createdAt
-                            ? new Date(
-                                currentUser.createdAt
-                              ).toLocaleDateString("fr-FR")
-                            : "-"}
-                        </td>
-                        <td className="px-8 py-6 whitespace-nowrap text-sm font-medium">
-                          <div className="flex items-center space-x-3">
+                            Actif
+                          </span>
+                        </div>
+                        <div className={styles.tableCell}>
+                          <p className={styles.dateText}>
+                            {new Date(userItem.createdAt).toLocaleDateString(
+                              "fr-FR"
+                            )}
+                          </p>
+                        </div>
+                        <div className={styles.tableCell}>
+                          <div className={styles.actionButtons}>
                             <button
-                              onClick={() => openEditForm(currentUser, "user")}
-                              className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors"
+                              onClick={() => startEditUser(userItem)}
+                              className={styles.iconButton}
                               title="Modifier"
                             >
-                              <Edit3 className="w-4 h-4" />
+                              <Edit3 className={styles.icon} />
                             </button>
                             <button
                               onClick={() =>
                                 toggleAdminStatus(
-                                  currentUser._id,
-                                  currentUser.isAdmin
+                                  userItem._id,
+                                  userItem.isAdmin
                                 )
                               }
-                              disabled={currentUser._id === user?._id}
-                              className={`p-2 rounded-lg transition-colors ${
-                                currentUser._id === user?._id
-                                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                                  : currentUser.isAdmin
-                                  ? "bg-orange-100 text-orange-600 hover:bg-orange-200"
-                                  : "bg-green-100 text-green-600 hover:bg-green-200"
+                              className={`${styles.iconButton} ${
+                                userItem.isAdmin
+                                  ? styles.iconButtonDanger
+                                  : styles.iconButtonSuccess
                               }`}
                               title={
-                                currentUser.isAdmin
+                                userItem.isAdmin
                                   ? "Retirer admin"
                                   : "Promouvoir admin"
                               }
+                              disabled={userItem._id === user?._id}
                             >
-                              {currentUser.isAdmin ? (
-                                <UserX className="w-4 h-4" />
+                              {userItem.isAdmin ? (
+                                <UserX className={styles.icon} />
                               ) : (
-                                <UserCheck className="w-4 h-4" />
+                                <UserCheck className={styles.icon} />
                               )}
                             </button>
                             <button
-                              onClick={() => deleteUser(currentUser._id)}
-                              disabled={currentUser._id === user?._id}
-                              className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed"
+                              onClick={() => deleteUser(userItem._id)}
+                              className={`${styles.iconButton} ${styles.iconButtonDanger}`}
                               title="Supprimer"
+                              disabled={userItem._id === user?._id}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Trash2 className={styles.icon} />
                             </button>
                           </div>
-                        </td>
-                      </tr>
+                        </div>
+                      </div>
                     ))}
-                  </tbody>
-                </table>
+                  </div>
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* PARFUMS */}
-        {activeTab === "parfums" && (
-          <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800">
-                  Gestion des parfums
-                </h2>
-                <p className="text-gray-600 mt-1">
-                  {filteredParfums.length} parfum
-                  {filteredParfums.length > 1 ? "s" : ""} trouvé
-                  {filteredParfums.length > 1 ? "s" : ""}
-                </p>
+          {activeTab === "parfums" && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>Gestion des parfums</h2>
+                <div className={styles.sectionActions}>
+                  <button
+                    onClick={() => setShowParfumForm(true)}
+                    className={styles.primaryButton}
+                  >
+                    <Plus className={styles.icon} />
+                    <span>Nouveau parfum</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => {
-                    setEditingItem(null);
-                    setParfumForm({
-                      nom: "",
-                      marque: "",
-                      genre: "mixte",
-                      description: "",
-                    });
-                    setShowParfumForm(true);
-                  }}
-                  className="flex items-center space-x-2 bg-purple-600 text-white px-6 py-3 rounded-xl hover:bg-purple-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Nouveau parfum</span>
-                </button>
-
-                <button
-                  onClick={handleExportParfums}
-                  className="flex items-center space-x-2 bg-blue-600 text-white px-6 py-3 rounded-xl hover:bg-blue-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
-                >
-                  <Download className="w-5 h-5" />
-                  <span>Export CSV</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Recherche & filtres parfums */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="relative lg:col-span-2">
-                  <Search className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+              {/* Filtres et recherche */}
+              <div className={styles.filtersRow}>
+                <div className={styles.searchBar}>
+                  <Search className={styles.searchIcon} />
                   <input
                     type="text"
-                    placeholder="Rechercher par nom ou marque..."
+                    placeholder="Rechercher un parfum..."
                     value={searchParfums}
                     onChange={(e) => setSearchParfums(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50"
+                    className={styles.searchInput}
                   />
                 </div>
-                <div className="relative">
-                  <Filter className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                  <select
-                    value={filterGenre}
-                    onChange={(e) => setFilterGenre(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-gray-50 appearance-none"
-                  >
-                    <option value="tous">Tous les genres</option>
-                    <option value="homme">Homme</option>
-                    <option value="femme">Femme</option>
-                    <option value="mixte">Mixte</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Grille parfums */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-              {filteredParfums.map((parfum) => (
-                <div
-                  key={parfum._id}
-                  className="bg-white rounded-3xl shadow-lg border border-gray-100 overflow-hidden hover:shadow-xl transition-all duration-300 hover:scale-[1.02]"
+                <select
+                  value={filterGenre}
+                  onChange={(e) => setFilterGenre(e.target.value)}
+                  className={styles.filterSelect}
                 >
-                  <div className="aspect-square bg-gradient-to-br from-purple-100 to-purple-200 relative">
-                    <img
-                      src={
-                        parfum.photo ||
-                        "https://images.unsplash.com/photo-1541643600914-78b084683601?w=300&h=300&fit=crop"
-                      }
-                      alt={parfum.nom}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.src =
-                          "https://images.unsplash.com/photo-1541643600914-78b084683601?w=300&h=300&fit=crop";
-                      }}
-                    />
-                    <div className="absolute top-3 left-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-bold text-white ${
-                          parfum.genre === "homme"
-                            ? "bg-blue-500"
-                            : parfum.genre === "femme"
-                            ? "bg-pink-500"
-                            : "bg-purple-500"
-                        }`}
-                      >
-                        {parfum.genre}
-                      </span>
-                    </div>
-                    <div className="absolute top-3 right-3 flex space-x-2">
-                      {Number(parfum.popularite) > 80 && (
-                        <div className="bg-orange-500 text-white p-2 rounded-full">
-                          <Star className="w-4 h-4" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
+                  <option value="tous">Tous les genres</option>
+                  <option value="femme">Femme</option>
+                  <option value="homme">Homme</option>
+                  <option value="mixte">Mixte</option>
+                </select>
+              </div>
 
-                  <div className="p-6">
-                    <h3 className="font-bold text-lg text-gray-800 mb-1">
-                      {parfum.nom}
-                    </h3>
-                    <p className="text-gray-600 mb-3">{parfum.marque}</p>
-
-                    {parfum.notes && parfum.notes.length > 0 && (
-                      <div className="flex flex-wrap gap-1 mb-4">
-                        {parfum.notes.slice(0, 3).map((note, index) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs"
-                          >
-                            {typeof note === "string" ? note : note?.nom}
-                          </span>
-                        ))}
-                        {parfum.notes.length > 3 && (
-                          <span className="px-2 py-1 bg-gray-200 text-gray-600 rounded-full text-xs">
-                            +{parfum.notes.length - 3}
+              {/* Grille des parfums */}
+              <div className={styles.cardGrid}>
+                {filteredParfums.map((parfum) => (
+                  <div key={parfum._id} className={styles.parfumCard}>
+                    <div className={styles.cardHeader}>
+                      <h3 className={styles.cardTitle}>{parfum.nom}</h3>
+                      <p className={styles.cardSubtitle}>{parfum.marque}</p>
+                    </div>
+                    <div className={styles.cardContent}>
+                      <div className={styles.cardMeta}>
+                        <span
+                          className={`${styles.genreBadge} ${
+                            styles[`genre${parfum.genre}`]
+                          }`}
+                        >
+                          {parfum.genre}
+                        </span>
+                        {parfum.popularite && (
+                          <span className={styles.popularityScore}>
+                            <Star className={styles.icon} />
+                            {parfum.popularite}/100
                           </span>
                         )}
                       </div>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-2">
-                        <Eye className="w-4 h-4 text-gray-400" />
-                        <span className="text-sm text-gray-600">
-                          {parfum.popularite || 0}
-                        </span>
-                      </div>
-
-                      <div className="flex items-center space-x-2">
-                        <button
-                          onClick={() => openEditForm(parfum, "parfum")}
-                          className="p-2 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors"
-                          title="Modifier"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => deleteParfum(parfum._id)}
-                          className="p-2 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors"
-                          title="Supprimer"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
+                      {parfum.description && (
+                        <p className={styles.cardDescription}>
+                          {parfum.description.substring(0, 100)}...
+                        </p>
+                      )}
+                    </div>
+                    <div className={styles.cardActions}>
+                      <button
+                        onClick={() => startEditParfum(parfum)}
+                        className={styles.iconButton}
+                        title="Modifier"
+                      >
+                        <Edit3 className={styles.icon} />
+                      </button>
+                      <button
+                        onClick={() => navigate(`/parfum/${parfum._id}`)}
+                        className={styles.iconButton}
+                        title="Voir détails"
+                      >
+                        <Eye className={styles.icon} />
+                      </button>
+                      <button
+                        onClick={() => deleteParfum(parfum._id)}
+                        className={`${styles.iconButton} ${styles.iconButtonDanger}`}
+                        title="Supprimer"
+                      >
+                        <Trash2 className={styles.icon} />
+                      </button>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-
-            {filteredParfums.length === 0 && (
-              <div className="text-center py-16 bg-white rounded-3xl shadow-lg">
-                <Package className="w-20 h-20 text-gray-300 mx-auto mb-6" />
-                <h3 className="text-2xl font-bold text-gray-600 mb-4">
-                  Aucun parfum trouvé
-                </h3>
-                <p className="text-gray-500 mb-8">
-                  {searchParfums
-                    ? `Aucun résultat pour "${searchParfums}"`
-                    : "Aucun parfum dans la base de données"}
-                </p>
-                <button
-                  onClick={() => {
-                    setEditingItem(null);
-                    setParfumForm({
-                      nom: "",
-                      marque: "",
-                      genre: "mixte",
-                      description: "",
-                    });
-                    setShowParfumForm(true);
-                  }}
-                  className="bg-purple-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-purple-700"
-                >
-                  Créer le premier parfum
-                </button>
+                ))}
               </div>
-            )}
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* NOTES */}
-        {activeTab === "notes" && (
-          <div className="space-y-6">
-            <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
-              <div>
-                <h2 className="text-3xl font-bold text-gray-800">
+          {activeTab === "notes" && (
+            <div className={styles.section}>
+              <div className={styles.sectionHeader}>
+                <h2 className={styles.sectionTitle}>
                   Gestion des notes olfactives
                 </h2>
-                <p className="text-gray-600 mt-1">
-                  {filteredNotes.length} note
-                  {filteredNotes.length > 1 ? "s" : ""} trouvée
-                  {filteredNotes.length > 1 ? "s" : ""}
-                </p>
+                <div className={styles.sectionActions}>
+                  <button
+                    onClick={() => setShowNoteForm(true)}
+                    className={styles.primaryButton}
+                  >
+                    <Plus className={styles.icon} />
+                    <span>Nouvelle note</span>
+                  </button>
+                </div>
               </div>
 
-              <div className="flex items-center space-x-3">
-                <button
-                  onClick={() => {
-                    setEditingItem(null);
-                    setNoteForm({ nom: "", type: "tête", description: "" });
-                    setShowNoteForm(true);
-                  }}
-                  className="flex items-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors font-semibold shadow-lg hover:shadow-xl"
-                >
-                  <Plus className="w-5 h-5" />
-                  <span>Nouvelle note</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Recherche & filtres notes */}
-            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="relative lg:col-span-2">
-                  <Search className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
+              {/* Filtres et recherche */}
+              <div className={styles.filtersRow}>
+                <div className={styles.searchBar}>
+                  <Search className={styles.searchIcon} />
                   <input
                     type="text"
                     placeholder="Rechercher une note..."
                     value={searchNotes}
                     onChange={(e) => setSearchNotes(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-gray-50"
+                    className={styles.searchInput}
                   />
                 </div>
-                <div className="relative">
-                  <Filter className="absolute left-4 top-4 w-5 h-5 text-gray-400" />
-                  <select
-                    value={filterNoteType}
-                    onChange={(e) => setFilterNoteType(e.target.value)}
-                    className="w-full pl-12 pr-4 py-4 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent bg-gray-50 appearance-none"
-                  >
-                    <option value="tous">Tous les types</option>
-                    <option value="tête">Notes de tête</option>
-                    <option value="cœur">Notes de cœur</option>
-                    <option value="fond">Notes de fond</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
-            {/* Grilles par type */}
-            {["tête", "cœur", "fond"].map((type) => {
-              const notesType = filteredNotes.filter(
-                (note) => note.type === type
-              );
-              if (notesType.length === 0) return null;
-
-              return (
-                <div
-                  key={type}
-                  className="bg-white rounded-3xl p-8 shadow-lg border border-gray-100"
+                <select
+                  value={filterNoteType}
+                  onChange={(e) => setFilterNoteType(e.target.value)}
+                  className={styles.filterSelect}
                 >
-                  <div className="flex items-center space-x-3 mb-6">
-                    <div
-                      className={`w-6 h-6 rounded-full ${
-                        type === "tête"
-                          ? "bg-yellow-500"
-                          : type === "cœur"
-                          ? "bg-pink-500"
-                          : "bg-purple-500"
-                      }`}
-                    ></div>
-                    <h3
-                      className={`text-2xl font-bold capitalize ${
-                        type === "tête"
-                          ? "text-yellow-700"
-                          : type === "cœur"
-                          ? "text-pink-700"
-                          : "text-purple-700"
-                      }`}
-                    >
-                      Notes de {type}
-                    </h3>
-                    <span className="bg-gray-200 text-gray-700 px-3 py-1 rounded-full text-sm font-semibold">
-                      {notesType.length}
-                    </span>
-                  </div>
+                  <option value="tous">Tous les types</option>
+                  <option value="tete">Tête</option>
+                  <option value="coeur">Cœur</option>
+                  <option value="fond">Fond</option>
+                </select>
+              </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {notesType.map((note) => (
-                      <div
-                        key={note._id}
-                        className={`p-4 rounded-2xl border-2 hover:shadow-lg transition-all duration-300 hover:scale-105 ${
-                          type === "tête"
-                            ? "bg-yellow-50 border-yellow-200 hover:border-yellow-300"
-                            : type === "cœur"
-                            ? "bg-pink-50 border-pink-200 hover:border-pink-300"
-                            : "bg-purple-50 border-purple-200 hover:border-purple-300"
+              {/* Grille des notes */}
+              <div className={styles.cardGrid}>
+                {filteredNotes.map((note) => (
+                  <div key={note._id} className={styles.noteCard}>
+                    <div className={styles.cardHeader}>
+                      <h3 className={styles.cardTitle}>{note.nom}</h3>
+                      <span
+                        className={`${styles.typeBadge} ${
+                          styles[`type${note.type}`]
                         }`}
                       >
-                        <div className="flex items-start justify-between mb-3">
-                          <h4 className="font-bold text-gray-800 flex-1">
-                            {note.nom}
-                          </h4>
-                          <div className="flex items-center space-x-1 ml-2">
-                            <button
-                              onClick={() => openEditForm(note, "note")}
-                              className="p-1.5 bg-blue-100 text-blue-600 hover:bg-blue-200 rounded-lg transition-colors"
-                              title="Modifier"
-                            >
-                              <Edit3 className="w-3 h-3" />
-                            </button>
-                            <button
-                              onClick={() => deleteNote(note._id)}
-                              className="p-1.5 bg-red-100 text-red-600 hover:bg-red-200 rounded-lg transition-colors"
-                              title="Supprimer"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </button>
-                          </div>
-                        </div>
-
-                        {note.description && (
-                          <p className="text-gray-600 text-sm mb-3 line-clamp-2">
-                            {note.description}
-                          </p>
-                        )}
-
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-gray-500">
-                            Popularité: {note.popularite || 0}
-                          </span>
-                          {note.famille && (
-                            <span className="bg-gray-200 text-gray-700 px-2 py-1 rounded-full">
-                              {note.famille}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
+                        {note.type}
+                      </span>
+                    </div>
+                    <div className={styles.cardContent}>
+                      {note.famille && (
+                        <p className={styles.noteFamille}>
+                          Famille: {note.famille}
+                        </p>
+                      )}
+                      <p className={styles.noteType}>Note de {note.type}</p>
+                    </div>
+                    <div className={styles.cardActions}>
+                      <button
+                        onClick={() => startEditNote(note)}
+                        className={styles.iconButton}
+                        title="Modifier"
+                      >
+                        <Edit3 className={styles.icon} />
+                      </button>
+                      <button
+                        onClick={() => deleteNote(note._id)}
+                        className={`${styles.iconButton} ${styles.iconButtonDanger}`}
+                        title="Supprimer"
+                      >
+                        <Trash2 className={styles.icon} />
+                      </button>
+                    </div>
                   </div>
-                </div>
-              );
-            })}
-
-            {filteredNotes.length === 0 && (
-              <div className="text-center py-16 bg-white rounded-3xl shadow-lg">
-                <TrendingUp className="w-20 h-20 text-gray-300 mx-auto mb-6" />
-                <h3 className="text-2xl font-bold text-gray-600 mb-4">
-                  Aucune note trouvée
-                </h3>
-                <p className="text-gray-500 mb-8">
-                  {searchNotes
-                    ? `Aucun résultat pour "${searchNotes}"`
-                    : "Aucune note dans la base de données"}
-                </p>
-                <button
-                  onClick={() => {
-                    setEditingItem(null);
-                    setNoteForm({ nom: "", type: "tête", description: "" });
-                    setShowNoteForm(true);
-                  }}
-                  className="bg-green-600 text-white px-8 py-3 rounded-xl font-semibold hover:bg-green-700"
-                >
-                  Créer la première note
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* CONTACT */}
-        {activeTab === "contact" && <ContactSection />}
-      </div>
-
-      {/* MODALES */}
-      {/* Modal Utilisateur */}
-      {showUserForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-800">
-                  {editingItem
-                    ? "Modifier l'utilisateur"
-                    : "Nouvel utilisateur"}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowUserForm(false);
-                    setEditingItem(null);
-                    setUserForm({ username: "", email: "", password: "" });
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
+                ))}
               </div>
             </div>
+          )}
 
+          {activeTab === "contact" && (
+            <div className={styles.section}>
+              <ContactSection />
+            </div>
+          )}
+        </div>
+      </main>
+
+      {/* === MODALES === */}
+
+      {/* Modale Utilisateur */}
+      {showUserForm && (
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowUserForm(false)}
+        >
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                {editingItem ? "Modifier l'utilisateur" : "Nouvel utilisateur"}
+              </h3>
+              <button
+                onClick={() => setShowUserForm(false)}
+                className={styles.modalClose}
+              >
+                <X className={styles.icon} />
+              </button>
+            </div>
             <form
               onSubmit={editingItem ? updateUser : createUser}
-              className="p-6 space-y-4"
+              className={styles.modalForm}
             >
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nom d'utilisateur
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Nom d'utilisateur</label>
                 <input
                   type="text"
                   value={userForm.username}
                   onChange={(e) =>
                     setUserForm({ ...userForm, username: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={styles.formInput}
                   required
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Email
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Email</label>
                 <input
                   type="email"
                   value={userForm.email}
                   onChange={(e) =>
                     setUserForm({ ...userForm, email: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={styles.formInput}
                   required
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>
                   {editingItem
                     ? "Nouveau mot de passe (optionnel)"
                     : "Mot de passe"}
@@ -1259,29 +976,21 @@ export default function AdminPanel() {
                   onChange={(e) =>
                     setUserForm({ ...userForm, password: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className={styles.formInput}
                   required={!editingItem}
                 />
               </div>
-
-              <div className="flex items-center space-x-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-blue-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{editingItem ? "Modifier" : "Créer"}</span>
-                </button>
+              <div className={styles.modalActions}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowUserForm(false);
-                    setEditingItem(null);
-                    setUserForm({ username: "", email: "", password: "" });
-                  }}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                  onClick={() => setShowUserForm(false)}
+                  className={styles.secondaryButton}
                 >
                   Annuler
+                </button>
+                <button type="submit" className={styles.primaryButton}>
+                  <Save className={styles.icon} />
+                  {editingItem ? "Mettre à jour" : "Créer"}
                 </button>
               </div>
             </form>
@@ -1289,89 +998,69 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* Modal Parfum */}
+      {/* Modale Parfum */}
       {showParfumForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-800">
-                  {editingItem ? "Modifier le parfum" : "Nouveau parfum"}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowParfumForm(false);
-                    setEditingItem(null);
-                    setParfumForm({
-                      nom: "",
-                      marque: "",
-                      genre: "mixte",
-                      description: "",
-                    });
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowParfumForm(false)}
+        >
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                {editingItem ? "Modifier le parfum" : "Nouveau parfum"}
+              </h3>
+              <button
+                onClick={() => setShowParfumForm(false)}
+                className={styles.modalClose}
+              >
+                <X className={styles.icon} />
+              </button>
             </div>
-
             <form
               onSubmit={editingItem ? updateParfum : createParfum}
-              className="p-6 space-y-4"
+              className={styles.modalForm}
             >
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nom du parfum
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Nom du parfum</label>
                 <input
                   type="text"
                   value={parfumForm.nom}
                   onChange={(e) =>
                     setParfumForm({ ...parfumForm, nom: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className={styles.formInput}
                   required
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Marque
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Marque</label>
                 <input
                   type="text"
                   value={parfumForm.marque}
                   onChange={(e) =>
                     setParfumForm({ ...parfumForm, marque: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className={styles.formInput}
                   required
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Genre
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Genre</label>
                 <select
                   value={parfumForm.genre}
                   onChange={(e) =>
                     setParfumForm({ ...parfumForm, genre: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  className={styles.formSelect}
                   required
                 >
-                  <option value="mixte">Mixte</option>
-                  <option value="homme">Homme</option>
                   <option value="femme">Femme</option>
+                  <option value="homme">Homme</option>
+                  <option value="mixte">Mixte</option>
                 </select>
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Description</label>
                 <textarea
                   value={parfumForm.description}
                   onChange={(e) =>
@@ -1380,34 +1069,22 @@ export default function AdminPanel() {
                       description: e.target.value,
                     })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-purple-500 resize-none"
-                  rows={3}
+                  className={styles.formTextarea}
+                  rows="4"
+                  placeholder="Description du parfum..."
                 />
               </div>
-
-              <div className="flex items-center space-x-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-purple-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-purple-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{editingItem ? "Modifier" : "Créer"}</span>
-                </button>
+              <div className={styles.modalActions}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowParfumForm(false);
-                    setEditingItem(null);
-                    setParfumForm({
-                      nom: "",
-                      marque: "",
-                      genre: "mixte",
-                      description: "",
-                    });
-                  }}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                  onClick={() => setShowParfumForm(false)}
+                  className={styles.secondaryButton}
                 >
                   Annuler
+                </button>
+                <button type="submit" className={styles.primaryButton}>
+                  <Save className={styles.icon} />
+                  {editingItem ? "Mettre à jour" : "Créer"}
                 </button>
               </div>
             </form>
@@ -1415,97 +1092,78 @@ export default function AdminPanel() {
         </div>
       )}
 
-      {/* Modal Note */}
+      {/* Modale Note */}
       {showNoteForm && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-3xl shadow-2xl w-full max-w-md">
-            <div className="p-6 border-b border-gray-200">
-              <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-800">
-                  {editingItem ? "Modifier la note" : "Nouvelle note"}
-                </h3>
-                <button
-                  onClick={() => {
-                    setShowNoteForm(false);
-                    setEditingItem(null);
-                    setNoteForm({ nom: "", type: "tête", description: "" });
-                  }}
-                  className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-                >
-                  <X className="w-5 h-5 text-gray-500" />
-                </button>
-              </div>
+        <div
+          className={styles.modalOverlay}
+          onClick={() => setShowNoteForm(false)}
+        >
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h3 className={styles.modalTitle}>
+                {editingItem ? "Modifier la note" : "Nouvelle note"}
+              </h3>
+              <button
+                onClick={() => setShowNoteForm(false)}
+                className={styles.modalClose}
+              >
+                <X className={styles.icon} />
+              </button>
             </div>
-
             <form
               onSubmit={editingItem ? updateNote : createNote}
-              className="p-6 space-y-4"
+              className={styles.modalForm}
             >
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Nom de la note
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Nom de la note</label>
                 <input
                   type="text"
                   value={noteForm.nom}
                   onChange={(e) =>
                     setNoteForm({ ...noteForm, nom: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className={styles.formInput}
                   required
                 />
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Type de note
-                </label>
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Type</label>
                 <select
                   value={noteForm.type}
                   onChange={(e) =>
                     setNoteForm({ ...noteForm, type: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className={styles.formSelect}
                   required
                 >
-                  <option value="tête">Tête</option>
-                  <option value="cœur">Cœur</option>
+                  <option value="tete">Tête</option>
+                  <option value="coeur">Cœur</option>
                   <option value="fond">Fond</option>
                 </select>
               </div>
-
-              <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={noteForm.description}
+              <div className={styles.formGroup}>
+                <label className={styles.formLabel}>Famille olfactive</label>
+                <input
+                  type="text"
+                  value={noteForm.famille}
                   onChange={(e) =>
-                    setNoteForm({ ...noteForm, description: e.target.value })
+                    setNoteForm({ ...noteForm, famille: e.target.value })
                   }
-                  className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                  rows={3}
+                  className={styles.formInput}
+                  placeholder="Ex: florale, boisée, orientale..."
                 />
               </div>
-
-              <div className="flex items-center space-x-3 pt-4">
-                <button
-                  type="submit"
-                  className="flex-1 bg-green-600 text-white py-3 px-4 rounded-xl font-semibold hover:bg-green-700 transition-colors flex items-center justify-center space-x-2"
-                >
-                  <Save className="w-4 h-4" />
-                  <span>{editingItem ? "Modifier" : "Créer"}</span>
-                </button>
+              <div className={styles.modalActions}>
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowNoteForm(false);
-                    setEditingItem(null);
-                    setNoteForm({ nom: "", type: "tête", description: "" });
-                  }}
-                  className="px-6 py-3 bg-gray-200 text-gray-700 rounded-xl font-semibold hover:bg-gray-300 transition-colors"
+                  onClick={() => setShowNoteForm(false)}
+                  className={styles.secondaryButton}
                 >
                   Annuler
+                </button>
+                <button type="submit" className={styles.primaryButton}>
+                  <Save className={styles.icon} />
+                  {editingItem ? "Mettre à jour" : "Créer"}
                 </button>
               </div>
             </form>
