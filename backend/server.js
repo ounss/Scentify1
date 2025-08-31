@@ -21,6 +21,54 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5001;
 
+// ✅ CORS CONFIGURATION POUR PRODUCTION
+const corsOptions = {
+  origin: function (origin, callback) {
+    // En développement, autoriser toutes les origines
+    if (process.env.NODE_ENV === "development") {
+      callback(null, true);
+      return;
+    }
+
+    // En production, liste blanche des domaines autorisés
+    const allowedOrigins = [
+      process.env.CLIENT_URL,
+      process.env.FRONTEND_URL,
+      // Ajouter d'autres domaines si nécessaire
+      "https://your-frontend-domain.com",
+      "https://www.your-frontend-domain.com",
+    ].filter(Boolean); // Supprimer les valeurs undefined
+
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.warn(`🚫 CORS blocked: ${origin} not in whitelist`);
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  exposedHeaders: ["X-Total-Count"], // Pour la pagination
+};
+
+app.use(cors(corsOptions));
+
+// ✅ MIDDLEWARE DE SÉCURITÉ SUPPLÉMENTAIRE
+if (process.env.NODE_ENV === "production") {
+  // Headers de sécurité
+  app.use((req, res, next) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
+    res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    next();
+  });
+
+  // Trust proxy pour Render/Heroku
+  app.set("trust proxy", 1);
+}
+
 // Middleware
 app.use(
   cors({
