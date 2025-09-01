@@ -46,6 +46,7 @@ export const validateResetPassword = [
     ),
 ];
 
+// backend/middleware/validation.js
 export const validateParfum = [
   body("nom")
     .isLength({ min: 2, max: 100 })
@@ -58,10 +59,6 @@ export const validateParfum = [
   body("genre")
     .isIn(["homme", "femme", "mixte"])
     .withMessage("Le genre doit être: homme, femme ou mixte"),
-
-  body("notes")
-    .isArray({ min: 1 })
-    .withMessage("Au moins une note olfactive est requise"),
 ];
 
 export const validateNote = [
