@@ -9,6 +9,17 @@ import {
   getRequiredEnvVars,
 } from "./services/emailService.js";
 
+// Routes
+import userRoutes from "./routes/userRoutes.js";
+import parfumRoutes from "./routes/parfumRoutes.js";
+import noteRoutes from "./routes/noteRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js"; // ✅ correct
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 10000;
 app.get("/", (req, res) => {
   res.json({
     message: "🌸 Scentify API est en ligne !",
@@ -26,17 +37,6 @@ app.get("/", (req, res) => {
     documentation: "Accédez aux endpoints via /api/[route]",
   });
 });
-// Routes
-import userRoutes from "./routes/userRoutes.js";
-import parfumRoutes from "./routes/parfumRoutes.js";
-import noteRoutes from "./routes/noteRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import contactRoutes from "./routes/contactRoutes.js"; // ✅ correct
-
-dotenv.config();
-
-const app = express();
-const PORT = process.env.PORT || 10000;
 
 // ✅ CORS: configuration unique
 const corsOptions = {
