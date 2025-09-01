@@ -20,6 +20,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 10000;
+
 app.get("/", (req, res) => {
   res.json({
     message: "🌸 Scentify API est en ligne !",
@@ -49,8 +50,7 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.CLIENT_URL,
       process.env.FRONTEND_URL,
-      "https://your-frontend-domain.com",
-      "https://www.your-frontend-domain.com",
+      "https://scentify-perfumes.onrender.com/",
     ].filter(Boolean);
 
     if (!origin || allowedOrigins.includes(origin)) {
