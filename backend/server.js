@@ -9,6 +9,23 @@ import {
   getRequiredEnvVars,
 } from "./services/emailService.js";
 
+app.get("/", (req, res) => {
+  res.json({
+    message: "🌸 Scentify API est en ligne !",
+    status: "success",
+    version: "1.0.0",
+    endpoints: {
+      health: "/api/health",
+      testEmail: "/api/test-email",
+      users: "/api/users",
+      parfums: "/api/parfums",
+      notes: "/api/notes",
+      admin: "/api/admin",
+      contact: "/api/contact",
+    },
+    documentation: "Accédez aux endpoints via /api/[route]",
+  });
+});
 // Routes
 import userRoutes from "./routes/userRoutes.js";
 import parfumRoutes from "./routes/parfumRoutes.js";
