@@ -73,7 +73,7 @@ PORT=10000
 
 # Base de données
 
-MONGODB_URI=mongodb://localhost:27017/scentify
+MONGODB_URI=mongodb+srv://**********:*********@scentify.ggems57.mongodb.net/
 
 # Sécurité JWT
 
