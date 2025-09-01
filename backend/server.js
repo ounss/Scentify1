@@ -1,4 +1,4 @@
-// backend/server.js - VERSION CORRIGÉE FINALE
+// backend/server.js - VERSION CORRIGÉE
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
@@ -21,7 +21,6 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Détection environnement
 const isProduction = process.env.NODE_ENV === "production";
 const baseUrl = isProduction
   ? "https://scentify-perfume.onrender.com"
@@ -62,14 +61,9 @@ const corsOptions = {
       "https://scentify-perfume.onrender.com",
     ].filter(Boolean);
 
-    console.log(`CORS Check - Origin: ${origin}`);
-    console.log(`Allowed origins:`, allowedOrigins);
-
     if (!origin || allowedOrigins.includes(origin)) {
-      console.log(`CORS autorisé pour: ${origin}`);
       callback(null, true);
     } else {
-      console.warn(`CORS bloqué: ${origin}`);
       callback(new Error("Not allowed by CORS"));
     }
   },
@@ -114,14 +108,6 @@ app.get("/api/health", (req, res) => {
     version: "1.0.0",
     environment: process.env.NODE_ENV || "development",
     baseUrl: baseUrl,
-    cors: {
-      allowedOrigins: [
-        process.env.CLIENT_URL,
-        process.env.FRONTEND_URL,
-        "https://scentify-perfumes.onrender.com",
-        "https://scentify-perfume.onrender.com",
-      ].filter(Boolean),
-    },
   });
 });
 
@@ -180,8 +166,6 @@ mongoose
       if (getRequiredEnvVars()) {
         const emailWorking = await testEmailConnection();
         console.log(emailWorking ? "Service email OK" : "Service email KO");
-      } else {
-        console.log("Variables email manquantes - service désactivé");
       }
     } catch (e) {
       console.warn("Test email échoué (non bloquant):", e?.message);
@@ -192,34 +176,13 @@ mongoose
       console.log(`\nServeur Scentify démarré avec succès !`);
       console.log(`Port: ${PORT}`);
       console.log(`Mode: ${process.env.NODE_ENV || "development"}`);
-      console.log(
-        `Frontend: ${
-          process.env.CLIENT_URL || "https://scentify-perfumes.onrender.com"
-        }`
-      );
       console.log(`API Base: ${baseUrl}`);
       console.log(`Health: ${baseUrl}/api/health`);
-      console.log(`Test Email: ${baseUrl}/api/test-email`);
 
       console.log(`\nVariables d'environnement:`);
-      console.log(`   NODE_ENV: ${process.env.NODE_ENV || "development"}`);
-      console.log(
-        `   DATABASE: ${process.env.MONGODB_URI ? "OK" : "MANQUANT"}`
-      );
-      console.log(
-        `   JWT_SECRET: ${process.env.JWT_SECRET ? "OK" : "MANQUANT"}`
-      );
-      console.log(`   CLIENT_URL: ${process.env.CLIENT_URL || "MANQUANT"}`);
-      console.log(
-        `   EMAIL_USER: ${process.env.EMAIL_USER ? "OK" : "MANQUANT"}`
-      );
-
-      if (isProduction) {
-        console.log(`\nAPI disponible sur: ${baseUrl}`);
-        console.log(
-          `Frontend connecté: https://scentify-perfumes.onrender.com`
-        );
-      }
+      console.log(`DATABASE: ${process.env.MONGODB_URI ? "OK" : "MANQUANT"}`);
+      console.log(`JWT_SECRET: ${process.env.JWT_SECRET ? "OK" : "MANQUANT"}`);
+      console.log(`CLIENT_URL: ${process.env.CLIENT_URL || "MANQUANT"}`);
     });
   })
   .catch((err) => {
@@ -230,12 +193,10 @@ mongoose
 // Gestion erreurs globales
 process.on("unhandledRejection", (err) => {
   console.error("Unhandled Promise Rejection:", err);
-  console.log("Arrêt du serveur...");
   process.exit(1);
 });
 
 process.on("uncaughtException", (err) => {
   console.error("Uncaught Exception:", err);
-  console.log("Arrêt du serveur...");
   process.exit(1);
 });
