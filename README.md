@@ -1,15 +1,15 @@
-Scentify
+# Scentify
 
 Application web de recommandation de parfums basée sur la composition olfactive.
 
-🎯 À Propos
+# 🎯 À Propos
 Scentify révolutionne la découverte de parfums en proposant des recommandations basées sur les notes olfactives plutôt que sur le marketing traditionnel. L'application permet aux utilisateurs de rechercher des parfums par composition, de gérer leurs favoris et de consulter leur historique personnel.
 
 Contexte: Projet de fin d'études - Développement Web Front End
 Étudiant: BEN YAGHLANE Ouns
 Année: 2024-2025
 
-🛠️ Technologies
+# 🛠️ Technologies
 Stack MERN:
 
 Frontend: React 18, React Router, Context API, Axios
@@ -18,7 +18,7 @@ Base de données: MongoDB Atlas
 Authentification: JWT + bcrypt
 Déploiement: Vercel (frontend) + Render (backend)
 
-✨ Fonctionnalités
+# ✨ Fonctionnalités
 🔐 Authentification & Autorisation
 
 Inscription et connexion utilisateur
@@ -121,9 +121,7 @@ npm start
 cd backend
 npm run seed
 
-# Crée un admin: admin@scentify.app / admin123
-
-🏗️ Architecture
+# 🏗️ Architecture
 Structure du Projet
 scentify/
 ├── backend/ # API Express.js
@@ -272,7 +270,7 @@ Commits: Convention Conventional Commits
 Branches: main, dev, feature/, hotfix/
 Code: camelCase (JS), PascalCase (React)
 
-🔒 Sécurité
+# 🔒 Sécurité
 Mesures Implémentées
 
 JWT: Tokens avec expiration courte (2h)
@@ -289,7 +287,7 @@ Exclusion complète du fichier .env du contrôle de version
 Gestion des secrets via interfaces cloud sécurisées
 Rotation régulière des clés JWT et API
 
-🌍 Déploiement
+# 🌍 Déploiement
 Architecture Production
 Frontend (Vercel) ──► Backend (Render) ──► MongoDB Atlas
 │ │ │
