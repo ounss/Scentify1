@@ -50,8 +50,7 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.CLIENT_URL,
       process.env.FRONTEND_URL,
-      "https://scentify-perfume.onrender.com/",
-      "https://scentify-perfumes.onrender.com/",
+      "https://scentify-perfumes.onrender.com", // Frontend production
     ].filter(Boolean);
 
     if (!origin || allowedOrigins.includes(origin)) {
