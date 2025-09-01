@@ -10,18 +10,39 @@ import { deleteParfumFromCloudinary } from "../config/cloudinary.js";
 --------------------------------------------- */
 
 /**
- * Extrait un public_id Cloudinary à partir d'une URL complète.
- * Exemple:
- *   https://res.cloudinary.com/.../upload/v172.../scentify/parfums/abcd1234.jpg
- * -> "abcd1234"
+ * ✅ Extrait un public_id Cloudinary à partir d'une URL complète.
+ * Version améliorée qui gère mieux la structure Cloudinary
  */
 function extractPublicIdFromUrl(url) {
   if (!url || typeof url !== "string") return null;
+
   try {
-    const last = url.split("/").pop(); // abcd1234.jpg
-    if (!last) return null;
-    return last.split(".")[0]; // abcd1234
-  } catch {
+    // Format typique: https://res.cloudinary.com/[cloud]/image/upload/v[version]/[folder]/[public_id].[format]
+    const urlParts = url.split("/");
+    const uploadIndex = urlParts.findIndex((part) => part === "upload");
+
+    if (uploadIndex === -1) {
+      // Fallback vers l'ancienne méthode si pas de structure standard
+      const last = url.split("/").pop();
+      return last ? last.split(".")[0] : null;
+    }
+
+    // Récupérer la partie après 'upload' et ignorer la version si présente
+    let pathAfterUpload = urlParts.slice(uploadIndex + 1);
+
+    // Si le premier élément commence par 'v', c'est un numéro de version, on l'ignore
+    if (pathAfterUpload[0] && pathAfterUpload[0].startsWith("v")) {
+      pathAfterUpload = pathAfterUpload.slice(1);
+    }
+
+    // Joindre le chemin et retirer l'extension
+    const fullPath = pathAfterUpload.join("/");
+    const publicId = fullPath.split(".")[0]; // Retirer l'extension
+
+    console.log("🔍 Public ID extrait:", publicId, "depuis URL:", url);
+    return publicId;
+  } catch (error) {
+    console.error("❌ Erreur extraction public_id:", error);
     return null;
   }
 }
@@ -472,14 +493,20 @@ export const getParfumsBySimilarity = async (req, res) => {
 };
 
 /* ===========================
-   ✅ CRUD avec gestion Cloudinary
+   ✅ CRUD avec gestion Cloudinary - VERSION CORRIGÉE
    =========================== */
 
 /**
- * ✅ createParfum — version corrigée avec req.file.url / req.file.secure_url
+ * ✅ createParfum — version corrigée avec gestion d'erreur améliorée
  */
 export const createParfum = async (req, res) => {
   try {
+    console.log("🔍 DEBUG createParfum - req.file:", req.file);
+    console.log(
+      "🔍 DEBUG createParfum - req.body keys:",
+      Object.keys(req.body)
+    );
+
     // Vérifier les notes si elles existent
     const allNotes = [
       ...(req.body.notes_tete || []),
@@ -508,14 +535,28 @@ export const createParfum = async (req, res) => {
       }
     }
 
-    // ✅ Cloudinary: privilégier url/secure_url, fallback path
+    // ✅ CORRECTION CRITIQUE: Gestion robuste de l'URL image
     let photoUrl = null;
     if (req.file) {
-      photoUrl = req.file.url || req.file.secure_url || req.file.path || null;
-      console.log("📸 Image uploadée:", {
+      // Ordre de priorité: secure_url > url > path (si string)
+      if (req.file.secure_url && typeof req.file.secure_url === "string") {
+        photoUrl = req.file.secure_url;
+      } else if (req.file.url && typeof req.file.url === "string") {
+        photoUrl = req.file.url;
+      } else if (req.file.path && typeof req.file.path === "string") {
+        photoUrl = req.file.path;
+      } else {
+        console.error("❌ Aucune URL valide trouvée dans req.file:", req.file);
+        return res.status(400).json({
+          message: "Erreur upload image - URL non disponible",
+          debug: { file: req.file },
+        });
+      }
+
+      console.log("✅ Image uploadée avec succès:", {
         originalname: req.file.originalname,
         url: photoUrl,
-        public_id: req.file.public_id,
+        public_id: req.file.public_id || "N/A",
       });
     }
 
@@ -530,14 +571,16 @@ export const createParfum = async (req, res) => {
       prix: req.body.prix || null,
       liensMarchands: req.body.liensMarchands || [],
       codeBarres: req.body.codeBarres || null,
-      // ✅ URL Cloudinary stockée en string
+      // ✅ URL Cloudinary stockée comme string (pas d'objet)
       photo: photoUrl,
-      // Champs optionnels si présents dans ton schéma
-      anneeSortie: req.body.anneeSortie, // (laisser tel quel si non défini)
+      // Champs optionnels avec validation
+      anneeSortie: req.body.anneeSortie
+        ? parseInt(req.body.anneeSortie)
+        : new Date().getFullYear(),
       concentration: req.body.concentration,
-      popularite: req.body.popularite,
-      longevite: req.body.longevite,
-      sillage: req.body.sillage,
+      popularite: req.body.popularite ? parseInt(req.body.popularite) : 0,
+      longevite: req.body.longevite || "",
+      sillage: req.body.sillage || "",
     });
 
     await parfum.save();
@@ -547,21 +590,32 @@ export const createParfum = async (req, res) => {
       { path: "notes_fond", select: "nom type famille" },
     ]);
 
+    console.log("✅ Parfum créé avec succès - photo:", parfum.photo);
     res.status(201).json(parfum);
   } catch (error) {
-    console.error("Erreur createParfum:", error);
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    console.error("❌ Erreur createParfum:", error);
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 };
 
 /**
- * ✅ updateParfum — remplace l'image sur Cloudinary si nouvelle image
- * (utilise req.file.url / req.file.secure_url / req.file.path)
+ * ✅ updateParfum — version corrigée avec gestion d'erreur améliorée
  */
 export const updateParfum = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body }; // éviter mutation
+    const updateData = { ...req.body };
+
+    console.log("🔍 DEBUG updateParfum - ID:", id);
+    console.log("🔍 DEBUG updateParfum - req.file:", req.file);
+    console.log(
+      "🔍 DEBUG updateParfum - updateData keys:",
+      Object.keys(updateData)
+    );
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID de parfum invalide" });
@@ -595,33 +649,74 @@ export const updateParfum = async (req, res) => {
       }
     }
 
-    // ✅ Gestion de l'image Cloudinary si une nouvelle image est uploadée
+    // ✅ CORRECTION CRITIQUE: Gestion robuste de l'image Cloudinary
     if (req.file) {
-      const newPhotoUrl =
-        req.file.url || req.file.secure_url || req.file.path || null;
+      let newPhotoUrl = null;
 
-      console.log("📸 Nouvelle image reçue:", {
+      // Ordre de priorité: secure_url > url > path (si string)
+      if (req.file.secure_url && typeof req.file.secure_url === "string") {
+        newPhotoUrl = req.file.secure_url;
+      } else if (req.file.url && typeof req.file.url === "string") {
+        newPhotoUrl = req.file.url;
+      } else if (req.file.path && typeof req.file.path === "string") {
+        newPhotoUrl = req.file.path;
+      } else {
+        console.error("❌ Aucune URL valide trouvée dans req.file:", req.file);
+        return res.status(400).json({
+          message: "Erreur upload image - URL non disponible",
+          debug: { file: req.file },
+        });
+      }
+
+      console.log("✅ Nouvelle image reçue:", {
         originalname: req.file.originalname,
         url: newPhotoUrl,
-        public_id: req.file.public_id,
+        public_id: req.file.public_id || "N/A",
       });
 
-      // récupérer l'ancienne photo pour suppression
+      // Supprimer l'ancienne image si elle existe
       const oldParfum = await Parfum.findById(id).select("photo");
       if (oldParfum && oldParfum.photo) {
         try {
           const publicId = extractPublicIdFromUrl(oldParfum.photo);
           if (publicId) {
-            // on reconstitue avec ton dossier s'il est utilisé côté upload
-            await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+            // Utilisation correcte sans préfixe si déjà inclus dans publicId
+            await deleteParfumFromCloudinary(publicId);
+            console.log("✅ Ancienne image supprimée:", publicId);
           }
         } catch (deleteError) {
-          console.warn("⚠️ Erreur suppression ancienne image:", deleteError);
+          console.warn(
+            "⚠️ Erreur suppression ancienne image:",
+            deleteError.message
+          );
         }
       }
 
-      updateData.photo = newPhotoUrl; // ✅ met à jour avec l'URL Cloudinary
+      updateData.photo = newPhotoUrl;
     }
+
+    // ✅ PROTECTION: Nettoyer updateData des objets non désirés
+    Object.keys(updateData).forEach((key) => {
+      const value = updateData[key];
+      if (
+        value !== null &&
+        typeof value === "object" &&
+        !Array.isArray(value)
+      ) {
+        console.warn(`⚠️ Suppression du champ objet ${key}:`, value);
+        delete updateData[key];
+      }
+    });
+
+    // ✅ Validation des champs numériques
+    if (updateData.anneeSortie) {
+      updateData.anneeSortie = parseInt(updateData.anneeSortie);
+    }
+    if (updateData.popularite !== undefined) {
+      updateData.popularite = parseInt(updateData.popularite) || 0;
+    }
+
+    console.log("🔍 DEBUG updateData final:", updateData);
 
     const parfum = await Parfum.findByIdAndUpdate(id, updateData, {
       new: true,
@@ -636,19 +731,26 @@ export const updateParfum = async (req, res) => {
       return res.status(404).json({ message: "Parfum non trouvé" });
     }
 
+    console.log("✅ Parfum mis à jour avec succès - photo:", parfum.photo);
     res.json(parfum);
   } catch (error) {
-    console.error("Erreur updateParfum:", error);
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    console.error("❌ Erreur updateParfum:", error);
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+      stack: process.env.NODE_ENV === "development" ? error.stack : undefined,
+    });
   }
 };
 
 /**
- * ✅ deleteParfum — supprime aussi l'image Cloudinary si présente
+ * ✅ deleteParfum — version corrigée avec gestion d'erreur améliorée
  */
 export const deleteParfum = async (req, res) => {
   try {
     const { id } = req.params;
+
+    console.log("🔍 DEBUG deleteParfum - ID:", id);
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID de parfum invalide" });
@@ -664,18 +766,27 @@ export const deleteParfum = async (req, res) => {
       try {
         const publicId = extractPublicIdFromUrl(parfum.photo);
         if (publicId) {
-          await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+          await deleteParfumFromCloudinary(publicId);
+          console.log("✅ Image supprimée de Cloudinary:", publicId);
         }
       } catch (deleteError) {
-        console.warn("⚠️ Erreur suppression image Cloudinary:", deleteError);
+        console.warn(
+          "⚠️ Erreur suppression image Cloudinary:",
+          deleteError.message
+        );
+        // On continue malgré l'erreur de suppression d'image
       }
     }
 
     await Parfum.findByIdAndDelete(id);
+    console.log("✅ Parfum supprimé avec succès");
     res.json({ message: "Parfum supprimé avec succès" });
   } catch (error) {
-    console.error("Erreur deleteParfum:", error);
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    console.error("❌ Erreur deleteParfum:", error);
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+    });
   }
 };
 
@@ -705,17 +816,40 @@ export const importParfumsCSV = async (req, res) => {
       return res.status(400).json({ message: "Fichier CSV requis" });
     }
 
-    // ⚠️ Avec stockage distant, req.file.path peut être une URL.
-    // On conserve la compatibilité avec ton csvService.
-    const result = await csvService.importParfums(req.file.path);
+    console.log("🔍 DEBUG importCSV - req.file:", req.file);
+
+    // ✅ Gestion robuste du path/URL pour CSV
+    let filePath = null;
+    if (req.file.path && typeof req.file.path === "string") {
+      filePath = req.file.path;
+    } else if (req.file.url && typeof req.file.url === "string") {
+      filePath = req.file.url;
+    } else if (req.file.secure_url && typeof req.file.secure_url === "string") {
+      filePath = req.file.secure_url;
+    } else {
+      console.error(
+        "❌ Impossible de récupérer le chemin du fichier CSV:",
+        req.file
+      );
+      return res.status(400).json({
+        message: "Erreur lecture fichier CSV - chemin non disponible",
+        debug: { file: req.file },
+      });
+    }
+
+    console.log("✅ Traitement du fichier CSV:", filePath);
+    const result = await csvService.importParfums(filePath);
 
     res.json({
       message: "Import terminé",
       ...result,
     });
   } catch (error) {
-    console.error("Erreur import CSV:", error);
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    console.error("❌ Erreur import CSV:", error);
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+    });
   }
 };
 
