@@ -2,10 +2,9 @@ import axios from "axios";
 
 // ✅ Configuration API CORRIGÉE
 const BASE_URL =
-  process.env.REACT_APP_API_URL ||
-  (process.env.NODE_ENV === "production"
-    ? "https://scentify-perfume.onrender.com/api" // ✅ Sans slash final + /api
-    : "http://localhost:5001/api");
+  process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
+
+console.log("Base URL configurée:", BASE_URL);
 
 console.log("🔗 Base URL configurée:", BASE_URL);
 
