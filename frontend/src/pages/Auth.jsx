@@ -29,6 +29,17 @@ const AuthPage = () => {
     e.preventDefault();
     clearError(); // Effacer les erreurs précédentes
 
+    // Validation côté client
+    if (!formData.email || !formData.password) {
+      console.log("❌ Email et mot de passe requis");
+      return;
+    }
+
+    if (!isLogin && !formData.username) {
+      console.log("❌ Nom d'utilisateur requis pour l'inscription");
+      return;
+    }
+
     try {
       if (isLogin) {
         // Connexion
@@ -136,8 +147,8 @@ const AuthPage = () => {
               </div>
             )}
 
-            {/* Formulaire */}
-            <div className="auth-form" onSubmit={handleSubmit}>
+            {/* ✅ CORRECTION PRINCIPALE: Utiliser <form> au lieu de <div> */}
+            <form className="auth-form" onSubmit={handleSubmit}>
               {!isLogin && (
                 <div className="form-group">
                   <div className="input-wrapper">
@@ -152,6 +163,8 @@ const AuthPage = () => {
                       }
                       required={!isLogin}
                       disabled={loading}
+                      minLength={3}
+                      maxLength={20}
                     />
                   </div>
                 </div>
@@ -216,7 +229,6 @@ const AuthPage = () => {
                 type="submit"
                 className="submit-button"
                 disabled={loading}
-                onClick={handleSubmit}
               >
                 {loading ? (
                   <div className="loading-spinner"></div>
@@ -224,7 +236,7 @@ const AuthPage = () => {
                   <span>{isLogin ? "Se connecter" : "Créer mon compte"}</span>
                 )}
               </button>
-            </div>
+            </form>
 
             {/* Séparateur */}
             <div className="auth-divider">

@@ -116,20 +116,72 @@ export default function ParfumForm() {
     }
   };
 
+  // frontend/src/pages/ParfumForm.jsx
+  // ✅ CORRECTION: Amélioration du loadNotes avec debug
+
   const loadNotes = async () => {
+    console.log("🔍 Début chargement des notes...");
     try {
       const types = ["tête", "cœur", "fond"]; // API accepte avec accents
       const notesData = {};
+
       for (const type of types) {
+        console.log(`📝 Chargement notes de type: ${type}`);
         const resp = await noteAPI.getByType(type);
+        console.log(`✅ Réponse pour ${type}:`, resp.data);
+
         const key =
           type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
         notesData[key] = resp.data || [];
+
+        console.log(`💾 Stocké ${notesData[key].length} notes pour "${key}"`);
       }
+
+      console.log("📊 Notes finales:", notesData);
       setAllNotes(notesData);
     } catch (error) {
-      console.error("Erreur chargement notes:", error);
+      console.error("❌ Erreur chargement notes:", error);
+      console.error("❌ Détails erreur:", {
+        message: error.message,
+        response: error.response?.data,
+        status: error.response?.status,
+      });
+
+      // Fallback avec des données vides mais structure correcte
       setAllNotes({ tete: [], coeur: [], fond: [] });
+
+      // Toast d'erreur plus informatif
+      toast.error(
+        `Erreur lors du chargement des notes: ${
+          error.response?.data?.message || error.message
+        }`
+      );
+    }
+  };
+
+  // ✅ ALTERNATIVE: Si le backend ne répond pas, test avec l'API générale
+  const loadNotesAlternative = async () => {
+    console.log("🔄 Chargement des notes (méthode alternative)...");
+    try {
+      // Récupérer toutes les notes et les grouper par type
+      const resp = await noteAPI.getAll({ limit: 200 }); // Augmenter la limite
+      const allNotes = resp.data.notes || resp.data || [];
+
+      console.log("📋 Toutes les notes récupérées:", allNotes);
+
+      // Grouper par type
+      const notesData = {
+        tete: allNotes.filter((note) => note.type === "tête"),
+        coeur: allNotes.filter((note) => note.type === "cœur"),
+        fond: allNotes.filter((note) => note.type === "fond"),
+      };
+
+      console.log("📊 Notes groupées:", notesData);
+      setAllNotes(notesData);
+    } catch (error) {
+      console.error("❌ Erreur méthode alternative:", error);
+      setAllNotes({ tete: [], coeur: [], fond: [] });
+      toast.error("Impossible de charger les notes olfactives");
     }
   };
 
