@@ -1,7 +1,9 @@
+// backend/controllers/parfumController.js
+import mongoose from "mongoose";
 import Parfum from "../models/Parfum.js";
 import NoteOlfactive from "../models/NoteOlfactive.js";
 import csvService from "../services/csvService.js";
-import mongoose from "mongoose";
+import { deleteParfumFromCloudinary } from "../config/cloudinary.js";
 
 /**
  * Obtenir tous les parfums avec filtres et recherche
@@ -35,7 +37,6 @@ export const getParfums = async (req, res) => {
         { nom: searchRegex },
         { marque: searchRegex },
         { description: searchRegex },
-        // ✅ CORRIGER : Rechercher dans les 3 champs de notes
         { notes_tete: { $in: noteIds } },
         { notes_coeur: { $in: noteIds } },
         { notes_fond: { $in: noteIds } },
@@ -47,8 +48,7 @@ export const getParfums = async (req, res) => {
       query.genre = genre;
     }
 
-    // ✅ CORRIGER : Filtre par notes olfactives dans les 3 champs
-    // ✅ Dans getParfums(), remplacer la section filtre notes par:
+    // ✅ Filtre par notes (les 3 champs, toutes les notes demandées doivent être présentes)
     if (notes) {
       const noteIds = notes
         .split(",")
@@ -57,7 +57,6 @@ export const getParfums = async (req, res) => {
         .filter((id) => mongoose.Types.ObjectId.isValid(id));
 
       if (noteIds.length > 0) {
-        // Pour que TOUTES les notes soient présentes (Jasmin ET Vanille)
         const noteConditions = noteIds.map((noteId) => ({
           $or: [
             { notes_tete: noteId },
@@ -75,6 +74,7 @@ export const getParfums = async (req, res) => {
         }
       }
     }
+
     const skip = (pageNum - 1) * limitNum;
 
     // Options de tri
@@ -93,7 +93,6 @@ export const getParfums = async (req, res) => {
         sortOptions.popularite = -1;
     }
 
-    // ✅ CORRIGER : Population des 3 champs de notes séparément
     const parfums = await Parfum.find(query)
       .populate([
         { path: "notes_tete", select: "nom type famille" },
@@ -105,8 +104,6 @@ export const getParfums = async (req, res) => {
       .limit(limitNum);
 
     const total = await Parfum.countDocuments(query);
-
-    console.log(`✅ Parfums trouvés: ${parfums.length}/${total}`);
 
     res.json({
       parfums,
@@ -124,7 +121,7 @@ export const getParfums = async (req, res) => {
 };
 
 /**
- * ✅ CORRIGER : Recherche spécialisée de parfums
+ * ✅ Recherche spécialisée de parfums
  */
 export const searchParfums = async (req, res) => {
   try {
@@ -162,11 +159,33 @@ export const searchParfums = async (req, res) => {
     query.$or = searchConditions;
 
     // Filtres additionnels
-    if (genre && genre !== "tous") {
-      query.genre = genre;
-    }
-    if (marque) {
-      query.marque = new RegExp(marque, "i");
+    if (genre && genre !== "tous") query.genre = genre;
+    if (marque) query.marque = new RegExp(marque, "i");
+
+    // Si on reçoit aussi "notes" en paramètre, applique-le strictement
+    if (notes) {
+      const ids = notes
+        .split(",")
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .filter((id) => mongoose.Types.ObjectId.isValid(id));
+
+      if (ids.length > 0) {
+        query = {
+          $and: [
+            query,
+            {
+              $and: ids.map((noteId) => ({
+                $or: [
+                  { notes_tete: noteId },
+                  { notes_coeur: noteId },
+                  { notes_fond: noteId },
+                ],
+              })),
+            },
+          ],
+        };
+      }
     }
 
     const parfums = await Parfum.find(query)
@@ -186,7 +205,7 @@ export const searchParfums = async (req, res) => {
 };
 
 /**
- * ✅ CORRIGER : Obtenir un parfum par ID
+ * ✅ Obtenir un parfum par ID
  */
 export const getParfumById = async (req, res) => {
   try {
@@ -211,7 +230,6 @@ export const getParfumById = async (req, res) => {
       console.warn("Erreur incrémentation popularité:", err)
     );
 
-    console.log(`✅ Parfum récupéré: ${parfum.nom}`);
     res.json(parfum);
   } catch (error) {
     console.error("Erreur getParfumById:", error);
@@ -220,7 +238,7 @@ export const getParfumById = async (req, res) => {
 };
 
 /**
- * ✅ CORRIGER : Obtenir des parfums similaires à un parfum spécifique
+ * ✅ Obtenir des parfums similaires à un parfum spécifique
  */
 export const getSimilarParfums = async (req, res) => {
   try {
@@ -240,7 +258,6 @@ export const getSimilarParfums = async (req, res) => {
       return res.status(404).json({ message: "Parfum non trouvé" });
     }
 
-    // Combiner toutes les notes du parfum
     const allNoteIds = [
       ...(parfum.notes_tete || []).map((n) => n._id),
       ...(parfum.notes_coeur || []).map((n) => n._id),
@@ -263,7 +280,6 @@ export const getSimilarParfums = async (req, res) => {
       .sort({ popularite: -1 })
       .limit(6);
 
-    console.log(`✅ ${similaires.length} parfums similaires à ${parfum.nom}`);
     res.json(similaires);
   } catch (error) {
     console.error("Erreur getSimilarParfums:", error);
@@ -272,7 +288,7 @@ export const getSimilarParfums = async (req, res) => {
 };
 
 /**
- * ✅ CORRIGER : Obtenir parfums par note olfactive
+ * ✅ Obtenir parfums par note olfactive
  */
 export const getParfumsByNote = async (req, res) => {
   try {
@@ -287,7 +303,6 @@ export const getParfumsByNote = async (req, res) => {
     const limitNum = Math.min(parseInt(limit, 10) || 20, 100);
     const skip = (pageNum - 1) * limitNum;
 
-    // ✅ Chercher dans les 3 champs de notes
     const parfums = await Parfum.find({
       $or: [
         { notes_tete: noteId },
@@ -311,8 +326,6 @@ export const getParfumsByNote = async (req, res) => {
         { notes_fond: noteId },
       ],
     });
-
-    console.log(`✅ ${parfums.length} parfums avec la note ${noteId}`);
 
     res.json({
       parfums,
@@ -342,7 +355,6 @@ export const getParfumsBySimilarity = async (req, res) => {
       });
     }
 
-    // ✅ Validation des ObjectIds
     const validIds = parfumIds.filter((id) =>
       mongoose.Types.ObjectId.isValid(id)
     );
@@ -352,7 +364,6 @@ export const getParfumsBySimilarity = async (req, res) => {
 
     const limitNum = Math.min(parseInt(limit, 10) || 10, 50);
 
-    // Récupérer les parfums de référence avec les 3 champs
     const referenceParfums = await Parfum.find({
       _id: { $in: validIds },
     }).populate(["notes_tete", "notes_coeur", "notes_fond"]);
@@ -361,7 +372,6 @@ export const getParfumsBySimilarity = async (req, res) => {
       return res.status(404).json({ message: "Aucun parfum trouvé" });
     }
 
-    // Extraire toutes les notes uniques des 3 champs
     const allNoteIds = [
       ...new Set(
         referenceParfums.flatMap((p) => [
@@ -380,7 +390,6 @@ export const getParfumsBySimilarity = async (req, res) => {
       });
     }
 
-    // Trouver des parfums similaires
     const similarParfums = await Parfum.find({
       _id: { $nin: validIds },
       $or: [
@@ -396,7 +405,6 @@ export const getParfumsBySimilarity = async (req, res) => {
       ])
       .sort({ popularite: -1 });
 
-    // Calculer scores de similarité
     const parfumsWithScore = similarParfums
       .map((parfum) => {
         const parfumNoteIds = [
@@ -426,8 +434,6 @@ export const getParfumsBySimilarity = async (req, res) => {
       })
       .slice(0, limitNum);
 
-    console.log(`✅ Similarité: ${parfumsWithScore.length} parfums trouvés`);
-
     res.json({
       sourceParfums: referenceParfums.length,
       foundSimilar: parfumsWithScore.length,
@@ -440,32 +446,25 @@ export const getParfumsBySimilarity = async (req, res) => {
   }
 };
 
-// ✅ AUTRES FONCTIONS CORRIGÉES
+/* ===========================
+   ✅ CRUD avec gestion Cloudinary
+   =========================== */
+
+/**
+ * ✅ createParfum — version Cloudinary
+ */
 export const createParfum = async (req, res) => {
   try {
-    const {
-      nom,
-      marque,
-      genre,
-      description,
-      notes_tete,
-      notes_coeur,
-      notes_fond,
-      liensMarchands,
-      codeBarres,
-      prix,
-    } = req.body;
-
-    // Vérifier que les notes existent si fournies
+    // Vérifier les notes si elles existent
     const allNotes = [
-      ...(notes_tete || []),
-      ...(notes_coeur || []),
-      ...(notes_fond || []),
+      ...(req.body.notes_tete || []),
+      ...(req.body.notes_coeur || []),
+      ...(req.body.notes_fond || []),
     ];
 
     if (allNotes.length > 0) {
       const invalidNoteIds = allNotes.filter(
-        (id) => !mongoose.Types.ObjectId.isValid(id)
+        (noteId) => !mongoose.Types.ObjectId.isValid(noteId)
       );
       if (invalidNoteIds.length > 0) {
         return res.status(400).json({
@@ -485,16 +484,17 @@ export const createParfum = async (req, res) => {
     }
 
     const parfum = new Parfum({
-      nom,
-      marque,
-      genre,
-      description,
-      notes_tete: notes_tete || [],
-      notes_coeur: notes_coeur || [],
-      notes_fond: notes_fond || [],
-      liensMarchands: liensMarchands || [],
-      codeBarres,
-      prix,
+      nom: req.body.nom,
+      marque: req.body.marque,
+      genre: req.body.genre,
+      description: req.body.description || "",
+      notes_tete: req.body.notes_tete || [],
+      notes_coeur: req.body.notes_coeur || [],
+      notes_fond: req.body.notes_fond || [],
+      prix: req.body.prix || null,
+      liensMarchands: req.body.liensMarchands || [],
+      codeBarres: req.body.codeBarres || null,
+      // ✅ URL Cloudinary
       photo: req.file ? req.file.path : null,
     });
 
@@ -512,6 +512,9 @@ export const createParfum = async (req, res) => {
   }
 };
 
+/**
+ * ✅ updateParfum — remplace l'image sur Cloudinary si nouvelle image
+ */
 export const updateParfum = async (req, res) => {
   try {
     const { id } = req.params;
@@ -549,8 +552,19 @@ export const updateParfum = async (req, res) => {
       }
     }
 
+    // ✅ Gestion de l'image Cloudinary
     if (req.file) {
-      updateData.photo = req.file.path;
+      const oldParfum = await Parfum.findById(id);
+      if (oldParfum && oldParfum.photo) {
+        try {
+          // Extrait la dernière partie de l'URL sans extension comme public_id
+          const publicId = oldParfum.photo.split("/").pop().split(".")[0];
+          await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+        } catch (deleteError) {
+          console.warn("⚠️ Erreur suppression ancienne image:", deleteError);
+        }
+      }
+      updateData.photo = req.file.path; // Nouvelle URL Cloudinary
     }
 
     const parfum = await Parfum.findByIdAndUpdate(id, updateData, {
@@ -573,6 +587,9 @@ export const updateParfum = async (req, res) => {
   }
 };
 
+/**
+ * ✅ deleteParfum — supprime aussi l'image Cloudinary si présente
+ */
 export const deleteParfum = async (req, res) => {
   try {
     const { id } = req.params;
@@ -581,18 +598,32 @@ export const deleteParfum = async (req, res) => {
       return res.status(400).json({ message: "ID de parfum invalide" });
     }
 
-    const parfum = await Parfum.findByIdAndDelete(id);
-
+    const parfum = await Parfum.findById(id);
     if (!parfum) {
       return res.status(404).json({ message: "Parfum non trouvé" });
     }
 
+    // ✅ Supprimer l'image Cloudinary si elle existe
+    if (parfum.photo) {
+      try {
+        const publicId = parfum.photo.split("/").pop().split(".")[0];
+        await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+      } catch (deleteError) {
+        console.warn("⚠️ Erreur suppression image Cloudinary:", deleteError);
+      }
+    }
+
+    await Parfum.findByIdAndDelete(id);
     res.json({ message: "Parfum supprimé avec succès" });
   } catch (error) {
     console.error("Erreur deleteParfum:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+
+/* ===========================
+   ✅ Export / Import CSV
+   =========================== */
 
 export const exportParfumsCSV = async (req, res) => {
   try {
@@ -616,11 +647,12 @@ export const importParfumsCSV = async (req, res) => {
       return res.status(400).json({ message: "Fichier CSV requis" });
     }
 
+    // ⚠️ Avec un stockage Cloudinary, req.file.path peut être une URL.
+    // On garde le comportement existant pour compatibilité de ton csvService.
     const result = await csvService.importParfums(req.file.path);
 
-    // Nettoyer le fichier temporaire
-    const fs = await import("fs");
-    fs.unlinkSync(req.file.path);
+    // Si ton csvService écrit un fichier temporaire, il le gère.
+    // (Auparavant on faisait fs.unlinkSync(req.file.path) pour un fichier local.)
 
     res.json({
       message: "Import terminé",
@@ -631,6 +663,10 @@ export const importParfumsCSV = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
+
+/* ===========================
+   ✅ Stats
+   =========================== */
 
 export const getParfumsStats = async (req, res) => {
   try {

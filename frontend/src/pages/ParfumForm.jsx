@@ -1,15 +1,14 @@
 // frontend/src/pages/ParfumForm.jsx
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   Camera,
-  Heart,
   Plus,
   X,
   Save,
   Upload,
-  Link as LinkIcon,
+  Link as LinkIcon, // aliasé pour rester compatible avec lucide-react
   Star,
   Clock,
   Droplets,
@@ -24,28 +23,27 @@ import styles from "../styles/ParfumForm.module.css";
 
 export default function ParfumForm() {
   const navigate = useNavigate();
-  const location = useLocation();
   const { id } = useParams();
   const { isAuthenticated, isAdmin } = useAuth();
   const isEdit = Boolean(id);
 
+  // ----- ÉTATS -----
   const [formData, setFormData] = useState({
     nom: "",
     marque: "",
-    genre: "",
+    genre: "mixte",
     description: "",
-    imageUrl: "",
+    // Nouveau modèle: 3 tableaux séparés
+    notes_tete: [],
+    notes_coeur: [],
+    notes_fond: [],
+    prix: "",
+    imageUrl: "", // gardé pour compatibilité (URL externe si besoin)
     anneSortie: new Date().getFullYear(),
     concentre: "EDT",
-    prix: "",
     popularite: 0,
     longevite: "",
     sillage: "",
-    notes: {
-      tete: [],
-      coeur: [],
-      fond: [],
-    },
     liensMarchands: [],
   });
 
@@ -57,6 +55,8 @@ export default function ParfumForm() {
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEdit);
+
+  // Liens marchands
   const [newMerchantLink, setNewMerchantLink] = useState({
     nom: "",
     url: "",
@@ -64,14 +64,20 @@ export default function ParfumForm() {
   });
   const [showMerchantForm, setShowMerchantForm] = useState(false);
 
-  // Charger les données lors de l'édition
+  // Upload image
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [uploadMode, setUploadMode] = useState("upload"); // "upload" | "url"
+
+  // ----- CHARGEMENT DONNÉES (EDIT) -----
   useEffect(() => {
     if (isEdit && id) {
       loadParfumData();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, id]);
 
-  // Charger les notes disponibles
+  // ----- CHARGER NOTES -----
   useEffect(() => {
     loadNotes();
   }, []);
@@ -79,38 +85,32 @@ export default function ParfumForm() {
   const loadParfumData = async () => {
     try {
       setLoadingData(true);
-      const response = await parfumAPI.getById(id);
-      const parfum = response.data;
+      const { data: parfum } = await parfumAPI.getById(id);
 
       setFormData({
         nom: parfum.nom || "",
         marque: parfum.marque || "",
-        genre: parfum.genre || "",
+        genre: parfum.genre || "mixte",
         description: parfum.description || "",
-        imageUrl: parfum.imageUrl || "",
+        // alimente imageUrl avec parfum.photo (Cloudinary) si présent
+        imageUrl: parfum.photo || parfum.imageUrl || "",
         anneSortie: parfum.anneSortie || new Date().getFullYear(),
         concentre: parfum.concentre || "EDT",
-        prix: parfum.prix || "",
+        prix: parfum.prix ?? "",
         popularite: parfum.popularite || 0,
         longevite: parfum.longevite || "",
         sillage: parfum.sillage || "",
-        notes: {
-          tete:
-            parfum.notes?.filter((n) => n.type === "tete").map((n) => n._id) ||
-            [],
-          coeur:
-            parfum.notes?.filter((n) => n.type === "coeur").map((n) => n._id) ||
-            [],
-          fond:
-            parfum.notes?.filter((n) => n.type === "fond").map((n) => n._id) ||
-            [],
-        },
+        // backend: trois champs séparés
+        notes_tete: (parfum.notes_tete || []).map((n) => n._id || n),
+        notes_coeur: (parfum.notes_coeur || []).map((n) => n._id || n),
+        notes_fond: (parfum.notes_fond || []).map((n) => n._id || n),
         liensMarchands: parfum.liensMarchands || [],
       });
+      setImagePreview(""); // si on a une URL on l’affiche via imageUrl
     } catch (error) {
       console.error("Erreur chargement parfum:", error);
       toast.error("Erreur lors du chargement du parfum");
-      navigate("/");
+      navigate("/admin");
     } finally {
       setLoadingData(false);
     }
@@ -118,50 +118,39 @@ export default function ParfumForm() {
 
   const loadNotes = async () => {
     try {
-      const types = ["tête", "cœur", "fond"]; // Avec accents
+      const types = ["tête", "cœur", "fond"]; // API accepte avec accents
       const notesData = {};
-
       for (const type of types) {
-        try {
-          const response = await noteAPI.getByType(type);
-          const typeKey =
-            type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
-          notesData[typeKey] = response.data || [];
-        } catch (error) {
-          console.warn(`Erreur chargement notes ${type}:`, error);
-          const typeKey =
-            type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
-          notesData[typeKey] = [];
-        }
+        const resp = await noteAPI.getByType(type);
+        const key =
+          type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
+        notesData[key] = resp.data || [];
       }
-
       setAllNotes(notesData);
     } catch (error) {
       console.error("Erreur chargement notes:", error);
+      setAllNotes({ tete: [], coeur: [], fond: [] });
     }
   };
 
+  // ----- HANDLERS FORM -----
   const handleInputChange = (field, value) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    // si on saisit une URL, on supprime le fichier uploadé
+    if (field === "imageUrl" && value) {
+      removeUploadedImage();
+    }
   };
 
-  const handleNoteToggle = (type, noteId) => {
+  const handleNoteToggle = (type /* 'tete' | 'coeur' | 'fond' */, noteId) => {
+    const field = `notes_${type}`;
     setFormData((prev) => {
-      const currentNotes = prev.notes[type];
-      const isSelected = currentNotes.includes(noteId);
-
-      return {
-        ...prev,
-        notes: {
-          ...prev.notes,
-          [type]: isSelected
-            ? currentNotes.filter((id) => id !== noteId)
-            : [...currentNotes, noteId],
-        },
-      };
+      const current = prev[field] || [];
+      const exists = current.includes(noteId);
+      const next = exists
+        ? current.filter((id) => id !== noteId)
+        : [...current, noteId];
+      return { ...prev, [field]: next };
     });
   };
 
@@ -170,12 +159,10 @@ export default function ParfumForm() {
       toast.error("Veuillez remplir au moins le nom et l'URL");
       return;
     }
-
     setFormData((prev) => ({
       ...prev,
       liensMarchands: [...prev.liensMarchands, { ...newMerchantLink }],
     }));
-
     setNewMerchantLink({ nom: "", url: "", prix: "" });
     setShowMerchantForm(false);
   };
@@ -187,6 +174,28 @@ export default function ParfumForm() {
     }));
   };
 
+  // ----- UPLOAD IMAGE -----
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
+
+    // nettoyer URL si on passe en upload
+    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+  };
+
+  const removeUploadedImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    const fileInput = document.getElementById("imageUpload");
+    if (fileInput) fileInput.value = "";
+  };
+
+  // ----- SUBMIT -----
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -197,44 +206,70 @@ export default function ParfumForm() {
     }
 
     setLoading(true);
-
     try {
-      // Combiner toutes les notes
-      const allSelectedNotes = [
-        ...formData.notes.tete,
-        ...formData.notes.coeur,
-        ...formData.notes.fond,
-      ];
+      // Envoi en multipart/form-data
+      const formDataToSend = new FormData();
 
-      const parfumData = {
-        nom: formData.nom,
-        marque: formData.marque,
-        genre: formData.genre,
-        description: formData.description,
-        imageUrl: formData.imageUrl,
-        anneSortie: parseInt(formData.anneSortie),
-        concentre: formData.concentre,
-        prix: parseFloat(formData.prix) || null,
-        notes: allSelectedNotes,
-        liensMarchands: formData.liensMarchands,
-        longevite: formData.longevite,
-        sillage: formData.sillage,
-        // Seuls les admins peuvent modifier la popularité
-        ...(isAdmin && { popularite: parseInt(formData.popularite) }),
-      };
+      // Ajout des champs simples
+      const simpleFields = [
+        "nom",
+        "marque",
+        "genre",
+        "description",
+        "anneSortie",
+        "concentre",
+        "prix",
+        "longevite",
+        "sillage",
+      ];
+      simpleFields.forEach((key) => {
+        const v = formData[key];
+        if (v !== "" && v !== null && v !== undefined) {
+          formDataToSend.append(key, v);
+        }
+      });
+
+      // Ajout des tableaux de notes
+      ["notes_tete", "notes_coeur", "notes_fond"].forEach((key) => {
+        (formData[key] || []).forEach((id) => formDataToSend.append(key, id));
+      });
+
+      // Liens marchands
+      (formData.liensMarchands || []).forEach((link, idx) => {
+        // tu peux adapter selon ton backend (objet JSON ou champs indexés)
+        formDataToSend.append(`liensMarchands[${idx}][nom]`, link.nom || "");
+        formDataToSend.append(`liensMarchands[${idx}][url]`, link.url || "");
+        if (link.prix !== undefined && link.prix !== "") {
+          formDataToSend.append(`liensMarchands[${idx}][prix]`, link.prix);
+        }
+      });
+
+      // Image (fichier OU URL)
+      if (imageFile) {
+        formDataToSend.append("photo", imageFile); // multer.single("photo")
+      } else if (formData.imageUrl) {
+        // si tu veux permettre une URL distante côté backend
+        formDataToSend.append("imageUrl", formData.imageUrl);
+      }
+
+      // Popularité (admin seulement)
+      if (isAdmin && formData.popularite !== undefined) {
+        formDataToSend.append("popularite", formData.popularite);
+      }
 
       if (isEdit) {
-        await parfumAPI.update(id, parfumData);
+        await parfumAPI.update(id, formDataToSend);
         toast.success("Parfum modifié avec succès !");
       } else {
-        await parfumAPI.create(parfumData);
+        await parfumAPI.create(formDataToSend);
         toast.success("Parfum ajouté avec succès !");
       }
 
-      navigate(`/parfum/${id || "nouveau"}`);
+      navigate("/admin");
     } catch (error) {
+      console.error("Submit ParfumForm:", error);
       toast.error(
-        error.response?.data?.message ||
+        error?.response?.data?.message ||
           `Erreur lors de la ${isEdit ? "modification" : "création"}`
       );
     } finally {
@@ -242,12 +277,12 @@ export default function ParfumForm() {
     }
   };
 
+  // ----- CONSTANTES UI -----
   const genres = [
     { value: "femme", label: "Femme" },
     { value: "homme", label: "Homme" },
     { value: "mixte", label: "Mixte" },
   ];
-
   const concentres = [
     { value: "EDT", label: "Eau de Toilette" },
     { value: "EDP", label: "Eau de Parfum" },
@@ -255,7 +290,6 @@ export default function ParfumForm() {
     { value: "Parfum", label: "Parfum" },
     { value: "Autre", label: "Autre" },
   ];
-
   const longeviteOptions = [
     "Très faible (< 2h)",
     "Faible (2-4h)",
@@ -264,7 +298,6 @@ export default function ParfumForm() {
     "Très bonne (8-12h)",
     "Excellente (> 12h)",
   ];
-
   const sillageOptions = ["Intimiste", "Proche", "Modéré", "Fort", "Très fort"];
 
   if (loadingData) {
@@ -292,48 +325,109 @@ export default function ParfumForm() {
       </header>
 
       <form onSubmit={handleSubmit} className={styles.form}>
-        {/* Section Image */}
+        {/* Section Image (Upload / URL) */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Image du parfum</h2>
 
-          {formData.imageUrl ? (
+          {/* Toggle Upload/URL */}
+          <div className={styles.uploadToggle}>
+            <button
+              type="button"
+              onClick={() => setUploadMode("upload")}
+              className={`${styles.toggleButton} ${
+                uploadMode === "upload" ? styles.active : ""
+              }`}
+            >
+              <Upload className={styles.icon} />
+              Upload fichier
+            </button>
+            <button
+              type="button"
+              onClick={() => setUploadMode("url")}
+              className={`${styles.toggleButton} ${
+                uploadMode === "url" ? styles.active : ""
+              }`}
+            >
+              <LinkIcon className={styles.icon} />
+              URL externe
+            </button>
+          </div>
+
+          {/* Aperçu */}
+          {(imagePreview || formData.imageUrl) && (
             <div className={styles.imagePreview}>
               <img
-                src={formData.imageUrl}
+                src={imagePreview || formData.imageUrl}
                 alt="Aperçu parfum"
                 className={styles.previewImage}
               />
               <button
                 type="button"
-                onClick={() => handleInputChange("imageUrl", "")}
+                onClick={
+                  imagePreview
+                    ? removeUploadedImage
+                    : () => handleInputChange("imageUrl", "")
+                }
                 className={styles.removeImageButton}
               >
                 <X className={styles.icon} />
               </button>
             </div>
-          ) : (
-            <div className={styles.imagePlaceholder}>
-              <Camera className={styles.placeholderIcon} />
-              <span className={styles.placeholderText}>Ajouter une photo</span>
+          )}
+
+          {/* Mode Upload */}
+          {uploadMode === "upload" && (
+            <div className={styles.uploadZone}>
+              <input
+                type="file"
+                id="imageUpload"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className={styles.fileInput}
+              />
+              <label htmlFor="imageUpload" className={styles.uploadLabel}>
+                <Camera className={styles.placeholderIcon} />
+                <span className={styles.placeholderText}>
+                  {imageFile ? "Changer l'image" : "Choisir une image"}
+                </span>
+                <span className={styles.uploadHint}>
+                  PNG, JPG, WEBP jusqu'à 5MB
+                </span>
+              </label>
             </div>
           )}
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>URL de l'image</label>
-            <div className={styles.inputWithIcon}>
-              <LinkIcon className={styles.inputIcon} />
-              <input
-                type="url"
-                value={formData.imageUrl}
-                onChange={(e) => handleInputChange("imageUrl", e.target.value)}
-                className={styles.input}
-                placeholder="https://example.com/image.jpg"
-              />
+          {/* Mode URL */}
+          {uploadMode === "url" && (
+            <div className={styles.formGroup}>
+              <label className={styles.label}>URL de l'image</label>
+              <div className={styles.inputWithIcon}>
+                <LinkIcon className={styles.inputIcon} />
+                <input
+                  type="url"
+                  value={formData.imageUrl}
+                  onChange={(e) =>
+                    handleInputChange("imageUrl", e.target.value)
+                  }
+                  className={styles.input}
+                  placeholder="https://example.com/image.jpg"
+                />
+              </div>
             </div>
-          </div>
+          )}
+
+          {/* Placeholder si pas d'image */}
+          {!imagePreview && !formData.imageUrl && uploadMode === "upload" && (
+            <div className={styles.imagePlaceholder}>
+              <Camera className={styles.placeholderIcon} />
+              <span className={styles.placeholderText}>
+                Aucune image sélectionnée
+              </span>
+            </div>
+          )}
         </section>
 
-        {/* Section Informations de base */}
+        {/* Informations de base */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Informations de base</h2>
 
@@ -376,10 +470,9 @@ export default function ParfumForm() {
                 className={styles.select}
                 required
               >
-                <option value="">Sélectionner</option>
-                {genres.map((genre) => (
-                  <option key={genre.value} value={genre.value}>
-                    {genre.label}
+                {genres.map((g) => (
+                  <option key={g.value} value={g.value}>
+                    {g.label}
                   </option>
                 ))}
               </select>
@@ -411,9 +504,9 @@ export default function ParfumForm() {
                 onChange={(e) => handleInputChange("concentre", e.target.value)}
                 className={styles.select}
               >
-                {concentres.map((concentre) => (
-                  <option key={concentre.value} value={concentre.value}>
-                    {concentre.label}
+                {concentres.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
                   </option>
                 ))}
               </select>
@@ -448,7 +541,7 @@ export default function ParfumForm() {
           </div>
         </section>
 
-        {/* Section Performance */}
+        {/* Performance */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Performance</h2>
 
@@ -464,9 +557,9 @@ export default function ParfumForm() {
                 className={styles.select}
               >
                 <option value="">Sélectionner</option>
-                {longeviteOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                {longeviteOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
                   </option>
                 ))}
               </select>
@@ -483,16 +576,15 @@ export default function ParfumForm() {
                 className={styles.select}
               >
                 <option value="">Sélectionner</option>
-                {sillageOptions.map((option) => (
-                  <option key={option} value={option}>
-                    {option}
+                {sillageOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
                   </option>
                 ))}
               </select>
             </div>
           </div>
 
-          {/* Popularité (admin seulement) */}
           {isAdmin && (
             <div className={styles.formGroup}>
               <label className={styles.label}>
@@ -516,33 +608,37 @@ export default function ParfumForm() {
           )}
         </section>
 
-        {/* Section Notes olfactives */}
+        {/* Notes olfactives */}
         <section className={styles.section}>
           <h2 className={styles.sectionTitle}>Notes olfactives</h2>
 
-          {Object.entries(allNotes).map(([type, notes]) => (
-            <div key={type} className={styles.notesGroup}>
+          {[
+            ["tete", "tête"],
+            ["coeur", "cœur"],
+            ["fond", "fond"],
+          ].map(([key, label]) => (
+            <div key={key} className={styles.notesGroup}>
               <h3
                 className={`${styles.notesTitle} ${
-                  styles[`notes${type.charAt(0).toUpperCase() + type.slice(1)}`]
+                  styles[`notes${key.charAt(0).toUpperCase() + key.slice(1)}`]
                 }`}
               >
                 <Star className={styles.notesIcon} />
-                Notes de {type === "tete" ? "tête" : type}
+                Notes de {label}
               </h3>
 
               <div className={styles.notesGrid}>
-                {notes.map((note) => (
+                {(allNotes[key] || []).map((note) => (
                   <button
                     key={note._id}
                     type="button"
-                    onClick={() => handleNoteToggle(type, note._id)}
+                    onClick={() => handleNoteToggle(key, note._id)}
                     className={`${styles.noteButton} ${
-                      formData.notes[type].includes(note._id)
+                      (formData[`notes_${key}`] || []).includes(note._id)
                         ? `${styles.noteSelected} ${
                             styles[
                               `note${
-                                type.charAt(0).toUpperCase() + type.slice(1)
+                                key.charAt(0).toUpperCase() + key.slice(1)
                               }Selected`
                             ]
                           }`
@@ -554,16 +650,16 @@ export default function ParfumForm() {
                 ))}
               </div>
 
-              {notes.length === 0 && (
+              {(allNotes[key] || []).length === 0 && (
                 <p className={styles.noNotesText}>
-                  Aucune note de {type} disponible
+                  Aucune note de {label} disponible
                 </p>
               )}
             </div>
           ))}
         </section>
 
-        {/* Section Liens marchands */}
+        {/* Liens marchands */}
         <section className={styles.section}>
           <div className={styles.sectionHeader}>
             <h2 className={styles.sectionTitle}>Liens marchands</h2>
@@ -608,7 +704,6 @@ export default function ParfumForm() {
             <p className={styles.noMerchantsText}>Aucun lien marchand ajouté</p>
           )}
 
-          {/* Formulaire d'ajout de lien */}
           {showMerchantForm && (
             <div className={styles.merchantForm}>
               <div className={styles.formGroup}>
@@ -682,7 +777,7 @@ export default function ParfumForm() {
           )}
         </section>
 
-        {/* Bouton de soumission */}
+        {/* Bouton submit */}
         <div className={styles.submitSection}>
           <button
             type="submit"

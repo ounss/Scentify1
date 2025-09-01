@@ -1,7 +1,8 @@
-// backend/routes/parfumRoutes.js - CORRECTION ORDRE DES ROUTES
+// backend/routes/parfumRoutes.js
 import express from "express";
 import multer from "multer";
 import path from "path";
+import { parfumStorage } from "../config/cloudinary.js"; // ✅ Cloudinary storage
 import {
   getParfums,
   getParfumById,
@@ -21,69 +22,66 @@ import {
   validateParfum,
   handleValidationErrors,
 } from "../middleware/validation.js";
+import Parfum from "../models/Parfum.js"; // ✅ Requis pour /search/advanced
 
 const router = express.Router();
 
-// Configuration multer
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/parfums/");
-  },
-  filename: (req, file, cb) => {
-    cb(
-      null,
-      `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(
-        file.originalname
-      )}`
-    );
-  },
-});
-
+/**
+ * ✅ Multer avec Cloudinary (plus de stockage local)
+ */
 const upload = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 },
+  storage: parfumStorage,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
   fileFilter: (req, file, cb) => {
     const allowedTypes = /jpeg|jpg|png|webp/;
     const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
+      path.extname(file.originalname || "").toLowerCase()
     );
-    const mimetype = allowedTypes.test(file.mimetype);
-
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Format d'image non supporté"));
-    }
+    const mimetype = allowedTypes.test(file.mimetype || "");
+    if (mimetype && extname) return cb(null, true);
+    cb(new Error("Format d'image non supporté"));
   },
 });
 
-// ✅ ROUTES PUBLIQUES - ORDRE CRITIQUE CORRIGÉ
-router.get("/", getParfums); // Liste parfums avec filtres
-router.get("/search", searchParfums); // ✅ AVANT /:id - Recherche parfums
-router.get("/stats", getParfumsStats); // ✅ AVANT /:id - Stats
-router.post("/similarity", getParfumsBySimilarity); // ✅ AVANT /:id - Similarité
+/**
+ * ✅ ROUTES PUBLIQUES (spécifiques d'abord)
+ */
+router.get("/", getParfums); // Liste + filtres
+router.get("/search", searchParfums); // Recherche simple
+router.get("/stats", getParfumsStats); // Stats
+router.post("/similarity", getParfumsBySimilarity); // Similarité
 
-// ✅ ROUTES AVEC PARAMÈTRES - APRÈS LES ROUTES SPÉCIFIQUES
-router.get("/:id", getParfumById); // ✅ APRÈS les routes spécifiques
-router.get("/:id/similar", getSimilarParfums); // ✅ Parfums similaires à un parfum
-router.get("/note/:noteId", getParfumsByNote); // ✅ Parfums par note
-// Ajouter la recherche avancée avec multiples filtres
-router.get("/search/advanced", async (req, res) => {
-  const { notes, genre, marque, type } = req.query;
-  const filter = {};
+// 🔎 Recherche avancée multi-critères (préserve la fonctionnalité existante)
+router.get("/search/advanced", async (req, res, next) => {
+  try {
+    const { notes, genre, marque, type } = req.query;
+    const filter = {};
 
-  if (notes) {
-    const notesArray = Array.isArray(notes) ? notes : [notes];
-    filter.notes = { $in: notesArray };
+    if (notes) {
+      const notesArray = Array.isArray(notes) ? notes : [notes];
+      filter.notes = { $in: notesArray };
+    }
+    if (genre) filter.genre = genre;
+    if (type) filter.type = type;
+    if (marque) filter.marque = new RegExp(String(marque), "i");
+
+    const parfums = await Parfum.find(filter).populate("notes");
+    return res.json(parfums);
+  } catch (err) {
+    return next(err);
   }
-  if (genre) filter.genre = genre;
-  if (marque) filter.marque = new RegExp(marque, "i");
-  if (type) filter.type = type;
-
-  const parfums = await Parfum.find(filter).populate("notes");
-  res.json(parfums);
 });
-// ✅ ROUTES ADMIN
+
+// Parfums par note
+router.get("/note/:noteId", getParfumsByNote);
+
+// Paramétrées
+router.get("/:id", getParfumById);
+router.get("/:id/similar", getSimilarParfums);
+
+/**
+ * ✅ ROUTES ADMIN
+ */
 router.post(
   "/",
   protect,
@@ -93,9 +91,13 @@ router.post(
   handleValidationErrors,
   createParfum
 );
+
 router.put("/:id", protect, admin, upload.single("photo"), updateParfum);
+
 router.delete("/:id", protect, admin, deleteParfum);
+
 router.get("/export/csv", protect, admin, exportParfumsCSV);
+
 router.post(
   "/import/csv",
   protect,
@@ -105,3 +107,4 @@ router.post(
 );
 
 export default router;
+// backend/config/cloudinary.js
