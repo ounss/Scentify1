@@ -1,4 +1,3 @@
-// frontend/src/services/api.js
 import axios from "axios";
 
 // ✅ Configuration API CORRIGÉE
@@ -6,6 +5,7 @@ const BASE_URL =
   process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
 
 console.log("Base URL configurée:", BASE_URL);
+
 console.log("🔗 Base URL configurée:", BASE_URL);
 
 const api = axios.create({
@@ -37,7 +37,7 @@ api.interceptors.request.use(
 // ✅ Intercepteur réponse - Gestion erreurs améliorée
 api.interceptors.response.use(
   (response) => {
-    console.log("✅ Réponse API:", response.config?.url, response.status);
+    console.log("✅ Réponse API:", response.config.url, response.status);
     return response;
   },
   (error) => {
@@ -52,6 +52,7 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       console.log("🚪 Token invalide/expiré, suppression...");
       localStorage.removeItem("token");
+      // Redirection optionnelle
       if (window.location.pathname !== "/auth") {
         window.location.href = "/auth";
       }
@@ -74,7 +75,6 @@ export const authAPI = {
 export const parfumAPI = {
   getAll: (params = {}) => api.get("/parfums", { params }),
   getById: (id) => api.get(`/parfums/${id}`),
-  getSimilar: (id) => api.get(`/parfums/${id}/similar`), // ✅ AJOUTÉ pour matcher l’usage
   create: (data) => api.post("/parfums", data),
   update: (id, data) => api.put(`/parfums/${id}`, data),
   delete: (id) => api.delete(`/parfums/${id}`),
@@ -91,8 +91,8 @@ export const noteAPI = {
   delete: (id) => api.delete(`/notes/${id}`),
 };
 
-// ❤️ FAVORIS — NOM UNIFIÉ: favorisAPI
-export const favorisAPI = {
+// ❤️ FAVORIS SERVICES
+export const favoritesAPI = {
   getFavorites: (params = {}) => api.get("/users/favorites", { params }),
   addParfum: (id) => api.post(`/users/favorites/parfum/${id}`),
   removeParfum: (id) => api.delete(`/users/favorites/parfum/${id}`),
@@ -109,10 +109,34 @@ export const historyAPI = {
 
 // 👨‍💼 ADMIN SERVICES
 export const adminAPI = {
-  getUsers: (params = {}) => api.get("/admin/users", { params }), // ✅ Route OK
+  getUsers: (params = {}) => api.get("/admin/users", { params }), // ✅ Route corrigée
   getUserStats: () => api.get("/admin/stats/users"),
   exportUsers: () => api.get("/admin/users/export", { responseType: "blob" }),
   toggleAdmin: (id) => api.patch(`/admin/users/${id}/admin`),
-  // Si tu as d'autres endpoints admin (parfums/notes), ajoute-les ici de façon homogène
-  // ex: exportParfums: () => api.get("/admin/parfums/export", { responseType: "blob" }),
 };
+
+// 📷 UPLOAD SERVICE
+export const uploadAPI = {
+  uploadParfumImage: (file) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return api.post("/parfums/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+  uploadUserAvatar: (file) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return api.put("/users/profile/avatar", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
+// ✅ Test de connectivité
+export const testAPI = {
+  health: () => api.get("/health"),
+  testAuth: () => api.get("/users/profile"),
+};
+
+export default api;

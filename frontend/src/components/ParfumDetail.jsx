@@ -1,3 +1,4 @@
+// frontend/src/components/ParfumDetail.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -9,7 +10,7 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
-import { parfumAPI, favorisAPI, historyAPI } from "../services/api"; // ✅ favorisAPI
+import { parfumAPI, favoritesAPI, historyAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "./ParfumCard";
 import toast from "react-hot-toast";
@@ -18,28 +19,22 @@ import styles from "../styles/ParfumDetail.module.css";
 export default function ParfumDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
 
   const [parfum, setParfum] = useState(null);
   const [similarParfums, setSimilarParfums] = useState([]);
-  const [isFavorite, setIsFavorite] = useState(false); // ✅ nom unifié
+  const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [similarLoading, setSimilarLoading] = useState(true);
+  const [similarLoading, setSimilarLoading] = useState(true); // Nouveau state pour les similaires
   const [error, setError] = useState(null);
-  const [favoriteLoading, setFavoriteLoading] = useState(false); // ✅ nom unifié
+  const [favoriteLoading, setFavoriteLoading] = useState(false);
 
-  // Remonter en haut quand l'ID change
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
-  }, [id]);
-
-  // Charger les données
+  // Charger les données du parfum
   useEffect(() => {
     loadParfumData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, isAuthenticated]);
+  }, [id]);
 
-  // Ajouter à l'historique
+  // Ajouter à l'historique si utilisateur connecté
   useEffect(() => {
     if (parfum && isAuthenticated) {
       addToHistory();
@@ -56,55 +51,46 @@ export default function ParfumDetail() {
     try {
       setLoading(true);
       setError(null);
-      setSimilarLoading(true);
+      setSimilarLoading(true); // Reset du loading des similaires
 
-      // 1) Parfum
+      // Charger le parfum principal d'abord
       const parfumResponse = await parfumAPI.getById(id);
-      if (!parfumResponse.data) throw new Error("Parfum non trouvé");
-      setParfum(parfumResponse.data);
-      setLoading(false);
 
-      // 2) Similaires
+      if (!parfumResponse.data) {
+        throw new Error("Parfum non trouvé");
+      }
+
+      setParfum(parfumResponse.data);
+      setLoading(false); // Le parfum principal est chargé
+
+      // Charger les parfums similaires en parallèle (mais séparément)
       try {
         const similarResponse = await parfumAPI.getSimilar(id);
-        let similarData = [];
-        if (similarResponse.data) {
-          if (Array.isArray(similarResponse.data))
-            similarData = similarResponse.data;
-          else if (similarResponse.data.parfums)
-            similarData = similarResponse.data.parfums;
-          else if (similarResponse.data.data)
-            similarData = similarResponse.data.data;
-        }
-        setSimilarParfums(similarData || []);
-      } catch (e) {
-        console.warn("Erreur chargement parfums similaires:", e);
+        setSimilarParfums(similarResponse.data.parfums || []);
+      } catch (similarError) {
+        console.warn("Erreur chargement parfums similaires:", similarError);
         setSimilarParfums([]);
       } finally {
-        setSimilarLoading(false);
+        setSimilarLoading(false); // Les similaires sont chargés (avec ou sans succès)
       }
 
-      // 3) Favoris (si connecté)
+      // Vérifier si en favoris
       if (isAuthenticated) {
         try {
-          const favoritesResponse = await favorisAPI.getFavorites();
-          // ✅ Hypothèse de structure: { parfums: [ {_id: "..."} ], notes: [...] }
-          const list = favoritesResponse?.data?.parfums || [];
-          const found = list.some(
-            (p) => p?._id === id || p?.parfum?._id === id
+          const favoritesResponse = await favoritesAPI.getFavorites();
+          const isInFavorites = favoritesResponse.data.some(
+            (fav) => fav.parfum?._id === id
           );
-          setIsFavorite(found);
-        } catch (e) {
-          console.warn("Erreur lors de la vérification des favoris:", e);
+          setIsFavorite(isInFavorites);
+        } catch (error) {
+          console.warn("Erreur lors de la vérification des favoris:", error);
         }
-      } else {
-        setIsFavorite(false);
       }
-    } catch (e) {
-      console.error("Erreur lors du chargement:", e);
+    } catch (error) {
+      console.error("Erreur lors du chargement:", error);
       setError(
-        e.response?.data?.message ||
-          e.message ||
+        error.response?.data?.message ||
+          error.message ||
           "Erreur lors du chargement du parfum"
       );
       setLoading(false);
@@ -115,33 +101,32 @@ export default function ParfumDetail() {
   const addToHistory = async () => {
     try {
       await historyAPI.addToHistory(parfum._id);
-    } catch (e) {
-      console.warn("Erreur ajout historique:", e);
+    } catch (error) {
+      console.warn("Erreur ajout historique:", error);
     }
   };
 
   const toggleFavorite = async () => {
-    // ✅ nom unifié
     if (!isAuthenticated) {
       toast.error("Connectez-vous pour ajouter aux favoris");
       return;
     }
-    if (!parfum?._id) return;
 
     try {
       setFavoriteLoading(true);
+
       if (isFavorite) {
-        await favorisAPI.removeParfum(parfum._id);
+        await favoritesAPI.removeParfum(parfum._id);
         setIsFavorite(false);
         toast.success("Retiré des favoris");
       } else {
-        await favorisAPI.addParfum(parfum._id);
+        await favoritesAPI.addParfum(parfum._id);
         setIsFavorite(true);
         toast.success("Ajouté aux favoris");
       }
-    } catch (e) {
-      console.error("Erreur favoris:", e);
-      toast.error(e.response?.data?.message || "Erreur lors de l'action");
+    } catch (error) {
+      console.error("Erreur favoris:", error);
+      toast.error(error.response?.data?.message || "Erreur lors de l'action");
     } finally {
       setFavoriteLoading(false);
     }
@@ -149,29 +134,32 @@ export default function ParfumDetail() {
 
   const handleShare = async () => {
     const shareData = {
-      title: parfum ? `${parfum.nom} - ${parfum.marque}` : "Scentify",
-      text:
-        parfum?.description ||
-        (parfum ? `Découvrez ${parfum.nom} de ${parfum.marque}` : ""),
+      title: `${parfum.nom} - ${parfum.marque}`,
+      text: parfum.description || `Découvrez ${parfum.nom} de ${parfum.marque}`,
       url: window.location.href,
     };
+
     try {
-      if (navigator.share && navigator.canShare?.(shareData)) {
+      if (navigator.share && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
+        // Fallback: copier l'URL
         await navigator.clipboard.writeText(window.location.href);
         toast.success("Lien copié dans le presse-papier");
       }
-    } catch {
+    } catch (error) {
+      console.warn("Erreur partage:", error);
+      // Fallback silencieux
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast.success("Lien copié dans le presse-papier");
-      } catch {
+      } catch (clipboardError) {
         toast.error("Impossible de partager");
       }
     }
   };
 
+  // Helpers pour les classes CSS
   const getGenreClass = (genre) => {
     const g = (genre || "").toLowerCase();
     switch (g) {
@@ -210,12 +198,17 @@ export default function ParfumDetail() {
           chipClass: styles.chipBase,
         };
       default:
-        return { groupClass: "", typeClass: "", chipClass: styles.chipDefault };
+        return {
+          groupClass: "",
+          typeClass: "",
+          chipClass: styles.chipDefault,
+        };
     }
   };
 
   const formatPrix = (lien) => {
     if (!lien?.prix && !lien?.prixOriginal) return null;
+
     if (lien?.enPromotion && lien?.prixOriginal && lien?.prix) {
       const reduction = Math.round(
         ((lien.prixOriginal - lien.prix) / lien.prixOriginal) * 100
@@ -227,10 +220,14 @@ export default function ParfumDetail() {
         isPromo: true,
       };
     }
-    return { prix: lien?.prix ? `${lien.prix}€` : null, isPromo: false };
+
+    return {
+      prix: lien?.prix ? `${lien.prix}€` : null,
+      isPromo: false,
+    };
   };
 
-  // Loading / Error / Not found
+  // States de chargement et d'erreur
   if (loading) {
     return (
       <div className={styles.page}>
@@ -281,16 +278,17 @@ export default function ParfumDetail() {
           <button
             onClick={() => navigate(-1)}
             className={styles.back}
-            aria-label="Retour"
+            aria-label="Retour à la page précédente"
           >
-            <ArrowLeft className={styles.icon} /> Retour
+            <ArrowLeft className={styles.icon} />
+            Retour
           </button>
 
           <div className={styles.headerActions}>
             <button
               onClick={handleShare}
               className={styles.iconButton}
-              aria-label="Partager"
+              aria-label="Partager ce parfum"
             >
               <Share2 className={styles.icon} />
             </button>
@@ -317,6 +315,7 @@ export default function ParfumDetail() {
       </header>
 
       <main className={styles.container}>
+        {/* Grille principale */}
         <section className={styles.grid}>
           {/* Colonne image */}
           <div className={styles.left}>
@@ -331,14 +330,16 @@ export default function ParfumDetail() {
                 onError={(e) => {
                   e.currentTarget.src =
                     "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop&auto=format";
-                  e.currentTarget.onerror = null;
+                  e.currentTarget.onerror = null; // Éviter la boucle infinie
                 }}
               />
+
               <span
                 className={`${styles.badge} ${getGenreClass(parfum.genre)}`}
               >
                 {parfum.genre}
               </span>
+
               {parfum.popularite > 80 && (
                 <span className={styles.badgePop}>
                   <Star className={styles.icon} />
@@ -347,6 +348,7 @@ export default function ParfumDetail() {
               )}
             </article>
 
+            {/* Tuiles d'informations */}
             <div className={styles.tiles}>
               <div className={styles.tile}>
                 <div className={styles.tileLabel}>Marque</div>
@@ -354,13 +356,14 @@ export default function ParfumDetail() {
               </div>
               <div className={styles.tile}>
                 <div className={styles.tileLabel}>Genre</div>
-                <div className={styles.tileValue}>{parfum.genre}</div>
+                <div className={`${styles.tileValue}`}>{parfum.genre}</div>
               </div>
             </div>
           </div>
 
           {/* Colonne contenu */}
           <div className={styles.right}>
+            {/* En-tête titre */}
             <header className={`${styles.titleBlock} ${styles.fadeIn}`}>
               <h1 className={styles.title}>{parfum.nom}</h1>
               <p className={styles.brand}>{parfum.marque}</p>
@@ -398,10 +401,12 @@ export default function ParfumDetail() {
                         (n.type === "coeur" && type === "cœur") ||
                         (n.type === "tete" && type === "tête")
                     );
+
                     if (!notes.length) return null;
 
                     const { groupClass, typeClass, chipClass } =
                       getNoteTypeClass(type);
+
                     return (
                       <div
                         key={type}
@@ -451,6 +456,7 @@ export default function ParfumDetail() {
                             <div className={styles.merchantName}>
                               {merchant.nom}
                             </div>
+
                             {prix && (
                               <div className={styles.priceInfo}>
                                 {prix.isPromo ? (
@@ -510,12 +516,7 @@ export default function ParfumDetail() {
             <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
-          {similarLoading ? (
-            <div className={styles.emptySimilar}>
-              <div className={styles.spinner} />
-              <p>Recherche de parfums similaires...</p>
-            </div>
-          ) : similarParfums?.length > 0 ? (
+          {similarParfums?.length > 0 ? (
             <div className={styles.similarGrid}>
               {similarParfums.slice(0, 6).map((p) => (
                 <ParfumCard key={p._id} parfum={p} />
@@ -523,7 +524,9 @@ export default function ParfumDetail() {
             </div>
           ) : (
             <div className={styles.emptySimilar}>
-              <p>Aucun parfum similaire trouvé pour le moment.</p>
+              {loading
+                ? "Recherche de parfums similaires..."
+                : "Aucun parfum similaire trouvé pour le moment."}
             </div>
           )}
         </section>
