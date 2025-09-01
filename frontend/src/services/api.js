@@ -124,13 +124,13 @@ export const uploadAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  uploadUserAvatar: (file) => {
-    const formData = new FormData();
-    formData.append("photo", file);
-    return api.put("/users/profile/avatar", formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  },
+  // uploadUserAvatar: (file) => {
+  //   const formData = new FormData();
+  //   formData.append("photo", file);
+  //   return api.put("/users/profile/avatar", formData, {
+  //     headers: { "Content-Type": "multipart/form-data" },
+  //   });
+  //},
 };
 
 // ✅ Test de connectivité

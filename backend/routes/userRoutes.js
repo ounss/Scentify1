@@ -80,7 +80,7 @@ router.post("/reset-password", resetPassword);
 
 // ✅ Routes privées - ORDRE IMPORTANT !
 router.get("/profile", protect, getUserProfile);
-router.put("/profile", protect, upload.single("photo"), updateUserProfile);
+//router.put("/profile", protect, upload.single("photo"), updateUserProfile);
 router.delete("/profile", protect, deleteUser);
 
 // ✅ Routes favoris - CORRECTION URGENTE
