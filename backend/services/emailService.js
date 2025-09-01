@@ -2,38 +2,30 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 
 // ✅ Configuration transporteur email CORRIGÉE
+// Remplacez TOUTE la fonction createTransporter dans emailService.js
+
 const createTransporter = () => {
-  if (process.env.NODE_ENV === "production") {
-    // Configuration pour Gmail en production
-    return nodemailer.createTransporter({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER, // votre-email@gmail.com
-        pass: process.env.EMAIL_PASS, // mot de passe d'application Gmail
-      },
-      secure: true,
-    });
-  } else {
-    // ✅ Configuration SMTP pour développement (utiliser un vrai SMTP même en dev)
-    return nodemailer.createTransporter({
-      host: process.env.SMTP_HOST || "smtp.gmail.com",
-      port: process.env.SMTP_PORT || 587,
-      secure: false, // true pour 465, false pour autres ports
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-      tls: {
-        rejectUnauthorized: false,
-      },
-    });
-  }
+  console.log("🔧 Configuration Email Debug:");
+  console.log("SMTP_HOST:", process.env.SMTP_HOST);
+  console.log("SMTP_PORT:", process.env.SMTP_PORT);
+  console.log("EMAIL_USER:", process.env.EMAIL_USER);
+  console.log("EMAIL_PASS présent:", !!process.env.EMAIL_PASS);
+
+  // ✅ SOLUTION: Force Gmail service (ignore HOST/PORT complètement)
+  return nodemailer.createTransport({
+    service: "gmail", // Gmail gère automatiquement host/port
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+    // Pas besoin de host/port avec service: "gmail"
+  });
 };
 
 // ✅ Test de connexion au démarrage
 export const testEmailConnection = async () => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
     await transporter.verify();
     console.log("✅ Service email configuré correctement");
     return true;
@@ -51,7 +43,7 @@ export const generateToken = () => {
 // ✅ Envoyer email de reset password AMÉLIORÉ
 export const sendPasswordResetEmail = async (user, token) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
 
     const resetUrl = `${
       process.env.FRONTEND_URL || "http://localhost:3000"
@@ -167,12 +159,13 @@ export const sendPasswordResetEmail = async (user, token) => {
 // ✅ Email de bienvenue (optionnel)
 export const sendWelcomeEmail = async (user) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
 
     const mailOptions = {
       from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
       to: user.email,
       subject: "Bienvenue sur Scentify ! 🌸",
+      
       html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px;">
           <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
@@ -234,7 +227,7 @@ export const sendWelcomeEmail = async (user) => {
 
 export const sendContactNotificationToAdmin = async (contactData) => {
   try {
-    const transporter = createTransporter();
+    const transporter = createTransport();
 
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
     if (!adminEmail) {

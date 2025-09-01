@@ -587,8 +587,7 @@ export default function Profile() {
                   </div>
 
                   <div className={styles.dangerZone}>
-                    <h3>Zone de danger</h3>
-                    <p>Actions irréversibles sur votre compte</p>
+                    <h3>Déconnexion</h3>
                     <button
                       onClick={handleLogout}
                       className={styles.logoutButton}
