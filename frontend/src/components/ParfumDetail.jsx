@@ -516,7 +516,13 @@ export default function ParfumDetail() {
             <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
-          {similarParfums?.length > 0 ? (
+          {/* 🔧 FIX 1: Amélioration de la logique d'affichage des parfums similaires */}
+          {similarLoading ? (
+            <div className={styles.emptySimilar}>
+              <div className={styles.spinner} />
+              <p>Recherche de parfums similaires...</p>
+            </div>
+          ) : similarParfums?.length > 0 ? (
             <div className={styles.similarGrid}>
               {similarParfums.slice(0, 6).map((p) => (
                 <ParfumCard key={p._id} parfum={p} />
@@ -524,9 +530,7 @@ export default function ParfumDetail() {
             </div>
           ) : (
             <div className={styles.emptySimilar}>
-              {loading
-                ? "Recherche de parfums similaires..."
-                : "Aucun parfum similaire trouvé pour le moment."}
+              <p>Aucun parfum similaire trouvé pour le moment.</p>
             </div>
           )}
         </section>
