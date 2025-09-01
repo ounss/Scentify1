@@ -3,7 +3,32 @@ import mongoose from "mongoose";
 import Parfum from "../models/Parfum.js";
 import NoteOlfactive from "../models/NoteOlfactive.js";
 import csvService from "../services/csvService.js";
-//import { deleteParfumFromCloudinary } from "../config/cloudinary.js";
+import { deleteParfumFromCloudinary } from "../config/cloudinary.js";
+
+/* --------------------------------------------
+   Helpers
+--------------------------------------------- */
+
+/**
+ * Extrait un public_id Cloudinary à partir d'une URL complète.
+ * Exemple:
+ *   https://res.cloudinary.com/.../upload/v172.../scentify/parfums/abcd1234.jpg
+ * -> "abcd1234"
+ */
+function extractPublicIdFromUrl(url) {
+  if (!url || typeof url !== "string") return null;
+  try {
+    const last = url.split("/").pop(); // abcd1234.jpg
+    if (!last) return null;
+    return last.split(".")[0]; // abcd1234
+  } catch {
+    return null;
+  }
+}
+
+/* ===========================
+   ✅ Listing & Recherche
+   =========================== */
 
 /**
  * Obtenir tous les parfums avec filtres et recherche
@@ -451,7 +476,7 @@ export const getParfumsBySimilarity = async (req, res) => {
    =========================== */
 
 /**
- * ✅ createParfum — version Cloudinary
+ * ✅ createParfum — version corrigée avec req.file.url / req.file.secure_url
  */
 export const createParfum = async (req, res) => {
   try {
@@ -483,6 +508,17 @@ export const createParfum = async (req, res) => {
       }
     }
 
+    // ✅ Cloudinary: privilégier url/secure_url, fallback path
+    let photoUrl = null;
+    if (req.file) {
+      photoUrl = req.file.url || req.file.secure_url || req.file.path || null;
+      console.log("📸 Image uploadée:", {
+        originalname: req.file.originalname,
+        url: photoUrl,
+        public_id: req.file.public_id,
+      });
+    }
+
     const parfum = new Parfum({
       nom: req.body.nom,
       marque: req.body.marque,
@@ -494,8 +530,14 @@ export const createParfum = async (req, res) => {
       prix: req.body.prix || null,
       liensMarchands: req.body.liensMarchands || [],
       codeBarres: req.body.codeBarres || null,
-      // ✅ URL Cloudinary
-      photo: req.file ? req.file.path : null,
+      // ✅ URL Cloudinary stockée en string
+      photo: photoUrl,
+      // Champs optionnels si présents dans ton schéma
+      anneeSortie: req.body.anneeSortie, // (laisser tel quel si non défini)
+      concentration: req.body.concentration,
+      popularite: req.body.popularite,
+      longevite: req.body.longevite,
+      sillage: req.body.sillage,
     });
 
     await parfum.save();
@@ -514,11 +556,12 @@ export const createParfum = async (req, res) => {
 
 /**
  * ✅ updateParfum — remplace l'image sur Cloudinary si nouvelle image
+ * (utilise req.file.url / req.file.secure_url / req.file.path)
  */
 export const updateParfum = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    const updateData = { ...req.body }; // éviter mutation
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID de parfum invalide" });
@@ -552,19 +595,32 @@ export const updateParfum = async (req, res) => {
       }
     }
 
-    // ✅ Gestion de l'image Cloudinary
+    // ✅ Gestion de l'image Cloudinary si une nouvelle image est uploadée
     if (req.file) {
-      const oldParfum = await Parfum.findById(id);
+      const newPhotoUrl =
+        req.file.url || req.file.secure_url || req.file.path || null;
+
+      console.log("📸 Nouvelle image reçue:", {
+        originalname: req.file.originalname,
+        url: newPhotoUrl,
+        public_id: req.file.public_id,
+      });
+
+      // récupérer l'ancienne photo pour suppression
+      const oldParfum = await Parfum.findById(id).select("photo");
       if (oldParfum && oldParfum.photo) {
         try {
-          // Extrait la dernière partie de l'URL sans extension comme public_id
-          const publicId = oldParfum.photo.split("/").pop().split(".")[0];
-          await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+          const publicId = extractPublicIdFromUrl(oldParfum.photo);
+          if (publicId) {
+            // on reconstitue avec ton dossier s'il est utilisé côté upload
+            await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+          }
         } catch (deleteError) {
           console.warn("⚠️ Erreur suppression ancienne image:", deleteError);
         }
       }
-      updateData.photo = req.file.path; // Nouvelle URL Cloudinary
+
+      updateData.photo = newPhotoUrl; // ✅ met à jour avec l'URL Cloudinary
     }
 
     const parfum = await Parfum.findByIdAndUpdate(id, updateData, {
@@ -606,8 +662,10 @@ export const deleteParfum = async (req, res) => {
     // ✅ Supprimer l'image Cloudinary si elle existe
     if (parfum.photo) {
       try {
-        const publicId = parfum.photo.split("/").pop().split(".")[0];
-        await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+        const publicId = extractPublicIdFromUrl(parfum.photo);
+        if (publicId) {
+          await deleteParfumFromCloudinary(`scentify/parfums/${publicId}`);
+        }
       } catch (deleteError) {
         console.warn("⚠️ Erreur suppression image Cloudinary:", deleteError);
       }
@@ -647,12 +705,9 @@ export const importParfumsCSV = async (req, res) => {
       return res.status(400).json({ message: "Fichier CSV requis" });
     }
 
-    // ⚠️ Avec un stockage Cloudinary, req.file.path peut être une URL.
-    // On garde le comportement existant pour compatibilité de ton csvService.
+    // ⚠️ Avec stockage distant, req.file.path peut être une URL.
+    // On conserve la compatibilité avec ton csvService.
     const result = await csvService.importParfums(req.file.path);
-
-    // Si ton csvService écrit un fichier temporaire, il le gère.
-    // (Auparavant on faisait fs.unlinkSync(req.file.path) pour un fichier local.)
 
     res.json({
       message: "Import terminé",
