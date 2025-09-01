@@ -32,38 +32,38 @@ import {
 
 const router = express.Router();
 
-// Configuration multer pour upload d'avatar
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "uploads/avatars/");
-  },
-  filename: (req, file, cb) => {
-    cb(
-      null,
-      `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(
-        file.originalname
-      )}`
-    );
-  },
-});
+// // Configuration multer pour upload d'avatar
+// const storage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "uploads/avatars/");
+//   },
+//   filename: (req, file, cb) => {
+//     cb(
+//       null,
+//       `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(
+//         file.originalname
+//       )}`
+//     );
+//   },
+//});
 
-const upload = multer({
-  storage: avatarStorage, // ← Utiliser Cloudinary
-  limits: { fileSize: 2 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = /jpeg|jpg|png|webp/;
-    const extname = allowedTypes.test(
-      path.extname(file.originalname).toLowerCase()
-    );
-    const mimetype = allowedTypes.test(file.mimetype);
+// const upload = multer({
+//   storage: avatarStorage, // ← Utiliser Cloudinary
+//   limits: { fileSize: 2 * 1024 * 1024 },
+//   fileFilter: (req, file, cb) => {
+//     const allowedTypes = /jpeg|jpg|png|webp/;
+//     const extname = allowedTypes.test(
+//       path.extname(file.originalname).toLowerCase()
+//     );
+//     const mimetype = allowedTypes.test(file.mimetype);
 
-    if (mimetype && extname) {
-      return cb(null, true);
-    } else {
-      cb(new Error("Format d'image non supporté"));
-    }
-  },
-});
+//     if (mimetype && extname) {
+//       return cb(null, true);
+//     } else {
+//       cb(new Error("Format d'image non supporté"));
+//     }
+//   },
+//});
 
 // ✅ Routes publiques
 router.post(
