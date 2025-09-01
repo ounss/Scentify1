@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 import Parfum from "../models/Parfum.js";
 import NoteOlfactive from "../models/NoteOlfactive.js";
 import csvService from "../services/csvService.js";
-import { deleteParfumFromCloudinary } from "../config/cloudinary.js";
+//import { deleteParfumFromCloudinary } from "../config/cloudinary.js";
 
 /**
  * Obtenir tous les parfums avec filtres et recherche
