@@ -10,7 +10,7 @@ import {
   Sparkles,
   ExternalLink,
 } from "lucide-react";
-import { parfumAPI, favoritesAPI, historyAPI } from "../services/api";
+import { parfumAPI, favoriAPI, historyAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "./ParfumCard";
 import toast from "react-hot-toast";
@@ -25,9 +25,36 @@ export default function ParfumDetail() {
   const [similarParfums, setSimilarParfums] = useState([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [similarLoading, setSimilarLoading] = useState(true); // Nouveau state pour les similaires
+  const [similarLoading, setSimilarLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  // 🔧 FIX 2: Scroll vers le haut à chaque changement d'ID de façon robuste
+  useEffect(() => {
+    // Neutraliser temporairement le padding-top du body qui peut causer des problèmes
+    const originalBodyPaddingTop = document.body.style.paddingTop;
+    document.body.style.paddingTop = "0";
+
+    // Méthode 1: Scroll immédiat
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+
+    // Méthode 2: Scroll après le rendu pour gérer les conflits CSS
+    const timeoutId = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      // Forcer le repositionnement de la vue
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+
+      // Restaurer le padding original après le scroll
+      document.body.style.paddingTop = originalBodyPaddingTop;
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      // Assurer la restauration du padding en cas de démontage précoce
+      document.body.style.paddingTop = originalBodyPaddingTop;
+    };
+  }, [id]);
 
   // Charger les données du parfum
   useEffect(() => {
@@ -51,7 +78,7 @@ export default function ParfumDetail() {
     try {
       setLoading(true);
       setError(null);
-      setSimilarLoading(true); // Reset du loading des similaires
+      setSimilarLoading(true);
 
       // Charger le parfum principal d'abord
       const parfumResponse = await parfumAPI.getById(id);
@@ -61,23 +88,37 @@ export default function ParfumDetail() {
       }
 
       setParfum(parfumResponse.data);
-      setLoading(false); // Le parfum principal est chargé
+      setLoading(false);
 
-      // Charger les parfums similaires en parallèle (mais séparément)
+      // 🔧 FIX 1: Charger les parfums similaires avec la bonne structure de réponse
       try {
         const similarResponse = await parfumAPI.getSimilar(id);
-        setSimilarParfums(similarResponse.data.parfums || []);
+
+        // La réponse peut avoir différentes structures selon l'API
+        let similarData = [];
+        if (similarResponse.data) {
+          if (Array.isArray(similarResponse.data)) {
+            similarData = similarResponse.data;
+          } else if (similarResponse.data.parfums) {
+            similarData = similarResponse.data.parfums;
+          } else if (similarResponse.data.data) {
+            similarData = similarResponse.data.data;
+          }
+        }
+
+        console.log("Parfums similaires reçus:", similarData);
+        setSimilarParfums(similarData || []);
       } catch (similarError) {
         console.warn("Erreur chargement parfums similaires:", similarError);
         setSimilarParfums([]);
       } finally {
-        setSimilarLoading(false); // Les similaires sont chargés (avec ou sans succès)
+        setSimilarLoading(false);
       }
 
       // Vérifier si en favoris
       if (isAuthenticated) {
         try {
-          const favoritesResponse = await favoritesAPI.getFavorites();
+          const favoritesResponse = await favoriAPI.getFavorites();
           const isInFavorites = favoritesResponse.data.some(
             (fav) => fav.parfum?._id === id
           );
@@ -116,11 +157,11 @@ export default function ParfumDetail() {
       setFavoriteLoading(true);
 
       if (isFavorite) {
-        await favoritesAPI.removeParfum(parfum._id);
+        await favoriAPI.removeParfum(parfum._id);
         setIsFavorite(false);
         toast.success("Retiré des favoris");
       } else {
-        await favoritesAPI.addParfum(parfum._id);
+        await favoriAPI.addParfum(parfum._id);
         setIsFavorite(true);
         toast.success("Ajouté aux favoris");
       }
@@ -330,7 +371,7 @@ export default function ParfumDetail() {
                 onError={(e) => {
                   e.currentTarget.src =
                     "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop&auto=format";
-                  e.currentTarget.onerror = null; // Éviter la boucle infinie
+                  e.currentTarget.onerror = null;
                 }}
               />
 
@@ -516,7 +557,13 @@ export default function ParfumDetail() {
             <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
-          {similarParfums?.length > 0 ? (
+          {/* 🔧 FIX 1: Amélioration de la logique d'affichage des parfums similaires */}
+          {similarLoading ? (
+            <div className={styles.emptySimilar}>
+              <div className={styles.spinner} />
+              <p>Recherche de parfums similaires...</p>
+            </div>
+          ) : similarParfums?.length > 0 ? (
             <div className={styles.similarGrid}>
               {similarParfums.slice(0, 6).map((p) => (
                 <ParfumCard key={p._id} parfum={p} />
@@ -524,9 +571,7 @@ export default function ParfumDetail() {
             </div>
           ) : (
             <div className={styles.emptySimilar}>
-              {loading
-                ? "Recherche de parfums similaires..."
-                : "Aucun parfum similaire trouvé pour le moment."}
+              <p>Aucun parfum similaire trouvé pour le moment.</p>
             </div>
           )}
         </section>
