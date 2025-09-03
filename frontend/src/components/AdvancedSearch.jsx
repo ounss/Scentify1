@@ -221,7 +221,7 @@ export default function AdvancedSearch({ show, onClose }) {
                           <img
                             src={
                               parfum.photo ||
-                              "https://images.unsplash.com/photo-1541643600914-78b084683601?w=200&h=200&fit=crop"
+                              "https://fr.freepik.com/photos-gratuite/parfum-dans-bouteille-noire-table_7359606.htm#fromView=search&page=1&position=49&uuid=76213cf2-d227-4114-83e8-c9e3400fb27f&query=parfum"
                             }
                             alt={parfum.nom}
                             className="w-full aspect-square object-cover rounded-xl mb-3"
