@@ -90,16 +90,14 @@ export default function ParfumDetail() {
       try {
         const similarResponse = await parfumAPI.getSimilar(id);
         let similarData = [];
-
         if (similarResponse?.data) {
           if (Array.isArray(similarResponse.data)) {
             similarData = similarResponse.data;
           } else if (Array.isArray(similarResponse.data.parfums)) {
             similarData = similarResponse.data.parfums;
-          } else if (Array.isArray(similarResponse.data.data)) {
-            similarData = similarResponse.data.data;
           }
         }
+        setSimilarParfums(similarData);
 
         setSimilarParfums(similarData || []);
       } catch (similarError) {
