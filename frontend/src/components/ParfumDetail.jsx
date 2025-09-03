@@ -553,6 +553,7 @@ export default function ParfumDetail() {
             <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
+          {/* 🔧 FIX 1: Amélioration de la logique d'affichage des parfums similaires */}
           {similarLoading ? (
             <div className={styles.emptySimilar}>
               <div className={styles.spinner} />
