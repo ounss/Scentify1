@@ -599,6 +599,7 @@ export const createParfum = async (req, res) => {
 
 /**
  * ✅ updateParfum — version corrigée avec gestion d'erreur améliorée
+ * ✅ ICI: Gestion complète de l'image (upload OU URL manuelle) — SECTION REMPLACÉE
  */
 export const updateParfum = async (req, res) => {
   try {
@@ -607,6 +608,10 @@ export const updateParfum = async (req, res) => {
 
     console.log("🔍 DEBUG updateParfum - ID:", id);
     console.log("🔍 DEBUG updateParfum - req.file:", req.file);
+    console.log(
+      "🔍 DEBUG updateParfum - imageUrl dans body:",
+      req.body.imageUrl
+    );
     console.log(
       "🔍 DEBUG updateParfum - updateData keys:",
       Object.keys(updateData)
@@ -644,32 +649,37 @@ export const updateParfum = async (req, res) => {
       }
     }
 
-    // ✅ (REMPLACÉ) Gestion robuste de l'URL image reçue
+    // ✅ CORRECTION: Gestion complète de l'image (fichier uploadé OU URL manuelle)
     if (req.file) {
+      // Cas 1: Fichier uploadé via multer
       let newPhotoUrl = null;
+
+      // Ordre de priorité: secure_url > url > path (si string)
       if (req.file.secure_url && typeof req.file.secure_url === "string") {
         newPhotoUrl = req.file.secure_url;
       } else if (req.file.url && typeof req.file.url === "string") {
         newPhotoUrl = req.file.url;
       } else if (req.file.path && typeof req.file.path === "string") {
         newPhotoUrl = req.file.path;
-      }
-
-      if (!newPhotoUrl) {
+      } else {
+        console.error("❌ Aucune URL valide trouvée dans req.file:", req.file);
         return res.status(400).json({
           message: "Erreur upload image - URL non disponible",
+          debug: { file: req.file },
         });
       }
 
-      console.log("✅ Nouvelle image reçue (URL):", newPhotoUrl);
+      console.log("✅ Nouvelle image reçue (upload):", {
+        originalname: req.file.originalname,
+        url: newPhotoUrl,
+        public_id: req.file.public_id || "N/A",
+      });
 
       // Supprimer l'ancienne image si elle existe
       const oldParfum = await Parfum.findById(id).select("photo");
       if (oldParfum && oldParfum.photo) {
         try {
-          const publicId =
-            extractPublicIdFromUrl(oldParfum.photo) ??
-            extractPublicIdFromUrlFromConfig(oldParfum.photo);
+          const publicId = extractPublicIdFromUrl(oldParfum.photo);
           if (publicId) {
             await deleteParfumFromCloudinary(publicId);
             console.log("✅ Ancienne image supprimée:", publicId);
@@ -683,7 +693,19 @@ export const updateParfum = async (req, res) => {
       }
 
       updateData.photo = newPhotoUrl;
+    } else if (req.body.imageUrl && req.body.imageUrl.trim() !== "") {
+      // Cas 2: URL manuelle fournie
+      const imageUrl = req.body.imageUrl.trim();
+      console.log("✅ Nouvelle image reçue (URL manuelle):", imageUrl);
+
+      updateData.photo = imageUrl;
+
+      // Note: On ne supprime pas l'ancienne image car c'est une URL externe
+      // et on ne peut pas être sûr si c'était sur Cloudinary ou non
     }
+
+    // Nettoyer imageUrl des updateData pour éviter qu'il soit enregistré en BDD
+    delete updateData.imageUrl;
 
     // ✅ PROTECTION: Nettoyer updateData des objets non désirés
     Object.keys(updateData).forEach((key) => {
