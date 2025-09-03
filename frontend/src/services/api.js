@@ -86,7 +86,7 @@ export const parfumAPI = {
 export const noteAPI = {
   getAll: (params = {}) => api.get("/notes", { params }),
   getById: (id) => api.get(`/notes/${id}`),
-  getByType: (type) => api.get(`/notes?type=${type}`), 
+  getByType: (type) => api.get(`/notes?type=${type}`),
   create: (data) => api.post("/notes", data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),
