@@ -325,7 +325,7 @@ export default function ParfumDetail() {
                 className={styles.photo}
                 src={parfum?.photo}
                 alt={`Photo du parfum ${parfum.nom} de ${parfum.marque}`}
-                fallbackSrc="https://fr.freepik.com/photos-gratuite/parfum-dans-bouteille-noire-table_7359606.htm#fromView=search&page=1&position=49&uuid=76213cf2-d227-4114-83e8-c9e3400fb27f&query=parfum"
+                fallbackSrc="https://res.cloudinary.com/dyxmkgpgp/image/upload/v1756928420/parfum-en-bouteille-noire-sur-la-table_ixbh79.jpg"
               />
 
               <span
