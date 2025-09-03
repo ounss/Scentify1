@@ -17,7 +17,7 @@ export default function ParfumCard({ parfum }) {
   const imgSrc = useMemo(
     () =>
       parfum?.photo ||
-      "https://images.unsplash.com/photo-1541643600914-78b084683601?w=300&h=300&fit=crop",
+      "https://images.unsplash.com/https://fr.freepik.com/photos-gratuite/parfum-dans-bouteille-noire-table_7359606.htm#fromView=search&page=1&position=49&uuid=76213cf2-d227-4114-83e8-c9e3400fb27f&query=parfum-1541643600914-78b084683601?w=300&h=300&fit=crop",
     [parfum?.photo]
   );
 
