@@ -79,7 +79,7 @@ export default function Home() {
       const { validNotes, totalSearched } = await validateNotesInput(noteInput);
 
       if (validNotes.length === 0) {
-        setError("Aucune note trouvée avec ces noms");
+        setError("");
         setParfums([]);
         return;
       }
