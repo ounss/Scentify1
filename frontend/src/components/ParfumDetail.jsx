@@ -20,19 +20,42 @@ import styles from "../styles/ParfumDetail.module.css";
 export default function ParfumDetail() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated } = useAuth();
 
   const [parfum, setParfum] = useState(null);
   const [similarParfums, setSimilarParfums] = useState([]);
   const [isFavorite, setIsFavorite] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [similarLoading, setSimilarLoading] = useState(true); // Nouveau state pour les similaires
+  const [similarLoading, setSimilarLoading] = useState(true);
   const [error, setError] = useState(null);
   const [favoriteLoading, setFavoriteLoading] = useState(false);
+
+  // 🔧 FIX: Forcer le scroll en haut à chaque changement d'ID (robuste)
+  useEffect(() => {
+    const originalBodyPaddingTop = document.body.style.paddingTop;
+    document.body.style.paddingTop = "0";
+
+    // Scroll immédiat
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+
+    // Scroll après rendu (gère sticky headers / offsets)
+    const timeoutId = setTimeout(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+      document.body.style.paddingTop = originalBodyPaddingTop;
+    }, 100);
+
+    return () => {
+      clearTimeout(timeoutId);
+      document.body.style.paddingTop = originalBodyPaddingTop;
+    };
+  }, [id]);
 
   // Charger les données du parfum
   useEffect(() => {
     loadParfumData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   // Ajouter à l'historique si utilisateur connecté
@@ -46,52 +69,74 @@ export default function ParfumDetail() {
     if (!id) {
       setError("ID de parfum manquant");
       setLoading(false);
+      setSimilarLoading(false);
       return;
     }
 
     try {
       setLoading(true);
       setError(null);
-      setSimilarLoading(true); // Reset du loading des similaires
+      setSimilarLoading(true);
 
-      // Charger le parfum principal d'abord
+      // 1) Charger le parfum principal
       const parfumResponse = await parfumAPI.getById(id);
-
-      if (!parfumResponse.data) {
+      if (!parfumResponse?.data) {
         throw new Error("Parfum non trouvé");
       }
-
       setParfum(parfumResponse.data);
-      setLoading(false); // Le parfum principal est chargé
+      setLoading(false);
 
-      // Charger les parfums similaires en parallèle (mais séparément)
+      // 2) Charger les parfums similaires (robuste sur la forme de la réponse)
       try {
         const similarResponse = await parfumAPI.getSimilar(id);
-        setSimilarParfums(similarResponse.data.parfums || []);
+        let similarData = [];
+
+        if (similarResponse?.data) {
+          if (Array.isArray(similarResponse.data)) {
+            similarData = similarResponse.data;
+          } else if (Array.isArray(similarResponse.data.parfums)) {
+            similarData = similarResponse.data.parfums;
+          } else if (Array.isArray(similarResponse.data.data)) {
+            similarData = similarResponse.data.data;
+          }
+        }
+
+        setSimilarParfums(similarData || []);
       } catch (similarError) {
         console.warn("Erreur chargement parfums similaires:", similarError);
         setSimilarParfums([]);
       } finally {
-        setSimilarLoading(false); // Les similaires sont chargés (avec ou sans succès)
+        setSimilarLoading(false);
       }
 
-      // Vérifier si en favoris
+      // 3) Vérifier si en favoris (conserve favoritesAPI)
       if (isAuthenticated) {
         try {
           const favoritesResponse = await favoritesAPI.getFavorites();
-          const isInFavorites = favoritesResponse.data.some(
-            (fav) => fav.parfum?._id === id
-          );
+          // Tolérant: tableau d'objets avec { parfum: {...} } ou directement {_id}
+          const list = Array.isArray(favoritesResponse?.data)
+            ? favoritesResponse.data
+            : Array.isArray(favoritesResponse?.data?.parfums)
+            ? favoritesResponse.data.parfums
+            : [];
+
+          const isInFavorites = list.some((fav) => {
+            const favId =
+              fav?.parfum?._id ?? // cas { parfum: {_id} }
+              fav?._id; // cas {_id} direct
+            return favId === id;
+          });
+
           setIsFavorite(isInFavorites);
-        } catch (error) {
-          console.warn("Erreur lors de la vérification des favoris:", error);
+        } catch (favErr) {
+          console.warn("Erreur lors de la vérification des favoris:", favErr);
         }
       }
-    } catch (error) {
-      console.error("Erreur lors du chargement:", error);
+    } catch (err) {
+      console.error("Erreur lors du chargement:", err);
       setError(
-        error.response?.data?.message ||
-          error.message ||
+        err.response?.data?.message ||
+          err.message ||
           "Erreur lors du chargement du parfum"
       );
       setLoading(false);
@@ -144,13 +189,11 @@ export default function ParfumDetail() {
       if (navigator.share && navigator.canShare(shareData)) {
         await navigator.share(shareData);
       } else {
-        // Fallback: copier l'URL
         await navigator.clipboard.writeText(window.location.href);
         toast.success("Lien copié dans le presse-papier");
       }
     } catch (error) {
       console.warn("Erreur partage:", error);
-      // Fallback silencieux
       try {
         await navigator.clipboard.writeText(window.location.href);
         toast.success("Lien copié dans le presse-papier");
@@ -510,7 +553,6 @@ export default function ParfumDetail() {
             <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
-          {/* 🔧 FIX 1: Amélioration de la logique d'affichage des parfums similaires */}
           {similarLoading ? (
             <div className={styles.emptySimilar}>
               <div className={styles.spinner} />
