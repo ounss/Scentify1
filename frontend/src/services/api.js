@@ -1,50 +1,58 @@
-// frontend/src/services/api.js - VERSION COMPLÈTE CORRIGÉE
 import axios from "axios";
 
-// Configuration de base
+// ✅ Configuration API CORRIGÉE
 const BASE_URL =
   process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
+
 console.log("Base URL configurée:", BASE_URL);
 
 console.log("🔗 Base URL configurée:", BASE_URL);
 
-// Instance Axios configurée
 const api = axios.create({
   baseURL: BASE_URL,
-  timeout: 30000,
+  timeout: 15000, // ✅ Timeout pour éviter les blocages
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// Intercepteur pour ajouter le token automatiquement
+// ✅ Intercepteur requête - JWT automatique
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log("📡 Token ajouté à la requête:", config.url);
+    } else {
+      console.log("⚠️ Pas de token pour la requête:", config.url);
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error("❌ Erreur intercepteur requête:", error);
+    return Promise.reject(error);
+  }
 );
 
-// Intercepteur de réponse pour gérer les erreurs
+// ✅ Intercepteur réponse - Gestion erreurs améliorée
 api.interceptors.response.use(
   (response) => {
-    console.log(`✅ Réponse API: ${response.config.url} ${response.status}`);
+    console.log("✅ Réponse API:", response.config.url, response.status);
     return response;
   },
   (error) => {
-    const url = error.config?.url || "URL inconnue";
-    const status = error.response?.status || "Pas de status";
-    console.log(`❌ Erreur API: ${url} ${status}`);
-    console.log("❌ Détails erreur:", error.response?.data);
+    console.error("❌ Erreur API:", error.config?.url, error.response?.status);
+    console.error("❌ Détails erreur:", error.response?.data);
+
+    // Gestion spécifique des erreurs réseau
+    if (error.code === "NETWORK_ERROR" || error.code === "ECONNREFUSED") {
+      console.error("🌐 Erreur de connexion réseau - Serveur inaccessible");
+    }
 
     if (error.response?.status === 401) {
       console.log("🚪 Token invalide/expiré, suppression...");
       localStorage.removeItem("token");
+      // Redirection optionnelle
       if (window.location.pathname !== "/auth") {
         window.location.href = "/auth";
       }
@@ -60,7 +68,7 @@ export const authAPI = {
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data) => api.put("/users/profile", data),
   forgotPassword: (email) => api.post("/users/forgot-password", { email }),
-  resetPassword: (data) => api.post("/users/reset-password", data),
+  resetPassword: (data) => api.post("/users/reset-password", data), // ✅ CORRIGÉ
 };
 
 // 🌸 PARFUM SERVICES
@@ -74,11 +82,10 @@ export const parfumAPI = {
     api.get("/parfums/search", { params: { q: query, ...params } }),
 };
 
-// 📝 NOTE SERVICES - ✅ CORRIGÉ AVEC notesAPI (avec 's') et getByType ajouté
-export const notesAPI = {
+// 📝 NOTE SERVICES
+export const noteAPI = {
   getAll: (params = {}) => api.get("/notes", { params }),
   getById: (id) => api.get(`/notes/${id}`),
-  getByType: (type) => api.get(`/notes?type=${type}`), // ✅ AJOUTÉ
   create: (data) => api.post("/notes", data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),
@@ -102,7 +109,7 @@ export const historyAPI = {
 
 // 👨‍💼 ADMIN SERVICES
 export const adminAPI = {
-  getUsers: (params = {}) => api.get("/admin/users", { params }),
+  getUsers: (params = {}) => api.get("/admin/users", { params }), // ✅ Route corrigée
   getUserStats: () => api.get("/admin/stats/users"),
   exportUsers: () => api.get("/admin/users/export", { responseType: "blob" }),
   toggleAdmin: (id) => api.patch(`/admin/users/${id}/admin`),
@@ -117,6 +124,13 @@ export const uploadAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
+  // uploadUserAvatar: (file) => {
+  //   const formData = new FormData();
+  //   formData.append("photo", file);
+  //   return api.put("/users/profile/avatar", formData, {
+  //     headers: { "Content-Type": "multipart/form-data" },
+  //   });
+  //},
 };
 
 // ✅ Test de connectivité

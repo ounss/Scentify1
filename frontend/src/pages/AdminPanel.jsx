@@ -25,7 +25,7 @@ import {
   Activity,
 } from "lucide-react";
 import { adminAPI } from "../services/adminAPI.js";
-import { parfumAPI, notesAPI, authAPI } from "../services/api.js";
+import { parfumAPI, noteAPI, authAPI } from "../services/api.js";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import ContactSection from "../admin/ContactSection";
@@ -88,7 +88,7 @@ export default function AdminPanel() {
         parfumAPI
           .getAll({ limit: 100 })
           .catch(() => ({ data: { parfums: [] } })),
-        notesAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
+        noteAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
       ]);
 
       setStats(statsData || {});
@@ -249,7 +249,7 @@ export default function AdminPanel() {
   const createNote = async (e) => {
     e.preventDefault();
     try {
-      const response = await notesAPI.create(noteForm);
+      const response = await noteAPI.create(noteForm);
       const created = response?.data?.note || response?.data || noteForm;
       setNotes((prev) => [...prev, created]);
       setShowNoteForm(false);
@@ -264,7 +264,7 @@ export default function AdminPanel() {
   const updateNote = async (e) => {
     e.preventDefault();
     try {
-      const response = await notesAPI.update(editingItem._id, noteForm);
+      const response = await noteAPI.update(editingItem._id, noteForm);
       const updated = response?.data?.note || response?.data || noteForm;
       setNotes((prev) =>
         prev.map((n) => (n._id === editingItem._id ? { ...n, ...updated } : n))
@@ -281,7 +281,7 @@ export default function AdminPanel() {
   const deleteNote = async (noteId) => {
     if (!window.confirm("Supprimer cette note ?")) return;
     try {
-      await notesAPI.delete(noteId);
+      await noteAPI.delete(noteId);
       setNotes((prev) => prev.filter((n) => n._id !== noteId));
       toast.success("Note supprimée");
     } catch (error) {

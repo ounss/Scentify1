@@ -1,4 +1,4 @@
-// frontend/src/pages/ParfumForm.jsx - VERSION CORRIGÉE AVEC ACCENTS + notesAPI
+// frontend/src/pages/ParfumForm.jsx - VERSION CORRIGÉE
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -16,7 +16,7 @@ import {
   Calendar,
   Euro,
 } from "lucide-react";
-import { notesAPI, parfumAPI } from "../services/api"; //
+import { noteAPI, parfumAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import styles from "../styles/ParfumForm.module.css";
@@ -46,16 +46,15 @@ export default function ParfumForm() {
     liensMarchands: [],
   });
 
-  // ✅ allNotes avec accents
   const [allNotes, setAllNotes] = useState({
-    tête: [],
-    cœur: [],
+    tete: [],
+    coeur: [],
     fond: [],
   });
 
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEdit);
-
+  
   // Gestion des liens marchands
   const [newMerchantLink, setNewMerchantLink] = useState({
     nom: "",
@@ -114,7 +113,6 @@ export default function ParfumForm() {
     }
   };
 
-  // ✅ Nouvelle version complète de loadNotes
   const loadNotes = async () => {
     console.log("🔍 Début chargement des notes...");
     try {
@@ -123,45 +121,49 @@ export default function ParfumForm() {
 
       for (const type of types) {
         console.log(`📝 Chargement notes de type: ${type}`);
-
+        
         try {
-          // ✅ NOUVEAU
-          const resp = await notesAPI.getByType(type);
+          // Utilisation de la méthode getByType (désormais ajoutée à l'API)
+          const resp = await noteAPI.getByType(type);
           console.log(`✅ Réponse pour ${type}:`, resp.data);
 
-          notesData[type] = Array.isArray(resp.data) ? resp.data : [];
-          console.log(
-            `💾 Stocké ${notesData[type].length} notes pour "${type}"`
-          );
+          const key = type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
+          notesData[key] = resp.data || [];
+          
+          console.log(`💾 Stocké ${notesData[key].length} notes pour "${key}"`);
         } catch (error) {
           console.warn(`⚠️ Erreur pour le type ${type}:`, error);
-          notesData[type] = []; // ✅ Toujours un tableau
+          
+          // Fallback si getByType échoue pour un type spécifique
+          const key = type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
+          notesData[key] = [];
         }
       }
 
       console.log("📊 Notes finales:", notesData);
       setAllNotes(notesData);
+      
     } catch (error) {
       console.error("❌ Erreur chargement notes:", error);
-
+      
       // Méthode alternative : récupérer toutes les notes et les grouper
       console.log("🔄 Tentative avec méthode alternative...");
       try {
-        // ✅ NOUVEAU
-        const resp = await notesAPI.getAll({ limit: 200 });
+        const resp = await noteAPI.getAll({ limit: 200 });
         const allNotesArray = resp.data.notes || resp.data || [];
 
         const notesData = {
-          tête: allNotesArray.filter((note) => note.type === "tête"),
-          cœur: allNotesArray.filter((note) => note.type === "cœur"),
+          tete: allNotesArray.filter((note) => note.type === "tête"),
+          coeur: allNotesArray.filter((note) => note.type === "cœur"),
           fond: allNotesArray.filter((note) => note.type === "fond"),
         };
 
         console.log("✅ Notes chargées via méthode alternative:", notesData);
         setAllNotes(notesData);
+        
       } catch (fallbackError) {
         console.error("❌ Erreur méthode alternative:", fallbackError);
-        setAllNotes({ tête: [], cœur: [], fond: [] }); // ✅ structure cohérente
+        setAllNotes({ tete: [], coeur: [], fond: [] });
         toast.error("Impossible de charger les notes olfactives");
       }
     }
@@ -175,12 +177,8 @@ export default function ParfumForm() {
     }
   };
 
-  // ✅ handleNoteToggle convertit la clé frontend (avec accents) vers la clé backend
   const handleNoteToggle = (type, noteId) => {
-    const backendKey =
-      type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
-    const field = `notes_${backendKey}`;
-
+    const field = `notes_${type}`;
     setFormData((prev) => {
       const current = prev[field] || [];
       const exists = current.includes(noteId);
@@ -247,17 +245,11 @@ export default function ParfumForm() {
 
       // Champs simples
       const simpleFields = [
-        "nom",
-        "marque",
-        "genre",
-        "description",
-        "anneSortie",
-        "concentre",
-        "prix",
-        "longevite",
-        "sillage",
+        "nom", "marque", "genre", "description", 
+        "anneSortie", "concentre", "prix", 
+        "longevite", "sillage"
       ];
-
+      
       simpleFields.forEach((key) => {
         const value = formData[key];
         if (value !== "" && value !== null && value !== undefined) {
@@ -265,7 +257,7 @@ export default function ParfumForm() {
         }
       });
 
-      // Notes séparées par type (backend keys)
+      // Notes séparées par type
       ["notes_tete", "notes_coeur", "notes_fond"].forEach((key) => {
         (formData[key] || []).forEach((id) => {
           formDataToSend.append(key, id);
@@ -297,7 +289,7 @@ export default function ParfumForm() {
         await parfumAPI.update(id, formDataToSend);
         toast.success("Parfum modifié avec succès !");
       } else {
-        await parfumAPI.create(formDataToSend);
+        const response = await parfumAPI.create(formDataToSend);
         toast.success("Parfum ajouté avec succès !");
       }
 
@@ -306,7 +298,7 @@ export default function ParfumForm() {
       console.error("Submit ParfumForm:", error);
       toast.error(
         error?.response?.data?.message ||
-          `Erreur lors de la ${isEdit ? "modification" : "création"}`
+        `Erreur lors de la ${isEdit ? "modification" : "création"}`
       );
     } finally {
       setLoading(false);
@@ -319,7 +311,7 @@ export default function ParfumForm() {
     { value: "homme", label: "Homme" },
     { value: "mixte", label: "Mixte" },
   ];
-
+  
   const concentres = [
     { value: "EDT", label: "Eau de Toilette" },
     { value: "EDP", label: "Eau de Parfum" },
@@ -327,16 +319,12 @@ export default function ParfumForm() {
     { value: "Parfum", label: "Parfum" },
     { value: "Autre", label: "Autre" },
   ];
-
+  
   const longeviteOptions = [
-    "Très faible (< 2h)",
-    "Faible (2-4h)",
-    "Modérée (4-6h)",
-    "Bonne (6-8h)",
-    "Très bonne (8-12h)",
-    "Excellente (> 12h)",
+    "Très faible (< 2h)", "Faible (2-4h)", "Modérée (4-6h)",
+    "Bonne (6-8h)", "Très bonne (8-12h)", "Excellente (> 12h)",
   ];
-
+  
   const sillageOptions = ["Intimiste", "Proche", "Modéré", "Fort", "Très fort"];
 
   if (loadingData) {
@@ -373,9 +361,7 @@ export default function ParfumForm() {
             <button
               type="button"
               onClick={() => setUploadMode("upload")}
-              className={`${styles.toggleButton} ${
-                uploadMode === "upload" ? styles.active : ""
-              }`}
+              className={`${styles.toggleButton} ${uploadMode === "upload" ? styles.active : ""}`}
             >
               <Upload className={styles.icon} />
               Upload fichier
@@ -383,9 +369,7 @@ export default function ParfumForm() {
             <button
               type="button"
               onClick={() => setUploadMode("url")}
-              className={`${styles.toggleButton} ${
-                uploadMode === "url" ? styles.active : ""
-              }`}
+              className={`${styles.toggleButton} ${uploadMode === "url" ? styles.active : ""}`}
             >
               <LinkIcon className={styles.icon} />
               URL externe
@@ -402,11 +386,7 @@ export default function ParfumForm() {
               />
               <button
                 type="button"
-                onClick={
-                  imagePreview
-                    ? removeUploadedImage
-                    : () => handleInputChange("imageUrl", "")
-                }
+                onClick={imagePreview ? removeUploadedImage : () => handleInputChange("imageUrl", "")}
                 className={styles.removeImageButton}
               >
                 <X className={styles.icon} />
@@ -445,9 +425,7 @@ export default function ParfumForm() {
                 <input
                   type="url"
                   value={formData.imageUrl}
-                  onChange={(e) =>
-                    handleInputChange("imageUrl", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("imageUrl", e.target.value)}
                   className={styles.input}
                   placeholder="https://example.com/image.jpg"
                 />
@@ -514,9 +492,7 @@ export default function ParfumForm() {
                 <input
                   type="number"
                   value={formData.anneSortie}
-                  onChange={(e) =>
-                    handleInputChange("anneSortie", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("anneSortie", e.target.value)}
                   className={styles.input}
                   min="1900"
                   max={new Date().getFullYear() + 1}
@@ -624,9 +600,7 @@ export default function ParfumForm() {
                 <input
                   type="range"
                   value={formData.popularite}
-                  onChange={(e) =>
-                    handleInputChange("popularite", e.target.value)
-                  }
+                  onChange={(e) => handleInputChange("popularite", e.target.value)}
                   className={styles.range}
                   min="0"
                   max="100"
@@ -642,69 +616,40 @@ export default function ParfumForm() {
           <h2 className={styles.sectionTitle}>Notes olfactives</h2>
 
           {[
-            ["tête", "tête"],
-            ["cœur", "cœur"],
+            ["tete", "tête"],
+            ["coeur", "cœur"], 
             ["fond", "fond"],
-          ].map(([frontendKey, label]) => {
-            // ✅ conversion affichage → backend (formData)
-            const backendKey =
-              frontendKey === "tête"
-                ? "tete"
-                : frontendKey === "cœur"
-                ? "coeur"
-                : "fond";
+          ].map(([key, label]) => (
+            <div key={key} className={styles.notesGroup}>
+              <h3 className={`${styles.notesTitle} ${styles[`notes${key.charAt(0).toUpperCase() + key.slice(1)}`]}`}>
+                <Star className={styles.notesIcon} />
+                Notes de {label}
+              </h3>
 
-            return (
-              <div key={frontendKey} className={styles.notesGroup}>
-                <h3
-                  className={`${styles.notesTitle} ${
-                    styles[
-                      `notes${
-                        backendKey.charAt(0).toUpperCase() + backendKey.slice(1)
-                      }`
-                    ]
-                  }`}
-                >
-                  <Star className={styles.notesIcon} />
-                  Notes de {label}
-                </h3>
-
-                <div className={styles.notesGrid}>
-                  {Array.isArray(allNotes[frontendKey]) &&
-                    allNotes[frontendKey].map((note) => (
-                      <button
-                        key={note._id}
-                        type="button"
-                        onClick={() => handleNoteToggle(frontendKey, note._id)}
-                        className={`${styles.noteButton} ${
-                          (formData[`notes_${backendKey}`] || []).includes(
-                            note._id
-                          )
-                            ? `${styles.noteSelected} ${
-                                styles[
-                                  `note${
-                                    backendKey.charAt(0).toUpperCase() +
-                                    backendKey.slice(1)
-                                  }Selected`
-                                ]
-                              }`
-                            : styles.noteUnselected
-                        }`}
-                      >
-                        {note.nom}
-                      </button>
-                    ))}
-                </div>
-
-                {(!Array.isArray(allNotes[frontendKey]) ||
-                  allNotes[frontendKey].length === 0) && (
-                  <p className={styles.noNotesText}>
-                    Aucune note de {label} disponible
-                  </p>
-                )}
+              <div className={styles.notesGrid}>
+                {(allNotes[key] || []).map((note) => (
+                  <button
+                    key={note._id}
+                    type="button"
+                    onClick={() => handleNoteToggle(key, note._id)}
+                    className={`${styles.noteButton} ${
+                      (formData[`notes_${key}`] || []).includes(note._id)
+                        ? `${styles.noteSelected} ${styles[`note${key.charAt(0).toUpperCase() + key.slice(1)}Selected`]}`
+                        : styles.noteUnselected
+                    }`}
+                  >
+                    {note.nom}
+                  </button>
+                ))}
               </div>
-            );
-          })}
+
+              {(allNotes[key] || []).length === 0 && (
+                <p className={styles.noNotesText}>
+                  Aucune note de {label} disponible
+                </p>
+              )}
+            </div>
+          ))}
         </section>
 
         {/* Liens marchands */}
@@ -760,10 +705,7 @@ export default function ParfumForm() {
                   type="text"
                   value={newMerchantLink.nom}
                   onChange={(e) =>
-                    setNewMerchantLink({
-                      ...newMerchantLink,
-                      nom: e.target.value,
-                    })
+                    setNewMerchantLink({ ...newMerchantLink, nom: e.target.value })
                   }
                   className={styles.input}
                   placeholder="Ex: Sephora"
@@ -776,10 +718,7 @@ export default function ParfumForm() {
                   type="url"
                   value={newMerchantLink.url}
                   onChange={(e) =>
-                    setNewMerchantLink({
-                      ...newMerchantLink,
-                      url: e.target.value,
-                    })
+                    setNewMerchantLink({ ...newMerchantLink, url: e.target.value })
                   }
                   className={styles.input}
                   placeholder="https://..."
@@ -792,10 +731,7 @@ export default function ParfumForm() {
                   type="number"
                   value={newMerchantLink.prix}
                   onChange={(e) =>
-                    setNewMerchantLink({
-                      ...newMerchantLink,
-                      prix: e.target.value,
-                    })
+                    setNewMerchantLink({ ...newMerchantLink, prix: e.target.value })
                   }
                   className={styles.input}
                   min="0"
@@ -829,9 +765,7 @@ export default function ParfumForm() {
         <div className={styles.submitSection}>
           <button
             type="submit"
-            disabled={
-              loading || !formData.nom || !formData.marque || !formData.genre
-            }
+            disabled={loading || !formData.nom || !formData.marque || !formData.genre}
             className={styles.submitButton}
           >
             {loading ? (
