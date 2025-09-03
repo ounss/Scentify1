@@ -9,7 +9,10 @@ const LienMarchandSchema = new Schema(
       type: String,
       required: true,
       enum: [
+        "Le Labo",
+        "Ici Paris XL",
         "Sephora",
+        "Deloox",
         "Douglas",
         "Marionnaud",
         "Nocibé",
