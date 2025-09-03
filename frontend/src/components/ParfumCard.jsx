@@ -5,6 +5,7 @@ import { Heart } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { favoritesAPI } from "../services/api";
 import toast from "react-hot-toast";
+import SafeImage from "./SafeImage";
 
 export default function ParfumCard({ parfum }) {
   const navigate = useNavigate();
@@ -120,14 +121,10 @@ export default function ParfumCard({ parfum }) {
     >
       <div className="card-image">
         <picture>
-          <img
+          <SafeImage
             src={imgSrc}
-            alt={parfum?.nom || "Parfum"}
+            alt={`${parfum?.nom || "Parfum"} de ${parfum?.marque || ""}`}
             loading="lazy"
-            onError={(e) => {
-              e.currentTarget.src =
-                "https://images.unsplash.com/photo-1541643600914-78b084683601?w=300&h=300&fit=crop";
-            }}
           />
         </picture>
 

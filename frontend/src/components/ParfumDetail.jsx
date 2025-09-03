@@ -14,6 +14,7 @@ import { parfumAPI, favoritesAPI, historyAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "./ParfumCard";
 import toast from "react-hot-toast";
+import SafeImage from "./SafeImage";
 import styles from "../styles/ParfumDetail.module.css";
 
 export default function ParfumDetail() {
@@ -320,18 +321,11 @@ export default function ParfumDetail() {
           {/* Colonne image */}
           <div className={styles.left}>
             <article className={styles.photoCard}>
-              <img
+              <SafeImage
                 className={styles.photo}
-                src={
-                  parfum.photo ||
-                  "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop&auto=format"
-                }
+                src={parfum?.photo}
                 alt={`Photo du parfum ${parfum.nom} de ${parfum.marque}`}
-                onError={(e) => {
-                  e.currentTarget.src =
-                    "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop&auto=format";
-                  e.currentTarget.onerror = null; // Éviter la boucle infinie
-                }}
+                fallbackSrc="https://images.unsplash.com/photo-1541643600914-78b084683601?w=500&h=600&fit=crop&auto=format"
               />
 
               <span

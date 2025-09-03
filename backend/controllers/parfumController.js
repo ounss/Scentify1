@@ -3,8 +3,10 @@ import mongoose from "mongoose";
 import Parfum from "../models/Parfum.js";
 import NoteOlfactive from "../models/NoteOlfactive.js";
 import csvService from "../services/csvService.js";
-//import { deleteParfumFromCloudinary } from "../config/cloudinary.js";
-
+import {
+  deleteParfumFromCloudinary,
+  extractPublicIdFromUrl as extractPublicIdFromUrlFromConfig,
+} from "../config/cloudinary.js";
 /* --------------------------------------------
    Helpers
 --------------------------------------------- */
@@ -535,29 +537,22 @@ export const createParfum = async (req, res) => {
       }
     }
 
-    // ✅ CORRECTION CRITIQUE: Gestion robuste de l'URL image
+    // ✅ (REMPLACÉ) Gestion robuste de l'URL image
     let photoUrl = null;
     if (req.file) {
-      // Ordre de priorité: secure_url > url > path (si string)
       if (req.file.secure_url && typeof req.file.secure_url === "string") {
         photoUrl = req.file.secure_url;
       } else if (req.file.url && typeof req.file.url === "string") {
         photoUrl = req.file.url;
       } else if (req.file.path && typeof req.file.path === "string") {
         photoUrl = req.file.path;
-      } else {
-        console.error("❌ Aucune URL valide trouvée dans req.file:", req.file);
-        return res.status(400).json({
-          message: "Erreur upload image - URL non disponible",
-          debug: { file: req.file },
-        });
       }
 
-      console.log("✅ Image uploadée avec succès:", {
-        originalname: req.file.originalname,
-        url: photoUrl,
-        public_id: req.file.public_id || "N/A",
-      });
+      if (!photoUrl) {
+        return res.status(400).json({
+          message: "Erreur upload image - URL non disponible",
+        });
+      }
     }
 
     const parfum = new Parfum({
@@ -649,38 +644,33 @@ export const updateParfum = async (req, res) => {
       }
     }
 
-    // ✅ CORRECTION CRITIQUE: Gestion robuste de l'image Cloudinary
+    // ✅ (REMPLACÉ) Gestion robuste de l'URL image reçue
     if (req.file) {
       let newPhotoUrl = null;
-
-      // Ordre de priorité: secure_url > url > path (si string)
       if (req.file.secure_url && typeof req.file.secure_url === "string") {
         newPhotoUrl = req.file.secure_url;
       } else if (req.file.url && typeof req.file.url === "string") {
         newPhotoUrl = req.file.url;
       } else if (req.file.path && typeof req.file.path === "string") {
         newPhotoUrl = req.file.path;
-      } else {
-        console.error("❌ Aucune URL valide trouvée dans req.file:", req.file);
+      }
+
+      if (!newPhotoUrl) {
         return res.status(400).json({
           message: "Erreur upload image - URL non disponible",
-          debug: { file: req.file },
         });
       }
 
-      console.log("✅ Nouvelle image reçue:", {
-        originalname: req.file.originalname,
-        url: newPhotoUrl,
-        public_id: req.file.public_id || "N/A",
-      });
+      console.log("✅ Nouvelle image reçue (URL):", newPhotoUrl);
 
       // Supprimer l'ancienne image si elle existe
       const oldParfum = await Parfum.findById(id).select("photo");
       if (oldParfum && oldParfum.photo) {
         try {
-          const publicId = extractPublicIdFromUrl(oldParfum.photo);
+          const publicId =
+            extractPublicIdFromUrl(oldParfum.photo) ??
+            extractPublicIdFromUrlFromConfig(oldParfum.photo);
           if (publicId) {
-            // Utilisation correcte sans préfixe si déjà inclus dans publicId
             await deleteParfumFromCloudinary(publicId);
             console.log("✅ Ancienne image supprimée:", publicId);
           }
@@ -764,7 +754,9 @@ export const deleteParfum = async (req, res) => {
     // ✅ Supprimer l'image Cloudinary si elle existe
     if (parfum.photo) {
       try {
-        const publicId = extractPublicIdFromUrl(parfum.photo);
+        const publicId =
+          extractPublicIdFromUrl(parfum.photo) ??
+          extractPublicIdFromUrlFromConfig(parfum.photo);
         if (publicId) {
           await deleteParfumFromCloudinary(publicId);
           console.log("✅ Image supprimée de Cloudinary:", publicId);
