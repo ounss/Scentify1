@@ -16,7 +16,7 @@ import {
   Calendar,
   Euro,
 } from "lucide-react";
-import { notesAPI, parfumAPI } from "../services/api"; // ✅ notesAPI avec 's'
+import { notesAPI, parfumAPI } from "../services/api"; //
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
 import styles from "../styles/ParfumForm.module.css";
@@ -125,7 +125,8 @@ export default function ParfumForm() {
         console.log(`📝 Chargement notes de type: ${type}`);
 
         try {
-          const resp = await notesAPI.getByType(type); // ✅ notesAPI
+          // ✅ NOUVEAU
+          const resp = await notesAPI.getByType(type);
           console.log(`✅ Réponse pour ${type}:`, resp.data);
 
           notesData[type] = Array.isArray(resp.data) ? resp.data : [];
@@ -146,6 +147,7 @@ export default function ParfumForm() {
       // Méthode alternative : récupérer toutes les notes et les grouper
       console.log("🔄 Tentative avec méthode alternative...");
       try {
+        // ✅ NOUVEAU
         const resp = await notesAPI.getAll({ limit: 200 });
         const allNotesArray = resp.data.notes || resp.data || [];
 
