@@ -32,34 +32,23 @@ export default function Header() {
     }
   };
 
-  // ✅ MODIFICATION : Navigation items pour desktop - toujours afficher les onglets publics
-  const publicNavItems = [
+  // Navigation items pour desktop
+  const navItems = [
     { to: "/", label: "Accueil", icon: Home },
     { to: "/contact", label: "Contact", icon: Mail },
+    ...(isAuthenticated
+      ? [
+          { to: "/history", label: "Historique", icon: Clock },
+          { to: "/history?tab=favorites", label: "Favoris", icon: Heart }, // ✅ MODIFICATION
+          { to: "/profile", label: "Profil", icon: User },
+        ]
+      : []),
   ];
-
-  const privateNavItems = isAuthenticated
-    ? [
-        { to: "/history", label: "Historique", icon: Clock },
-        { to: "/history?tab=favorites", label: "Favoris", icon: Heart },
-        { to: "/profile", label: "Profil", icon: User },
-      ]
-    : [];
-
-  // ✅ Combiner les onglets publics et privés
-  const allNavItems = [...publicNavItems, ...privateNavItems];
 
   // Vérifier si l'onglet est actif
   const isActiveTab = (path) => {
     if (path === "/" && location.pathname === "/") return true;
     if (path !== "/" && location.pathname.startsWith(path)) return true;
-    // ✅ Gestion spéciale pour les favoris
-    if (
-      path === "/history?tab=favorites" &&
-      location.pathname.startsWith("/history") &&
-      location.search.includes("favorites")
-    )
-      return true;
     return false;
   };
 
@@ -75,10 +64,10 @@ export default function Header() {
               <span className="text-xl font-bold text-gray-800">Scentify</span>
             </Link>
 
-            {/* ✅ Navigation Desktop - Onglets TOUJOURS visibles */}
+            {/* Navigation Desktop - Onglets */}
             <nav className="hidden md:flex items-center">
               <div className="desktop-tabs">
-                {allNavItems.map((item) => (
+                {navItems.map((item) => (
                   <Link
                     key={item.to}
                     to={item.to}
@@ -196,7 +185,7 @@ export default function Header() {
 
                   {/* Navigation */}
                   <nav className="space-y-2">
-                    {allNavItems.map((item) => (
+                    {navItems.map((item) => (
                       <Link
                         key={item.to}
                         to={item.to}
@@ -247,19 +236,16 @@ export default function Header() {
                     </Link>
                   </div>
 
-                  {/* ✅ Navigation publique - afficher les onglets publics */}
+                  {/* Navigation publique */}
                   <nav className="mt-8 space-y-2">
-                    {publicNavItems.map((item) => (
-                      <Link
-                        key={item.to}
-                        to={item.to}
-                        onClick={() => setShowMobileMenu(false)}
-                        className="flex items-center space-x-3 p-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
-                      >
-                        <item.icon className="w-5 h-5" />
-                        <span className="font-medium">{item.label}</span>
-                      </Link>
-                    ))}
+                    <Link
+                      to="/"
+                      onClick={() => setShowMobileMenu(false)}
+                      className="flex items-center space-x-3 p-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                    >
+                      <Home className="w-5 h-5" />
+                      <span className="font-medium">Accueil</span>
+                    </Link>
                   </nav>
                 </>
               )}
@@ -279,7 +265,7 @@ export default function Header() {
             <span className="nav-label">Accueil</span>
           </Link>
           <Link
-            to={isAuthenticated ? "/history?tab=favorites" : "/auth"}
+            to={isAuthenticated ? "/history?tab=favorites" : "/auth"} // ✅ MODIFICATION
             className={`nav-item ${
               location.pathname.startsWith("/history") &&
               location.search.includes("favorites")
@@ -299,16 +285,16 @@ export default function Header() {
             <User className="nav-icon" />
             <span className="nav-label">Profil</span>
           </Link>
-          <Link
-            to="/contact"
-            className={`nav-item ${
-              location.pathname === "/contact" ? "active" : ""
-            }`}
-          >
-            <Mail className="nav-icon" />
-            <span className="nav-label">Contact</span>
-          </Link>
         </div>
+        <Link
+          to="/contact"
+          className={`nav-item ${
+            location.pathname === "/contact" ? "active" : ""
+          }`}
+        >
+          <Mail className="nav-icon" />
+          <span className="nav-label">Contact</span>
+        </Link>
       </nav>
     </>
   );
