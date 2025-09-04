@@ -1,3 +1,4 @@
+// frontend/src/services/api.js
 import axios from "axios";
 
 // ✅ Configuration API CORRIGÉE
@@ -5,7 +6,6 @@ const BASE_URL =
   process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
 
 console.log("Base URL configurée:", BASE_URL);
-
 console.log("🔗 Base URL configurée:", BASE_URL);
 
 const api = axios.create({
@@ -71,7 +71,7 @@ export const authAPI = {
   resetPassword: (data) => api.post("/users/reset-password", data), // ✅ CORRIGÉ
 };
 
-// 🌸 PARFUM SERVICES
+// 🌸 PARFUM SERVICES (VERSION CORRIGÉE)
 export const parfumAPI = {
   getAll: (params = {}) => api.get("/parfums", { params }),
   getById: (id) => api.get(`/parfums/${id}`),
@@ -80,12 +80,28 @@ export const parfumAPI = {
   delete: (id) => api.delete(`/parfums/${id}`),
   search: (query, params = {}) =>
     api.get("/parfums/search", { params: { q: query, ...params } }),
+
+  // ✅ AJOUT : Recherche par notes multiples (utilise le paramètre 'notes' du backend)
+  getByNotes: (noteIds) => {
+    const notesParam = Array.isArray(noteIds) ? noteIds.join(",") : noteIds;
+    return api.get("/parfums", { params: { notes: notesParam } });
+  },
+
+  // ✅ AJOUT : Recherche par une seule note
+  getByNote: (noteId) => api.get(`/parfums/note/${noteId}`),
 };
 
-// 📝 NOTE SERVICES
+// 📝 NOTE SERVICES (VERSION CORRIGÉE)
 export const noteAPI = {
   getAll: (params = {}) => api.get("/notes", { params }),
   getById: (id) => api.get(`/notes/${id}`),
+
+  // ✅ AJOUT : Recherche par type
+  getByType: (type) => api.get(`/notes/type/${type}`),
+
+  // ✅ AJOUT : Recherche par nom
+  search: (query) => api.get("/notes/search", { params: { q: query } }),
+
   create: (data) => api.post("/notes", data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),
@@ -130,7 +146,7 @@ export const uploadAPI = {
   //   return api.put("/users/profile/avatar", formData, {
   //     headers: { "Content-Type": "multipart/form-data" },
   //   });
-  //},
+  // },
 };
 
 // ✅ Test de connectivité
