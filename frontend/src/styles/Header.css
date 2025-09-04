@@ -58,7 +58,8 @@
   background: var(--gray-50);
   border: 1px solid var(--gray-200);
   border-radius: 1rem;
-  padding: 3rem;
+  /* ⬇️ Réduction du padding pour cohérence avec les nouveaux boutons */
+  padding: 0.375rem;
   gap: 0.25rem;
   position: relative;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -209,53 +210,153 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-/* Boutons d'authentification desktop */
+/* ===== BOUTONS D'AUTHENTIFICATION - Style cohérent avec les onglets ===== */
+
 .auth-buttons {
   display: flex;
+  align-items: center;
   gap: 0.75rem;
 }
 
+.btn-secondary,
 .btn-primary {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: var(--white);
-  border: none;
-  border-radius: 0.75rem;
-  font-weight: 600;
-  text-decoration: none;
-  transition: all 300ms ease;
-  box-shadow: 0 4px 12px rgba(164, 73, 73, 0.3);
-}
-
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(164, 73, 73, 0.4);
-}
-
-.btn-secondary {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: var(--gray-100);
-  color: var(--gray-700);
-  border: 1px solid var(--gray-300);
+  padding: 0.75rem 1.25rem;
   border-radius: 0.75rem;
   font-weight: 500;
   text-decoration: none;
-  transition: var(--transition);
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  white-space: nowrap;
+  border: 1px solid transparent;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-secondary {
+  background: var(--gray-50);
+  color: var(--gray-700);
+  border-color: var(--gray-200);
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
-  background: var(--gray-200);
-  border-color: var(--gray-400);
+  background: var(--white);
+  color: var(--gray-900);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: var(--white);
+  box-shadow: 0 2px 8px rgba(164, 73, 73, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.btn-primary::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.2),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.btn-primary:hover::before {
+  left: 100%;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 4px 16px rgba(164, 73, 73, 0.4);
+}
+
+/* ===== RESPONSIVE ADJUSTMENTS ===== */
+
+/* Tablet adjustments */
+@media (max-width: 1023px) and (min-width: 768px) {
+  .auth-buttons {
+    gap: 0.5rem;
+  }
+
+  .btn-secondary,
+  .btn-primary {
+    padding: 0.6rem 1rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Mobile - ces styles s'appliquent dans le menu mobile */
+@media (max-width: 767px) {
+  .auth-buttons {
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+
+  .auth-buttons .btn-secondary,
+  .auth-buttons .btn-primary {
+    width: 100%;
+    justify-content: center;
+    padding: 0.875rem 1.5rem;
+    font-weight: 600;
+  }
+}
+
+/* ===== AMÉLIORATION DES ONGLETS POUR LA COHÉRENCE ===== */
+
+/* Ajustement de l'espacement entre les groupes (robuste avec 1 ou 2 backslashes) */
+.hidden.md\:flex,
+.hidden.md\\:flex {
+  gap: 2rem; /* Espace entre la navigation et les actions */
+}
+
+/* ===== ÉTATS FOCUS POUR L'ACCESSIBILITÉ ===== */
+
+.btn-secondary:focus-visible,
+.btn-primary:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* ===== ANIMATIONS ===== */
+
+@keyframes authButtonPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.btn-primary:active {
+  animation: authButtonPulse 0.2s ease-in-out;
+}
+
+/* ===== DARK MODE READY (pour une future implémentation) ===== */
+
+@media (prefers-color-scheme: dark) {
+  .btn-secondary {
+    background: rgba(55, 65, 81, 0.8);
+    color: var(--gray-300);
+    border-color: rgba(75, 85, 99, 0.5);
+  }
+
+  .btn-secondary:hover {
+    background: rgba(75, 85, 99, 0.9);
+    color: var(--white);
+  }
 }
 
 /* ===== MENU MOBILE (inchangé) ===== */
