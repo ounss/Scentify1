@@ -90,6 +90,7 @@ export const getNotesByType = async (req, res) => {
 };
 
 // Rechercher des notes olfactives
+// backend/controllers/noteController.js - AMÉLIORATION
 export const searchNotes = async (req, res) => {
   try {
     const { q } = req.query;
@@ -98,11 +99,17 @@ export const searchNotes = async (req, res) => {
       return res.status(400).json({ message: "Terme de recherche requis" });
     }
 
+    // ✅ Recherche plus flexible
     const notes = await NoteOlfactive.find({
-      nom: { $regex: q, $options: "i" },
+      $or: [
+        { nom: { $regex: q, $options: "i" } },
+        { synonymes: { $regex: q, $options: "i" } }, // Si vous avez des synonymes
+      ],
     })
       .sort({ nom: 1 })
       .limit(20);
+
+    console.log(`🔍 Recherche notes "${q}": ${notes.length} résultats`);
 
     res.json(notes);
   } catch (error) {

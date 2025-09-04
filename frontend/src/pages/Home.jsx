@@ -49,6 +49,7 @@ export default function Home() {
   };
 
   // Validation des notes olfactives
+  // frontend/src/pages/Home.jsx - AMÉLIORATION
   const validateNotesInput = async (input) => {
     const noteNames = input
       .split(",")
@@ -58,18 +59,29 @@ export default function Home() {
 
     for (const name of noteNames) {
       try {
+        // ✅ Recherche plus permissive (contient au lieu d'égal exact)
         const response = await noteAPI.search(name);
+        console.log(`🔍 Recherche "${name}":`, response.data);
+
         if (response.data && response.data.length > 0) {
-          validNotes.push(response.data[0]);
+          // Prendre la première note qui contient le terme
+          const note =
+            response.data.find((n) =>
+              n.nom.toLowerCase().includes(name.toLowerCase())
+            ) || response.data[0];
+
+          validNotes.push(note);
+          console.log(`✅ "${name}" -> "${note.nom}" (${note._id})`);
+        } else {
+          console.log(`❌ "${name}" -> Aucune note trouvée`);
         }
       } catch (err) {
-        console.error(`Erreur recherche note ${name}:`, err);
+        console.error(`❌ Erreur recherche note ${name}:`, err);
       }
     }
 
     return { validNotes, totalSearched: noteNames.length };
   };
-
   // Recherche par notes olfactives multiples
   const searchByNotes = async (noteInput) => {
     setLoading(true);
