@@ -118,14 +118,19 @@ export const searchNotes = async (req, res) => {
 };
 
 // Créer une nouvelle note olfactive (admin)
+// backend/controllers/noteController.js - CORRIGER createNote
+
+// Remplacer la fonction createNote existante par :
 export const createNote = async (req, res) => {
   try {
-    const { nom, description, type } = req.body;
+    const { nom, description, type, famille } = req.body;
 
-    // Vérifier si la note existe déjà
-    const parfumsUtilisant = await Parfum.countDocuments({
-      $or: [{ notes_tete: id }, { notes_coeur: id }, { notes_fond: id }],
+    // ✅ CORRIGER : Vérifier si la note existe déjà (avec le bon champ)
+    const noteExistante = await NoteOlfactive.findOne({
+      nom: nom.trim(),
+      type: type,
     });
+
     if (noteExistante) {
       return res
         .status(400)
@@ -133,15 +138,17 @@ export const createNote = async (req, res) => {
     }
 
     const note = new NoteOlfactive({
-      nom,
-      description,
+      nom: nom.trim(),
+      description: description?.trim() || "",
       type,
+      famille: famille?.trim() || "",
     });
 
     await note.save();
 
     res.status(201).json(note);
   } catch (error) {
+    console.error("❌ Erreur createNote:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
