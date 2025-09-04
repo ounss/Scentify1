@@ -73,19 +73,32 @@ export const getNoteById = async (req, res) => {
 };
 
 // Obtenir les notes par type
+// AJOUTER cette fonction
 export const getNotesByType = async (req, res) => {
   try {
     const { type } = req.params;
 
-    if (!["tête", "cœur", "fond"].includes(type)) {
-      return res.status(400).json({ message: "Type de note invalide" });
+    // Valider le type
+    const validTypes = ["tête", "cœur", "fond"];
+    if (!validTypes.includes(type)) {
+      return res.status(400).json({
+        message: "Type invalide. Types acceptés : tête, cœur, fond",
+      });
     }
 
-    const notes = await NoteOlfactive.find({ type }).sort({ nom: 1 });
+    const notes = await NoteOlfactive.find({ type })
+      .sort({ nom: 1 })
+      .limit(100);
+
+    console.log(`✅ ${notes.length} notes trouvées pour le type "${type}"`);
 
     res.json(notes);
   } catch (error) {
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    console.error("❌ Erreur getNotesByType:", error);
+    res.status(500).json({
+      message: "Erreur serveur",
+      error: error.message,
+    });
   }
 };
 
