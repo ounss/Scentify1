@@ -565,7 +565,7 @@ export const createParfum = async (req, res) => {
       notes_fond: req.body.notes_fond || [],
       prix: req.body.prix || null,
       liensMarchands: req.body.liensMarchands || [],
-      codeBarres: req.body.codeBarres || null,
+      codeBarres: req.body.codeBarres || undefined,
       // ✅ URL Cloudinary stockée comme string (pas d'objet)
       photo: photoUrl,
       // Champs optionnels avec validation
