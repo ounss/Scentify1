@@ -16,12 +16,19 @@ const generateToken = (id) => {
 
 // ✅ Inscription simplifiée (auto-vérifiée en phase 1)
 // backend/controllers/userController.js - MODIFIER registerUser
+// ✅ CORRECTIONS POUR L'AUTHENTIFICATION
+
+// Remplacer la fonction registerUser existante par ceci :
+
 export const registerUser = async (req, res) => {
   try {
     const { email, password, username } = req.body;
+
+    // Vérifier si l'utilisateur existe déjà
     const existingUser = await User.findOne({
       $or: [{ email }, { username }],
     });
+
     if (existingUser) {
       const message =
         existingUser.email === email
@@ -30,48 +37,87 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message });
     }
 
+    // ✅ CHANGEMENT: Créer utilisateur avec vérification email
     const user = await User.create({
       email,
       password,
       username,
-      isVerified: false, // ⚠️ CHANGEMENT: par défaut non vérifié
+      isVerified: false, // Nécessite vérification email
       emailVerificationToken: crypto.randomBytes(32).toString("hex"),
     });
 
-    // Envoyer email de vérification
-    await emailService.sendVerificationEmail(user, user.emailVerificationToken);
+    // ✅ Envoyer email de vérification
+    try {
+      await emailService.sendVerificationEmail(
+        user,
+        user.emailVerificationToken
+      );
+      console.log("✅ Email de vérification envoyé à:", user.email);
+    } catch (emailError) {
+      console.error("❌ Erreur envoi email:", emailError);
+      // Ne pas faire échouer l'inscription si l'email ne peut pas être envoyé
+    }
 
     res.status(201).json({
-      message: "Compte créé. Vérifiez votre email pour l'activer.",
+      message: "Compte créé avec succès. Vérifiez votre email pour l'activer.",
       user: {
-        /* données publiques */
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
+    console.error("❌ Erreur registerUser:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
 
-// Ajouter route de vérification
+// ✅ NOUVEAU: Route de vérification email
 export const verifyEmail = async (req, res) => {
   try {
-    const { token } = req.query;
+    const { token } = req.params; // Token dans l'URL
 
     const user = await User.findOne({ emailVerificationToken: token });
     if (!user) {
-      return res.status(400).json({ message: "Token invalide" });
+      return res
+        .status(400)
+        .json({ message: "Token de vérification invalide" });
     }
 
+    // Activer le compte
     user.isVerified = true;
     user.emailVerificationToken = undefined;
     await user.save();
 
-    res.json({ message: "Email vérifié avec succès" });
+    // ✅ Envoyer email de bienvenue (optionnel)
+    try {
+      await emailService.sendWelcomeEmail(user);
+    } catch (emailError) {
+      console.error("❌ Erreur envoi email bienvenue:", emailError);
+    }
+
+    // Générer token JWT pour connexion automatique
+    const jwtToken = generateToken(user._id);
+
+    res.json({
+      message: "Email vérifié avec succès !",
+      token: jwtToken,
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        isVerified: true,
+      },
+    });
   } catch (error) {
+    console.error("❌ Erreur verifyEmail:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
-// ✅ Connexion
+
+// ✅ MODIFICATION: Bloquer connexion si email non vérifié
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -92,6 +138,14 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Identifiants invalides" });
     }
 
+    // ✅ VÉRIFICATION: Email doit être vérifié
+    if (!user.isVerified) {
+      return res.status(401).json({
+        message: "Veuillez vérifier votre email avant de vous connecter.",
+        needsVerification: true,
+      });
+    }
+
     const token = generateToken(user._id);
 
     res.json({
@@ -102,10 +156,43 @@ export const loginUser = async (req, res) => {
         email: user.email,
         isAdmin: user.isAdmin,
         createdAt: user.createdAt,
+        isVerified: user.isVerified,
       },
     });
   } catch (error) {
-    console.error("Erreur loginUser:", error);
+    console.error("❌ Erreur loginUser:", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// ✅ NOUVEAU: Renvoyer email de vérification
+export const resendVerificationEmail = async (req, res) => {
+  try {
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ message: "Email requis" });
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    if (user.isVerified) {
+      return res.status(400).json({ message: "Ce compte est déjà vérifié" });
+    }
+
+    // Générer nouveau token
+    user.emailVerificationToken = crypto.randomBytes(32).toString("hex");
+    await user.save();
+
+    // Envoyer email
+    await emailService.sendVerificationEmail(user, user.emailVerificationToken);
+
+    res.json({ message: "Email de vérification renvoyé" });
+  } catch (error) {
+    console.error("❌ Erreur resendVerificationEmail:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };

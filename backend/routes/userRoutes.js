@@ -4,6 +4,7 @@ import {
   registerUser,
   loginUser,
   verifyEmail,
+  resendVerificationEmail, // ✅ NOUVEAU
   forgotPassword,
   resetPassword,
   getUserProfile,
@@ -44,7 +45,8 @@ router.post(
   registerUser
 );
 router.post("/login", validateLogin, handleValidationErrors, loginUser);
-router.get("/verify-email/:token", verifyEmail);
+router.get("/verify-email/:token", verifyEmail); // Token dans l'URL
+router.post("/resend-verification", resendVerificationEmail);
 router.post("/forgot-password", forgotPassword);
 router.post(
   "/reset-password",

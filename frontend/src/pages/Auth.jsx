@@ -260,5 +260,190 @@ const AuthPage = () => {
     </div>
   );
 };
+// ✅ AMÉLIORATIONS À AJOUTER À VOTRE PAGE AUTH.JSX EXISTANTE
+
+// Ajouter ces états au composant :
+const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
+const [emailForReset, setEmailForReset] = useState("");
+const [successMessage, setSuccessMessage] = useState("");
+
+// ✅ Fonction pour mot de passe oublié
+const handleForgotPassword = async (e) => {
+  e.preventDefault();
+  clearError();
+
+  if (!emailForReset) {
+    console.log("❌ Email requis pour réinitialisation");
+    return;
+  }
+
+  try {
+    console.log("📧 Demande de réinitialisation pour:", emailForReset);
+    const result = await forgotPassword(emailForReset);
+
+    if (result.success) {
+      setSuccessMessage(result.message);
+      setForgotPasswordMode(false);
+      setEmailForReset("");
+    } else {
+      console.log("❌ Erreur mot de passe oublié:", result.error);
+    }
+  } catch (err) {
+    console.error("❌ Erreur inattendue:", err);
+  }
+};
+
+// ✅ Fonction pour renvoyer l'email de vérification
+const handleResendVerification = async () => {
+  if (!formData.email) {
+    console.log("❌ Email requis pour renvoyer la vérification");
+    return;
+  }
+
+  try {
+    const result = await resendVerificationEmail(formData.email);
+    if (result.success) {
+      setSuccessMessage(result.message);
+    }
+  } catch (err) {
+    console.error("❌ Erreur renvoi vérification:", err);
+  }
+};
+
+// ✅ Modification de handleSubmit pour gérer needsVerification :
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  clearError();
+  setSuccessMessage(""); // Clear success message
+
+  // ... validation existante ...
+
+  try {
+    if (isLogin) {
+      console.log("🔐 Tentative de connexion avec:", formData.email);
+      const result = await login({
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (result.success) {
+        console.log("✅ Connexion réussie, redirection...");
+        navigate("/");
+      } else if (result.needsVerification) {
+        // ✅ NOUVEAU: Gestion cas email non vérifié
+        console.log("⚠️ Email non vérifié");
+        setSuccessMessage(""); // Ne pas afficher comme succès
+        // L'erreur sera affichée par le contexte
+      } else {
+        console.log("❌ Erreur de connexion:", result.error);
+      }
+    } else {
+      // Inscription
+      console.log("📝 Tentative d'inscription avec:", formData.username, formData.email);
+      const result = await register({
+        username: formData.username,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      if (result.success) {
+        if (result.needsVerification) {
+          // ✅ NOUVEAU: Gestion inscription avec vérification email
+          setSuccessMessage(result.message || "Compte créé ! Vérifiez votre email pour l'activer.");
+          setIsLogin(true); // Basculer vers connexion
+          setFormData({ username: "", email: formData.email, password: "" });
+        } else {
+          console.log("✅ Inscription réussie, redirection...");
+          navigate("/");
+        }
+      } else {
+        console.log("❌ Erreur d'inscription:", result.error);
+      }
+    }
+  } catch (err) {
+    console.error("❌ Erreur inattendue:", err);
+  }
+};
+
+// ✅ JSX à ajouter dans le rendu (après le formulaire principal) :
+
+{/* Mot de passe oublié */}
+{forgotPasswordMode && (
+  <div className="forgot-password-form">
+    <h3 className="form-title">Mot de passe oublié</h3>
+    <p className="form-subtitle">
+      Entrez votre email pour recevoir un lien de réinitialisation
+    </p>
+    
+    <form onSubmit={handleForgotPassword}>
+      <div className="form-group">
+        <div className="input-wrapper">
+          <Mail className="input-icon" />
+          <input
+            type="email"
+            className="form-input"
+            placeholder="Votre email"
+            value={emailForReset}
+            onChange={(e) => setEmailForReset(e.target.value)}
+            required
+          />
+        </div>
+      </div>
+
+      <button type="submit" className="submit-button" disabled={loading}>
+        {loading ? (
+          <div className="loading-spinner"></div>
+        ) : (
+          "Envoyer le lien"
+        )}
+      </button>
+    </form>
+
+    <button
+      type="button"
+      className="toggle-button"
+      onClick={() => {
+        setForgotPasswordMode(false);
+        setEmailForReset("");
+        clearError();
+      }}
+    >
+      Retour à la connexion
+    </button>
+  </div>
+)}
+
+{/* Message de succès */}
+{successMessage && (
+  <div className="success-message">
+    <CheckCircle className="w-5 h-5 text-green-500" />
+    <span>{successMessage}</span>
+  </div>
+)}
+
+{/* Bouton vérification email si besoin */}
+{needsVerification && (
+  <div className="verification-notice">
+    <div className="verification-content">
+      <Mail className="w-6 h-6 text-orange-500" />
+      <div>
+        <p className="text-sm font-medium text-orange-800">
+          Email non vérifié
+        </p>
+        <p className="text-xs text-orange-600">
+          Vérifiez votre boîte mail et cliquez sur le lien de vérification
+        </p>
+      </div>
+    </div>
+    <button
+      onClick={handleResendVerification}
+      className="resend-button"
+      disabled={loading}
+    >
+      Renvoyer l'email
+    </button>
+  </div>
+)}
+
 
 export default AuthPage;

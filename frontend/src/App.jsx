@@ -9,6 +9,8 @@ import Footer from "./components/Footer";
 // Pages existantes
 import Home from "./pages/Home";
 import Auth from "./pages/Auth";
+import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
@@ -103,7 +105,33 @@ function App() {
               },
             }}
           />
-
+          {/* Route auth sans layout */}
+          <Route
+            path="/auth"
+            element={
+              <PublicRoute>
+                <Auth />
+              </PublicRoute>
+            }
+          />
+          {/* ✅ NOUVELLES ROUTES À AJOUTER : */}
+          {/* Route vérification email */}
+          <Route path="/verify-email" element={<VerifyEmail />} />
+          {/* Route reset password */}
+          <Route path="/reset-password" element={<ResetPassword />} />
+          // ✅ Modification du lien "Mot de passe oublié" dans Auth.jsx : //
+          Remplacer le lien existant par :
+          {isLogin && (
+            <div className="forgot-password">
+              <button
+                type="button"
+                onClick={() => setForgotPasswordMode(!forgotPasswordMode)}
+                className="forgot-link"
+              >
+                Mot de passe oublié ?
+              </button>
+            </div>
+          )}
           <Routes>
             {/* Routes avec layout standard */}
             <Route

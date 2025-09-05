@@ -68,8 +68,18 @@ export const authAPI = {
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data) => api.put("/users/profile", data),
   forgotPassword: (email) => api.post("/users/forgot-password", { email }),
-  resetPassword: (data) => api.post("/users/reset-password", data), // ✅ CORRIGÉ
+  resetPassword: (data) => api.post("/users/reset-password", data),
+  resendVerification: (email) => api.post("/users/resend-verification", { email }),
+  verifyEmail: (token) => api.get(`/users/verify-email/${token}`),
 };
+
+// ✅ NOUVEAU : API pour contact
+export const contactAPI = {
+  sendMessage: (contactData) => api.post("/contact/send", contactData),
+  getMessages: () => api.get("/contact"), // Admin only
+  updateMessage: (id, data) => api.patch(`/contact/${id}`, data), // Admin only
+};// ✅ CORRIGÉ
+
 
 // 🌸 PARFUM SERVICES (VERSION CORRIGÉE)
 export const parfumAPI = {
