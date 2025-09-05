@@ -20,6 +20,7 @@ import {
 import { noteAPI, parfumAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
+import style from "../styles/ParfumForm.module.css";
 
 export default function ParfumForm() {
   const navigate = useNavigate();
