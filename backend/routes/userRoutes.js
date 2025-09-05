@@ -30,7 +30,7 @@ import { protect, admin } from "../middleware/authMiddleware.js";
 import {
   validateRegister,
   validateLogin,
-  validateResetPassword,
+  //validateResetPassword,
   handleValidationErrors,
 } from "../middleware/validation.js";
 
