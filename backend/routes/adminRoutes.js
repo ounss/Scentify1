@@ -11,7 +11,7 @@ import {
   getParfumsStats,
   exportParfumsCSV,
 } from "../controllers/parfumController.js";
-import { getNotesStats } from "../controllers/noteController.js";
+//import { getNotesStats } from "../controllers/noteController.js";
 
 const router = express.Router();
 
