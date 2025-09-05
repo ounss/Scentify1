@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function Footer() {
   const year = new Date().getFullYear();
@@ -15,7 +16,7 @@ export default function Footer() {
             <div>
               <h3 className="footer-title">Scentify</h3>
               <p className="footer-subtitle">
-                Votre guide personnalisé dans l’univers des parfums.
+                Votre guide personnalisé dans l'univers des parfums.
               </p>
             </div>
           </section>
@@ -24,19 +25,19 @@ export default function Footer() {
             <h3 className="footer-heading">Navigation</h3>
             <ul className="footer-links">
               <li>
-                <a className="footer-link" href="/">
+                <Link className="footer-link" to="/">
                   Accueil
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="footer-link" href="/profile">
+                <Link className="footer-link" to="/profile">
                   Compte
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="footer-link" href="/contact">
+                <Link className="footer-link" to="/contact">
                   Contact
-                </a>
+                </Link>
               </li>
             </ul>
           </nav>
@@ -45,24 +46,24 @@ export default function Footer() {
             <h3 className="footer-heading">Informations</h3>
             <ul className="footer-links">
               <li>
-                <a className="footer-link" href="#">
+                <Link className="footer-link" to="/about">
                   À propos
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="footer-link" href="#">
+                <Link className="footer-link" to="/faq">
                   FAQ
-                </a>
+                </Link>
               </li>
               <li>
-                <a className="footer-link" href="#">
-                  Conditions d’utilisation
-                </a>
+                <Link className="footer-link" to="/terms">
+                  Conditions d'utilisation
+                </Link>
               </li>
               <li>
-                <a className="footer-link" href="#">
+                <Link className="footer-link" to="/privacy">
                   Confidentialité
-                </a>
+                </Link>
               </li>
             </ul>
           </nav>
