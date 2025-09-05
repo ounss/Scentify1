@@ -24,7 +24,7 @@ router.get("/stats/parfums", getParfumsStats);
 // router.get("/stats/notes", getNotesStats);
 
 // ✅ ROUTES GESTION UTILISATEURS
-//router.get("/users", getAllUsers);
+router.get("/users", getAllUsers);
 router.patch("/users/:id/admin", toggleAdminStatus);
 router.get("/users/export", exportUsersCSV);
 
