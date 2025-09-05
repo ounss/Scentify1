@@ -1,3 +1,4 @@
+// frontend/src/pages/ParfumForm.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
@@ -20,7 +21,7 @@ import {
 import { noteAPI, parfumAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
-import style from "../styles/ParfumForm.module.css";
+import styles from "../styles/ParfumForm.module.css";
 
 export default function ParfumForm() {
   const navigate = useNavigate();
@@ -47,22 +48,21 @@ export default function ParfumForm() {
     liensMarchands: [],
   });
 
-  // État des notes
+  // Notes & filtres
   const [allNotes, setAllNotes] = useState([]);
   const [filteredNotes, setFilteredNotes] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedFamily, setSelectedFamily] = useState("tous");
   const [families, setFamilies] = useState([]);
 
-  // État de l'interface
+  // UI
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEdit);
-  const [draggedNote, setDraggedNote] = useState(null);
 
   // Image
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
-  const [uploadMode, setUploadMode] = useState("upload");
+  const [uploadMode, setUploadMode] = useState("upload"); // "upload" | "url"
 
   // Liens marchands
   const [newMerchantLink, setNewMerchantLink] = useState({
@@ -74,10 +74,9 @@ export default function ParfumForm() {
 
   // Chargement initial
   useEffect(() => {
-    if (isEdit && id) {
-      loadParfumData();
-    }
+    if (isEdit && id) loadParfumData();
     loadNotesAndFamilies();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEdit, id]);
 
   // Filtrage des notes
@@ -119,22 +118,20 @@ export default function ParfumForm() {
 
   const loadNotesAndFamilies = async () => {
     try {
-      console.log("🔍 Chargement des notes et familles...");
-
-      // Charger toutes les notes
-      const notesResp = await noteAPI.getNotesWithSuggestions();
-      const notes = notesResp.data.notes || [];
+      const notesResp = await noteAPI.getAll();
+      const notes = notesResp.data || [];
       setAllNotes(notes);
 
-      // Charger les familles
-      const familiesResp = await noteAPI.getFamilies();
-      setFamilies(familiesResp.data.families || []);
-
-      console.log(
-        `✅ ${notes.length} notes et ${familiesResp.data.families?.length} familles chargées`
+      const uniqueFamilies = [...new Set(notes.map((n) => n.famille))].filter(
+        Boolean
       );
+      const familiesWithCount = uniqueFamilies.map((famille) => ({
+        famille,
+        count: notes.filter((n) => n.famille === famille).length,
+      }));
+      setFamilies(familiesWithCount);
     } catch (error) {
-      console.error("❌ Erreur chargement notes:", error);
+      console.error("Erreur chargement notes:", error);
       toast.error("Erreur lors du chargement des notes");
       setAllNotes([]);
       setFamilies([]);
@@ -143,67 +140,36 @@ export default function ParfumForm() {
 
   const filterNotes = () => {
     let filtered = allNotes;
-
-    // Filtre par recherche
     if (searchTerm) {
+      const q = searchTerm.toLowerCase();
       filtered = filtered.filter(
         (note) =>
-          note.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          (note.synonymes || []).some((syn) =>
-            syn.toLowerCase().includes(searchTerm.toLowerCase())
-          )
+          note.nom?.toLowerCase().includes(q) ||
+          (note.synonymes || []).some((s) => s.toLowerCase().includes(q))
       );
     }
-
-    // Filtre par famille
     if (selectedFamily !== "tous") {
       filtered = filtered.filter((note) => note.famille === selectedFamily);
     }
-
     setFilteredNotes(filtered);
   };
 
-  // Gestion du drag & drop
-  const handleDragStart = (e, note) => {
-    setDraggedNote(note);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  const handleDrop = (e, position) => {
-    e.preventDefault();
-    if (!draggedNote) return;
-
-    const field = `notes_${position}`;
-    const currentNotes = formData[field] || [];
-
-    // Vérifier si la note n'est pas déjà présente
-    if (currentNotes.includes(draggedNote._id)) {
-      toast.error(`${draggedNote.nom} est déjà dans les notes de ${position}`);
-      setDraggedNote(null);
-      return;
-    }
-
-    // Ajouter la note
-    setFormData((prev) => ({
-      ...prev,
-      [field]: [...currentNotes, draggedNote._id],
-    }));
-
-    toast.success(`${draggedNote.nom} ajoutée aux notes de ${position}`);
-    setDraggedNote(null);
-  };
-
+  // Helpers notes
   const removeNoteFromPosition = (position, noteId) => {
     const field = `notes_${position}`;
     setFormData((prev) => ({
       ...prev,
       [field]: prev[field].filter((id) => id !== noteId),
     }));
+  };
+
+  const addNoteToPosition = (position, noteId) => {
+    const field = `notes_${position}`;
+    setFormData((prev) => {
+      const current = prev[field] || [];
+      if (current.includes(noteId)) return prev;
+      return { ...prev, [field]: [...current, noteId] };
+    });
   };
 
   // Autres handlers
@@ -217,12 +183,10 @@ export default function ParfumForm() {
   const handleImageUpload = (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     setImageFile(file);
     const reader = new FileReader();
     reader.onload = (ev) => setImagePreview(ev.target.result);
     reader.readAsDataURL(file);
-
     setFormData((prev) => ({ ...prev, imageUrl: "" }));
   };
 
@@ -255,7 +219,7 @@ export default function ParfumForm() {
 
   // Soumission
   const handleSubmit = async (e) => {
-    e.preventDefault();
+    e?.preventDefault?.();
 
     if (!isAuthenticated) {
       toast.error("Vous devez être connecté");
@@ -268,7 +232,7 @@ export default function ParfumForm() {
       const formDataToSend = new FormData();
 
       // Champs simples
-      const simpleFields = [
+      [
         "nom",
         "marque",
         "genre",
@@ -278,16 +242,14 @@ export default function ParfumForm() {
         "prix",
         "longevite",
         "sillage",
-      ];
-
-      simpleFields.forEach((key) => {
+      ].forEach((key) => {
         const value = formData[key];
         if (value !== "" && value !== null && value !== undefined) {
           formDataToSend.append(key, value);
         }
       });
 
-      // Notes par position
+      // Notes
       ["notes_tete", "notes_coeur", "notes_fond"].forEach((key) => {
         (formData[key] || []).forEach((id) => {
           formDataToSend.append(key, id);
@@ -310,7 +272,7 @@ export default function ParfumForm() {
         formDataToSend.append("imageUrl", formData.imageUrl);
       }
 
-      // Popularité (admin uniquement)
+      // Popularité (admin)
       if (isAdmin && formData.popularite !== undefined) {
         formDataToSend.append("popularite", formData.popularite);
       }
@@ -335,12 +297,6 @@ export default function ParfumForm() {
     }
   };
 
-  // Fonction helper pour obtenir une note par ID
-  const getNoteById = (noteId) => {
-    return allNotes.find((note) => note._id === noteId);
-  };
-
-  // Constantes
   const genres = [
     { value: "femme", label: "Femme" },
     { value: "homme", label: "Homme" },
@@ -368,659 +324,647 @@ export default function ParfumForm() {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Chargement du parfum...</p>
-        </div>
+      <div className={styles.loadingContainer}>
+        <div className={styles.loadingSpinner} />
+        <p className={styles.loadingText}>Chargement du parfum...</p>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={styles.page}>
       {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <button
-              onClick={() => navigate(-1)}
-              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <ArrowLeft className="w-5 h-5 mr-2" />
-              Retour
-            </button>
-            <h1 className="text-xl font-semibold text-gray-900">
-              {isEdit ? "Modifier le parfum" : "Nouveau parfum"}
-            </h1>
-            <div className="w-16"></div>
-          </div>
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <button onClick={() => navigate(-1)} className={styles.backButton}>
+            <ArrowLeft className={styles.icon} />
+            Retour
+          </button>
+          <h1 className={styles.title}>
+            {isEdit ? "Modifier" : "Nouveau parfum"}
+          </h1>
+          <div className={styles.spacer} />
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <form onSubmit={handleSubmit} className="space-y-8">
-          {/* Informations de base */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">
-              Informations de base
-            </h2>
+      {/* Form */}
+      <form id="parfum-form" onSubmit={handleSubmit} className={styles.form}>
+        {/* Image */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>
+            <Camera className={styles.icon} />
+            Image du parfum
+          </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Nom du parfum <span className="text-red-500">*</span>
-                </label>
+          {imagePreview || formData.imageUrl ? (
+            <div className={styles.imagePreview}>
+              <img
+                src={imagePreview || formData.imageUrl}
+                alt="Aperçu parfum"
+                className={styles.previewImage}
+              />
+              <button
+                type="button"
+                onClick={
+                  imagePreview
+                    ? removeUploadedImage
+                    : () => handleInputChange("imageUrl", "")
+                }
+                className={styles.removeImageButton}
+              >
+                <X className={styles.icon} />
+              </button>
+            </div>
+          ) : (
+            <div className={styles.imagePlaceholder}>
+              <Camera className={styles.placeholderIcon} />
+              <div className={styles.placeholderText}>Aucune image</div>
+            </div>
+          )}
+
+          <div className={styles.formRow}>
+            <button
+              type="button"
+              onClick={() => setUploadMode("upload")}
+              className={`${styles.input} ${
+                uploadMode === "upload" ? styles.noteSelected : ""
+              }`}
+            >
+              <Upload className={styles.icon} />
+              Upload fichier
+            </button>
+            <button
+              type="button"
+              onClick={() => setUploadMode("url")}
+              className={`${styles.input} ${
+                uploadMode === "url" ? styles.noteSelected : ""
+              }`}
+            >
+              <LinkIcon className={styles.icon} />
+              URL externe
+            </button>
+          </div>
+
+          {uploadMode === "upload" && (
+            <div className={styles.formGroup}>
+              <input
+                type="file"
+                id="imageUpload"
+                accept="image/*"
+                onChange={handleImageUpload}
+                className={styles.input}
+              />
+            </div>
+          )}
+
+          {uploadMode === "url" && (
+            <div className={styles.formGroup}>
+              <label className={styles.label}>URL de l'image</label>
+              <div className={styles.inputWithIcon}>
+                <LinkIcon className={styles.inputIcon} />
                 <input
-                  type="text"
-                  value={formData.nom}
-                  onChange={(e) => handleInputChange("nom", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Ex: Sauvage"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Marque <span className="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  value={formData.marque}
-                  onChange={(e) => handleInputChange("marque", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  placeholder="Ex: Dior"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Genre <span className="text-red-500">*</span>
-                </label>
-                <select
-                  value={formData.genre}
-                  onChange={(e) => handleInputChange("genre", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  required
-                >
-                  {genres.map((g) => (
-                    <option key={g.value} value={g.value}>
-                      {g.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Année de sortie
-                </label>
-                <div className="relative">
-                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="number"
-                    value={formData.anneSortie}
-                    onChange={(e) =>
-                      handleInputChange("anneSortie", e.target.value)
-                    }
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    min="1900"
-                    max={new Date().getFullYear() + 1}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Concentration
-                </label>
-                <select
-                  value={formData.concentre}
+                  type="url"
+                  value={formData.imageUrl}
                   onChange={(e) =>
-                    handleInputChange("concentre", e.target.value)
+                    handleInputChange("imageUrl", e.target.value)
                   }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  {concentres.map((c) => (
-                    <option key={c.value} value={c.value}>
-                      {c.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prix (€)
-                </label>
-                <div className="relative">
-                  <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="number"
-                    value={formData.prix}
-                    onChange={(e) => handleInputChange("prix", e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                  />
-                </div>
+                  className={styles.input}
+                  placeholder="https://..."
+                />
               </div>
             </div>
+          )}
+        </div>
 
-            <div className="mt-6">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Description
+        {/* Infos de base */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Informations de base</h2>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              Nom du parfum <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.nom}
+              onChange={(e) => handleInputChange("nom", e.target.value)}
+              className={styles.input}
+              placeholder="Ex: Sauvage"
+              required
+            />
+          </div>
+
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              Marque <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              value={formData.marque}
+              onChange={(e) => handleInputChange("marque", e.target.value)}
+              className={styles.input}
+              placeholder="Ex: Dior"
+              required
+            />
+          </div>
+
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                Genre <span className={styles.required}>*</span>
               </label>
-              <textarea
-                value={formData.description}
+              <select
+                value={formData.genre}
+                onChange={(e) => handleInputChange("genre", e.target.value)}
+                className={styles.select}
+                required
+              >
+                {genres.map((g) => (
+                  <option key={g.value} value={g.value}>
+                    {g.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                <Calendar className={styles.labelIcon} />
+                Année de sortie
+              </label>
+              <input
+                type="number"
+                value={formData.anneSortie}
                 onChange={(e) =>
-                  handleInputChange("description", e.target.value)
+                  handleInputChange("anneSortie", e.target.value)
                 }
-                rows={4}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                placeholder="Décrivez ce parfum..."
+                className={styles.input}
+                min="1900"
+                max={new Date().getFullYear() + 1}
               />
             </div>
           </div>
 
-          {/* Performance */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">
-              Performance
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Clock className="inline w-4 h-4 mr-1" />
-                  Longévité
-                </label>
-                <select
-                  value={formData.longevite}
-                  onChange={(e) =>
-                    handleInputChange("longevite", e.target.value)
-                  }
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Sélectionner</option>
-                  {longeviteOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Droplets className="inline w-4 h-4 mr-1" />
-                  Sillage
-                </label>
-                <select
-                  value={formData.sillage}
-                  onChange={(e) => handleInputChange("sillage", e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                >
-                  <option value="">Sélectionner</option>
-                  {sillageOptions.map((opt) => (
-                    <option key={opt} value={opt}>
-                      {opt}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>Concentration</label>
+              <select
+                value={formData.concentre}
+                onChange={(e) => handleInputChange("concentre", e.target.value)}
+                className={styles.select}
+              >
+                {concentres.map((c) => (
+                  <option key={c.value} value={c.value}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {isAdmin && (
-              <div className="mt-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  <Award className="inline w-4 h-4 mr-1" />
-                  Popularité (0-100)
-                </label>
-                <div className="flex items-center space-x-4">
-                  <input
-                    type="range"
-                    value={formData.popularite}
-                    onChange={(e) =>
-                      handleInputChange("popularite", e.target.value)
-                    }
-                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                    min="0"
-                    max="100"
-                  />
-                  <span className="bg-gray-100 px-3 py-1 rounded-md font-medium min-w-[3rem] text-center">
-                    {formData.popularite}
-                  </span>
-                </div>
-              </div>
-            )}
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                <Euro className={styles.labelIcon} />
+                Prix (€)
+              </label>
+              <input
+                type="number"
+                value={formData.prix}
+                onChange={(e) => handleInputChange("prix", e.target.value)}
+                className={styles.input}
+                min="0"
+                step="0.01"
+                placeholder="0.00"
+              />
+            </div>
           </div>
 
-          {/* Notes olfactives avec Drag & Drop */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Palette des notes */}
-            <div className="bg-white rounded-lg shadow-sm p-6">
-              <h2 className="text-lg font-medium text-gray-900 mb-6">
-                Palette des notes olfactives
-              </h2>
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Description</label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => handleInputChange("description", e.target.value)}
+              className={styles.textarea}
+              placeholder="Décrivez ce parfum..."
+            />
+          </div>
+        </div>
 
-              {/* Filtres */}
-              <div className="space-y-4 mb-6">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="text"
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="Rechercher une note..."
-                  />
-                </div>
+        {/* Performance */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Performance</h2>
 
-                <div className="relative">
-                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <select
-                    value={selectedFamily}
-                    onChange={(e) => setSelectedFamily(e.target.value)}
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                  >
-                    <option value="tous">Toutes les familles</option>
-                    {families.map((family) => (
-                      <option key={family.famille} value={family.famille}>
-                        {family.famille} ({family.count})
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                <Clock className={styles.labelIcon} />
+                Longévité
+              </label>
+              <select
+                value={formData.longevite}
+                onChange={(e) => handleInputChange("longevite", e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Sélectionner</option>
+                {longeviteOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                <Droplets className={styles.labelIcon} />
+                Sillage
+              </label>
+              <select
+                value={formData.sillage}
+                onChange={(e) => handleInputChange("sillage", e.target.value)}
+                className={styles.select}
+              >
+                <option value="">Sélectionner</option>
+                {sillageOptions.map((opt) => (
+                  <option key={opt} value={opt}>
+                    {opt}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {isAdmin && (
+            <div className={styles.formGroup}>
+              <label className={styles.label}>
+                <Award className={styles.labelIcon} />
+                Popularité (0-100)
+              </label>
+              <div className={styles.rangeGroup}>
+                <input
+                  type="range"
+                  value={formData.popularite}
+                  onChange={(e) =>
+                    handleInputChange("popularite", e.target.value)
+                  }
+                  className={styles.range}
+                  min="0"
+                  max="100"
+                />
+                <span className={styles.rangeValue}>{formData.popularite}</span>
               </div>
+            </div>
+          )}
+        </div>
 
-              {/* Liste des notes */}
-              <div className="max-h-96 overflow-y-auto space-y-2">
-                {filteredNotes.length === 0 ? (
-                  <p className="text-gray-500 text-center py-8">
-                    Aucune note trouvée
-                  </p>
-                ) : (
-                  filteredNotes.map((note) => (
-                    <div
-                      key={note._id}
-                      draggable
-                      onDragStart={(e) => handleDragStart(e, note)}
-                      className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-move transition-all"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div
-                          className="w-4 h-4 rounded-full"
-                          style={{ backgroundColor: note.couleur || "#4a90e2" }}
-                        ></div>
-                        <div>
-                          <div className="font-medium text-gray-900">
-                            {note.nom}
-                          </div>
-                          <div className="text-xs text-gray-500">
-                            {note.famille}
-                            {note.positionPreferee && (
-                              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
-                                {note.positionPreferee}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
-                        Glisser
-                      </div>
-                    </div>
-                  ))
-                )}
+        {/* Notes olfactives */}
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Notes olfactives</h2>
+
+          {/* Filtres */}
+          <div className={styles.formRow}>
+            <div className={styles.formGroup}>
+              <div className={styles.inputWithIcon}>
+                <Search className={styles.inputIcon} />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className={styles.input}
+                  placeholder="Rechercher une note..."
+                />
               </div>
             </div>
 
-            {/* Zones de dépôt */}
-            <div className="space-y-6">
-              {[
-                {
-                  key: "tete",
-                  label: "Notes de tête",
-                  color: "bg-yellow-50 border-yellow-200",
-                  textColor: "text-yellow-800",
-                },
-                {
-                  key: "coeur",
-                  label: "Notes de cœur",
-                  color: "bg-pink-50 border-pink-200",
-                  textColor: "text-pink-800",
-                },
-                {
-                  key: "fond",
-                  label: "Notes de fond",
-                  color: "bg-purple-50 border-purple-200",
-                  textColor: "text-purple-800",
-                },
-              ].map(({ key, label, color, textColor }) => (
-                <div key={key} className="bg-white rounded-lg shadow-sm p-6">
-                  <h3 className={`text-lg font-medium mb-4 ${textColor}`}>
-                    <Star className="inline w-5 h-5 mr-2" />
-                    {label}
-                  </h3>
+            <div className={styles.formGroup}>
+              <div className={styles.inputWithIcon}>
+                <Filter className={styles.inputIcon} />
+                <select
+                  value={selectedFamily}
+                  onChange={(e) => setSelectedFamily(e.target.value)}
+                  className={styles.select}
+                >
+                  <option value="tous">Toutes les familles</option>
+                  {families.map((family) => (
+                    <option key={family.famille} value={family.famille}>
+                      {family.famille} ({family.count})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+          </div>
 
-                  <div
-                    onDragOver={handleDragOver}
-                    onDrop={(e) => handleDrop(e, key)}
-                    className={`min-h-[120px] p-4 border-2 border-dashed rounded-lg ${color} transition-colors`}
-                  >
-                    {formData[`notes_${key}`]?.length === 0 ? (
-                      <div className="text-center text-gray-500 py-8">
-                        <div className="text-sm">Déposez les notes ici</div>
-                        <div className="text-xs mt-1">
-                          ou glissez-déposez depuis la palette
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {(formData[`notes_${key}`] || []).map((noteId) => {
-                          const note = getNoteById(noteId);
-                          if (!note) return null;
+          {/* Mode filtré */}
+          {searchTerm || selectedFamily !== "tous" ? (
+            <div className={styles.notesGroup}>
+              <h3 className={styles.notesTitle}>
+                <Search className={styles.notesIcon} />
+                Notes disponibles ({filteredNotes.length})
+              </h3>
+              {filteredNotes.length === 0 ? (
+                <div className={styles.noNotesText}>Aucune note trouvée</div>
+              ) : (
+                <div className={styles.notesGrid}>
+                  {filteredNotes.map((note) => {
+                    const isInTete = formData.notes_tete.includes(note._id);
+                    const isInCoeur = formData.notes_coeur.includes(note._id);
+                    const isInFond = formData.notes_fond.includes(note._id);
+                    const isSelected = isInTete || isInCoeur || isInFond;
 
-                          return (
-                            <div
-                              key={noteId}
-                              className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg border shadow-sm"
-                            >
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{
-                                  backgroundColor: note.couleur || "#4a90e2",
-                                }}
-                              ></div>
-                              <span className="text-sm font-medium">
-                                {note.nom}
-                              </span>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  removeNoteFromPosition(key, noteId)
-                                }
-                                className="text-gray-400 hover:text-red-500 transition-colors"
-                              >
-                                <X className="w-4 h-4" />
-                              </button>
-                            </div>
-                          );
-                        })}
-                      </div>
+                    return (
+                      <button
+                        key={note._id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            if (isInTete)
+                              removeNoteFromPosition("tete", note._id);
+                            if (isInCoeur)
+                              removeNoteFromPosition("coeur", note._id);
+                            if (isInFond)
+                              removeNoteFromPosition("fond", note._id);
+                          } else {
+                            addNoteToPosition("tete", note._id);
+                          }
+                        }}
+                        className={`${styles.noteButton} ${
+                          isSelected
+                            ? styles.noteTeteSelected
+                            : styles.noteUnselected
+                        }`}
+                      >
+                        {note.nom}
+                        {isSelected && (
+                          <span style={{ marginLeft: 4, fontSize: 10 }}>
+                            ({isInTete ? "T" : isInCoeur ? "C" : "F"})
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          ) : (
+            // Mode normal : par positions
+            <>
+              {/* Tête */}
+              <div className={styles.notesGroup}>
+                <h3 className={`${styles.notesTitle} ${styles.notesTete}`}>
+                  <Star className={styles.notesIcon} />
+                  Notes de tête ({formData.notes_tete.length})
+                </h3>
+                <div className={styles.notesGrid}>
+                  {allNotes.map((note) => {
+                    const isSelected = formData.notes_tete.includes(note._id);
+                    return (
+                      <button
+                        key={note._id}
+                        type="button"
+                        onClick={() =>
+                          isSelected
+                            ? removeNoteFromPosition("tete", note._id)
+                            : addNoteToPosition("tete", note._id)
+                        }
+                        className={`${styles.noteButton} ${
+                          isSelected
+                            ? styles.noteTeteSelected
+                            : styles.noteUnselected
+                        }`}
+                      >
+                        {note.nom}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Cœur */}
+              <div className={styles.notesGroup}>
+                <h3 className={`${styles.notesTitle} ${styles.notesCoeur}`}>
+                  <Star className={styles.notesIcon} />
+                  Notes de cœur ({formData.notes_coeur.length})
+                </h3>
+                <div className={styles.notesGrid}>
+                  {allNotes.map((note) => {
+                    const isSelected = formData.notes_coeur.includes(note._id);
+                    return (
+                      <button
+                        key={note._id}
+                        type="button"
+                        onClick={() =>
+                          isSelected
+                            ? removeNoteFromPosition("coeur", note._id)
+                            : addNoteToPosition("coeur", note._id)
+                        }
+                        className={`${styles.noteButton} ${
+                          isSelected
+                            ? styles.noteCoeurSelected
+                            : styles.noteUnselected
+                        }`}
+                      >
+                        {note.nom}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Fond */}
+              <div className={styles.notesGroup}>
+                <h3 className={`${styles.notesTitle} ${styles.notesFond}`}>
+                  <Star className={styles.notesIcon} />
+                  Notes de fond ({formData.notes_fond.length})
+                </h3>
+                <div className={styles.notesGrid}>
+                  {allNotes.map((note) => {
+                    const isSelected = formData.notes_fond.includes(note._id);
+                    return (
+                      <button
+                        key={note._id}
+                        type="button"
+                        onClick={() =>
+                          isSelected
+                            ? removeNoteFromPosition("fond", note._id)
+                            : addNoteToPosition("fond", note._id)
+                        }
+                        className={`${styles.noteButton} ${
+                          isSelected
+                            ? styles.noteFondSelected
+                            : styles.noteUnselected
+                        }`}
+                      >
+                        {note.nom}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Aide */}
+          <div
+            style={{
+              marginTop: 16,
+              padding: 12,
+              backgroundColor: "#f8fafc",
+              border: "1px solid #e2e8f0",
+              borderRadius: 8,
+              fontSize: 14,
+              color: "#64748b",
+            }}
+          >
+            💡 <strong>Astuce :</strong> Cliquez sur une note pour l'ajouter ou
+            la retirer. Utilisez les filtres pour trouver rapidement.
+          </div>
+        </div>
+
+        {/* Liens marchands */}
+        <div className={styles.section}>
+          <div className={styles.sectionHeader}>
+            <h2 className={styles.sectionTitle}>Liens marchands</h2>
+            <button
+              type="button"
+              onClick={() => setShowMerchantForm(true)}
+              className={styles.addButton}
+            >
+              <Plus className={styles.icon} />
+              Ajouter
+            </button>
+          </div>
+
+          {formData.liensMarchands.length > 0 ? (
+            <div className={styles.merchantList}>
+              {formData.liensMarchands.map((link, index) => (
+                <div key={index} className={styles.merchantItem}>
+                  <div className={styles.merchantInfo}>
+                    <div className={styles.merchantName}>{link.nom}</div>
+                    <a
+                      href={link.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className={styles.merchantUrl}
+                    >
+                      {link.url}
+                    </a>
+                    {link.prix && (
+                      <div className={styles.merchantPrice}>{link.prix}€</div>
                     )}
                   </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveMerchantLink(index)}
+                    className={styles.removeButton}
+                  >
+                    <X className={styles.icon} />
+                  </button>
                 </div>
               ))}
             </div>
-          </div>
-
-          {/* Image */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <h2 className="text-lg font-medium text-gray-900 mb-6">
-              Image du parfum
-            </h2>
-
-            {/* Toggle Upload/URL */}
-            <div className="flex space-x-4 mb-6">
-              <button
-                type="button"
-                onClick={() => setUploadMode("upload")}
-                className={`flex items-center px-4 py-2 rounded-md border transition-colors ${
-                  uploadMode === "upload"
-                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <Upload className="w-4 h-4 mr-2" />
-                Upload fichier
-              </button>
-              <button
-                type="button"
-                onClick={() => setUploadMode("url")}
-                className={`flex items-center px-4 py-2 rounded-md border transition-colors ${
-                  uploadMode === "url"
-                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
-                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
-                }`}
-              >
-                <LinkIcon className="w-4 h-4 mr-2" />
-                URL externe
-              </button>
+          ) : (
+            <div className={styles.noMerchantsText}>
+              Aucun lien marchand ajouté
             </div>
+          )}
 
-            {/* Aperçu */}
-            {(imagePreview || formData.imageUrl) && (
-              <div className="relative mb-6 inline-block">
-                <img
-                  src={imagePreview || formData.imageUrl}
-                  alt="Aperçu parfum"
-                  className="w-32 h-32 object-cover rounded-lg border"
+          {showMerchantForm && (
+            <div className={styles.merchantForm}>
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Nom du marchand</label>
+                <input
+                  type="text"
+                  value={newMerchantLink.nom}
+                  onChange={(e) =>
+                    setNewMerchantLink({
+                      ...newMerchantLink,
+                      nom: e.target.value,
+                    })
+                  }
+                  className={styles.input}
+                  placeholder="Ex: Sephora"
                 />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>URL</label>
+                <input
+                  type="url"
+                  value={newMerchantLink.url}
+                  onChange={(e) =>
+                    setNewMerchantLink({
+                      ...newMerchantLink,
+                      url: e.target.value,
+                    })
+                  }
+                  className={styles.input}
+                  placeholder="https://..."
+                />
+              </div>
+
+              <div className={styles.formGroup}>
+                <label className={styles.label}>Prix (€)</label>
+                <input
+                  type="number"
+                  value={newMerchantLink.prix}
+                  onChange={(e) =>
+                    setNewMerchantLink({
+                      ...newMerchantLink,
+                      prix: e.target.value,
+                    })
+                  }
+                  className={styles.input}
+                  min="0"
+                  step="0.01"
+                  placeholder="0.00"
+                />
+              </div>
+
+              <div className={styles.formActions}>
                 <button
                   type="button"
-                  onClick={
-                    imagePreview
-                      ? removeUploadedImage
-                      : () => handleInputChange("imageUrl", "")
-                  }
-                  className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200 transition-colors"
+                  onClick={() => setShowMerchantForm(false)}
+                  className={styles.cancelButton}
                 >
-                  <X className="w-4 h-4" />
+                  Annuler
+                </button>
+                <button
+                  type="button"
+                  onClick={handleAddMerchantLink}
+                  className={styles.addMerchantButton}
+                >
+                  <Plus className={styles.icon} />
+                  Ajouter
                 </button>
               </div>
-            )}
-
-            {/* Upload */}
-            {uploadMode === "upload" && (
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
-                <input
-                  type="file"
-                  id="imageUpload"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <label htmlFor="imageUpload" className="cursor-pointer">
-                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                  <div className="text-sm text-gray-600">
-                    {imageFile ? "Changer l'image" : "Choisir une image"}
-                  </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    PNG, JPG, WEBP jusqu'à 5MB
-                  </div>
-                </label>
-              </div>
-            )}
-
-            {/* URL */}
-            {uploadMode === "url" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  URL de l'image
-                </label>
-                <div className="relative">
-                  <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                  <input
-                    type="url"
-                    value={formData.imageUrl}
-                    onChange={(e) =>
-                      handleInputChange("imageUrl", e.target.value)
-                    }
-                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                    placeholder="https://example.com/image.jpg"
-                  />
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Liens marchands */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-lg font-medium text-gray-900">
-                Liens marchands
-              </h2>
-              <button
-                type="button"
-                onClick={() => setShowMerchantForm(true)}
-                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Ajouter
-              </button>
             </div>
+          )}
+        </div>
+      </form>
 
-            {formData.liensMarchands.length > 0 ? (
-              <div className="space-y-3">
-                {formData.liensMarchands.map((link, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                  >
-                    <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">{link.nom}</h4>
-                      <a
-                        href={link.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
-                      >
-                        {link.url}
-                      </a>
-                      {link.prix && (
-                        <div className="text-sm text-gray-600 mt-1">
-                          {link.prix}€
-                        </div>
-                      )}
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveMerchantLink(index)}
-                      className="text-gray-400 hover:text-red-500 transition-colors ml-4"
-                    >
-                      <X className="w-5 h-5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <p className="text-gray-500 text-center py-8">
-                Aucun lien marchand ajouté
-              </p>
-            )}
-
-            {showMerchantForm && (
-              <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
-                <h3 className="text-sm font-medium text-gray-900 mb-4">
-                  Nouveau lien marchand
-                </h3>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Nom du marchand
-                    </label>
-                    <input
-                      type="text"
-                      value={newMerchantLink.nom}
-                      onChange={(e) =>
-                        setNewMerchantLink({
-                          ...newMerchantLink,
-                          nom: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="Ex: Sephora"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      URL
-                    </label>
-                    <input
-                      type="url"
-                      value={newMerchantLink.url}
-                      onChange={(e) =>
-                        setNewMerchantLink({
-                          ...newMerchantLink,
-                          url: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                      placeholder="https://..."
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Prix (€)
-                    </label>
-                    <input
-                      type="number"
-                      value={newMerchantLink.prix}
-                      onChange={(e) =>
-                        setNewMerchantLink({
-                          ...newMerchantLink,
-                          prix: e.target.value,
-                        })
-                      }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
-                      min="0"
-                      step="0.01"
-                      placeholder="0.00"
-                    />
-                  </div>
-
-                  <div className="flex space-x-3">
-                    <button
-                      type="button"
-                      onClick={() => setShowMerchantForm(false)}
-                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
-                    >
-                      Annuler
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleAddMerchantLink}
-                      className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
-                    >
-                      Ajouter
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Submit */}
-          <div className="bg-white rounded-lg shadow-sm p-6">
-            <button
-              type="submit"
-              disabled={
-                loading || !formData.nom || !formData.marque || !formData.genre
-              }
-              className="w-full flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {loading ? (
-                <>
-                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
-                  {isEdit ? "Modification..." : "Création..."}
-                </>
-              ) : (
-                <>
-                  <Save className="w-5 h-5 mr-2" />
-                  {isEdit ? "Modifier le parfum" : "Créer le parfum"}
-                </>
-              )}
-            </button>
-          </div>
-        </form>
+      {/* Submit Section - fixe bas de page */}
+      <div className={styles.submitSection}>
+        <button
+          type="submit"
+          form="parfum-form"
+          disabled={
+            loading || !formData.nom || !formData.marque || !formData.genre
+          }
+          className={styles.submitButton}
+          onClick={handleSubmit}
+        >
+          {loading ? (
+            <div className={styles.loadingSubmit}>
+              <div className={styles.spinner} />
+              {isEdit ? "Modification..." : "Création..."}
+            </div>
+          ) : (
+            <>
+              <Save className={styles.icon} />
+              {isEdit ? "Modifier le parfum" : "Créer le parfum"}
+            </>
+          )}
+        </button>
       </div>
     </div>
   );
