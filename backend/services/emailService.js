@@ -54,7 +54,7 @@ export const sendVerificationEmail = async (user, token) => {
     const Transport = createTransport();
 
     const verifyUrl = `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
+      process.env.FRONTEND_URL || "https://scentify-perfumes.onrender.com/"
     }/verify-email?token=${token}`;
 
     const mailOptions = {
@@ -128,7 +128,7 @@ export const sendPasswordResetEmail = async (user, token) => {
     const Transport = createTransport();
 
     const resetUrl = `${
-      process.env.FRONTEND_URL || "http://localhost:3000"
+      process.env.FRONTEND_URL || "https://scentify-perfumes.onrender.com/"
     }/reset-password?token=${token}`;
 
     const mailOptions = {
@@ -244,7 +244,10 @@ export const sendWelcomeEmail = async (user) => {
             </ul>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || "http://localhost:3000"}" 
+              <a href="${
+                process.env.FRONTEND_URL ||
+                "https://scentify-perfumes.onrender.com"
+              }" 
                  style="background: linear-gradient(135deg, #a44949, #c56b6b); 
                         color: white; 
                         padding: 15px 30px; 
