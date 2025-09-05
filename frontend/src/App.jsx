@@ -1,4 +1,3 @@
-// frontend/src/App.jsx (Version mise à jour avec nouvelles routes)
 import React from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { Toaster } from "react-hot-toast";
@@ -105,25 +104,10 @@ function App() {
               },
             }}
           />
-          {/* Route auth sans layout */}
-          <Route
-            path="/auth"
-            element={
-              <PublicRoute>
-                <Auth />
-              </PublicRoute>
-            }
-          />
-   
-          {/* Route verify email */}
-          <Route path="/verify-email" element={<VerifyEmail />} />
-          {/* Route reset password */}
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/verify-email" element={<VerifyEmail />} />
 
-          <Route path="/reset-password" element={<ResetPassword />} />
+          {/* ✅ TOUTES LES ROUTES DANS UN SEUL COMPOSANT <Routes> */}
           <Routes>
-            {/* Routes avec layout standard */}
+            {/* ✅ Route d'accueil */}
             <Route
               path="/"
               element={
@@ -132,6 +116,22 @@ function App() {
                 </Layout>
               }
             />
+
+            {/* ✅ Routes d'authentification (sans layout) */}
+            <Route
+              path="/auth"
+              element={
+                <PublicRoute>
+                  <Auth />
+                </PublicRoute>
+              }
+            />
+
+            {/* ✅ Routes de vérification email et reset password (sans layout) */}
+            <Route path="/verify-email" element={<VerifyEmail />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            {/* ✅ Routes avec layout standard */}
             <Route
               path="/parfum/:id"
               element={
@@ -140,6 +140,7 @@ function App() {
                 </Layout>
               }
             />
+
             <Route
               path="/contact"
               element={
@@ -148,6 +149,7 @@ function App() {
                 </Layout>
               }
             />
+
             <Route
               path="/profile"
               element={
@@ -158,7 +160,19 @@ function App() {
                 </PrivateRoute>
               }
             />
-            {/* Routes mobiles avec layout mobile */}
+
+            <Route
+              path="/history"
+              element={
+                <PrivateRoute>
+                  <Layout>
+                    <HistoryPage />
+                  </Layout>
+                </PrivateRoute>
+              }
+            />
+
+            {/* ✅ Routes mobiles avec layout mobile */}
             <Route
               path="/parfum/new"
               element={
@@ -169,6 +183,7 @@ function App() {
                 </PrivateRoute>
               }
             />
+
             <Route
               path="/parfum/edit/:id"
               element={
@@ -179,6 +194,7 @@ function App() {
                 </PrivateRoute>
               }
             />
+
             <Route
               path="/menu"
               element={
@@ -187,6 +203,7 @@ function App() {
                 </MobileLayout>
               }
             />
+
             <Route
               path="/favorites"
               element={
@@ -198,27 +215,7 @@ function App() {
               }
             />
 
-            <Route
-              path="/history"
-              element={
-                <PrivateRoute>
-                  <Layout>
-                    {" "}
-                    <HistoryPage />
-                  </Layout>
-                </PrivateRoute>
-              }
-            />
-            {/* Route auth sans layout */}
-            <Route
-              path="/auth"
-              element={
-                <PublicRoute>
-                  <Auth />
-                </PublicRoute>
-              }
-            />
-            {/* Route admin */}
+            {/* ✅ Route admin */}
             <Route
               path="/admin"
               element={
@@ -227,7 +224,8 @@ function App() {
                 </AdminRoute>
               }
             />
-            {/* Redirection pour les routes inconnues */}
+
+            {/* ✅ Redirection pour les routes inconnues */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
