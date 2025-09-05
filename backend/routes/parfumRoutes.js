@@ -17,7 +17,7 @@ import {
   exportParfumsCSV,
   importParfumsCSV,
 } from "../controllers/parfumController.js";
-import { protect, admin } from "../middleware/authMiddlewareMiddleware.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 import {
   validateParfum,
   handleValidationErrors,

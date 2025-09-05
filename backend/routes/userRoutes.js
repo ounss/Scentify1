@@ -23,7 +23,7 @@ import {
   exportUsersCSV,
   toggleAdminStatus,
 } from "../controllers/userController.js";
-import { protect, admin } from "../middleware/authMiddlewareMiddleware.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 import {
   validateRegister,
   validateLogin,

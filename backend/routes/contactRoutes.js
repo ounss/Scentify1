@@ -7,7 +7,7 @@ import {
   getContactMessages,
   updateContactMessage,
 } from "../controllers/contactController.js";
-import { protect, admin } from "../middleware/authMiddlewareMiddleware.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 
 const router = express.Router();
 
