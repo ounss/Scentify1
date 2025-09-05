@@ -78,7 +78,7 @@ router.delete("/profile", deleteUser);
 
 // ===== ROUTES ADMIN =====
 // Routes nécessitant les droits admin
-//router.get("/all", admin, //getAllUsers);
+router.get("/all", admin, GetAllUsers);
 router.get("/stats", admin, getUserStats);
 router.get("/export", admin, exportUsersCSV);
 router.patch("/:id/admin", admin, toggleAdminStatus);
