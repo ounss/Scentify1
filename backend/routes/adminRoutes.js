@@ -1,6 +1,6 @@
 // backend/routes/adminRoutes.js - CORRECTION ROUTES ADMIN
 import express from "express";
-import { protect, admin } from "../middleware/authMiddleware.js";
+import { protect, admin } from "../middleware/authMiddlewareMiddleware.js";
 import {
   getUserStats,
   getAllUsers,

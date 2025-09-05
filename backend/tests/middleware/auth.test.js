@@ -1,9 +1,9 @@
 // 2. TESTS MIDDLEWARES
 // ==========================================
 
-// tests/middleware/auth.test.js
+// tests/middleware/authMiddleware.test.js
 const jwt = require("jsonwebtoken");
-const authMiddleware = require("../../middleware/auth");
+const authMiddleware = require("../../middleware/authMiddleware");
 const User = require("../../models/User");
 
 jest.mock("../../models/User");

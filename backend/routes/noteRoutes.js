@@ -10,7 +10,7 @@ import {
   updateNote,
   deleteNote,
 } from "../controllers/noteController.js";
-import { protect, admin } from "../middleware/auth.js";
+import { protect, admin } from "../middleware/authMiddleware.js";
 import { validateNote } from "../middleware/validation.js";
 
 const router = express.Router();
