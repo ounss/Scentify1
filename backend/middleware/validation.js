@@ -80,6 +80,10 @@ const noteSchema = Joi.object({
   // usages, stats sont exclus de la validation manuelle
 });
 
+export const handleValidationErrors = (req, res, next) => {
+  next();
+};
+
 // Middleware de validation pour les notes
 export const validateNote = (req, res, next) => {
   const { error, value } = noteSchema.validate(req.body, {
@@ -194,5 +198,46 @@ export const validateParfum = (req, res, next) => {
   }
 
   req.validatedData = value;
+  next();
+};
+// Ajouter à la fin de validation.js :
+const registerSchema = Joi.object({
+  username: Joi.string().min(3).max(30).required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().min(6).required(),
+});
+
+const loginSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+
+export const validateRegister = (req, res, next) => {
+  const { error, value } = registerSchema.validate(req.body);
+  if (error) {
+    return res.status(422).json({
+      message: "Données invalides",
+      errors: error.details.map((d) => ({
+        field: d.path.join("."),
+        message: d.message,
+      })),
+    });
+  }
+  req.body = value;
+  next();
+};
+
+export const validateLogin = (req, res, next) => {
+  const { error, value } = loginSchema.validate(req.body);
+  if (error) {
+    return res.status(422).json({
+      message: "Données invalides",
+      errors: error.details.map((d) => ({
+        field: d.path.join("."),
+        message: d.message,
+      })),
+    });
+  }
+  req.body = value;
   next();
 };

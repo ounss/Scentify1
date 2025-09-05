@@ -1,6 +1,5 @@
+// backend/routes/userRoutes.js - IMPORTS ET STRUCTURE CORRIGÉS
 import express from "express";
-import multer from "multer";
-import path from "path";
 import {
   registerUser,
   loginUser,
@@ -23,84 +22,65 @@ import {
   exportUsersCSV,
   toggleAdminStatus,
 } from "../controllers/userController.js";
+
+// ✅ IMPORT CORRECT: authMiddleware.js
 import { protect, admin } from "../middleware/authMiddleware.js";
+
+// ✅ IMPORT CORRECT: validation.js (fonction existante)
 import {
   validateRegister,
   validateLogin,
+  validateResetPassword,
   handleValidationErrors,
 } from "../middleware/validation.js";
 
 const router = express.Router();
 
-// // Configuration multer pour upload d'avatar
-// const storage = multer.diskStorage({
-//   destination: (req, file, cb) => {
-//     cb(null, "uploads/avatars/");
-//   },
-//   filename: (req, file, cb) => {
-//     cb(
-//       null,
-//       `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(
-//         file.originalname
-//       )}`
-//     );
-//   },
-//});
-
-// const upload = multer({
-//   storage: avatarStorage, // ← Utiliser Cloudinary
-//   limits: { fileSize: 2 * 1024 * 1024 },
-//   fileFilter: (req, file, cb) => {
-//     const allowedTypes = /jpeg|jpg|png|webp/;
-//     const extname = allowedTypes.test(
-//       path.extname(file.originalname).toLowerCase()
-//     );
-//     const mimetype = allowedTypes.test(file.mimetype);
-
-//     if (mimetype && extname) {
-//       return cb(null, true);
-//     } else {
-//       cb(new Error("Format d'image non supporté"));
-//     }
-//   },
-//});
-
-// ✅ Routes publiques
+// ===== ROUTES PUBLIQUES =====
 router.post(
   "/register",
   validateRegister,
   handleValidationErrors,
   registerUser
 );
-router.get("/verify-email", verifyEmail);
 router.post("/login", validateLogin, handleValidationErrors, loginUser);
-router.post("/verify-email", verifyEmail);
+router.get("/verify-email/:token", verifyEmail);
 router.post("/forgot-password", forgotPassword);
-router.post("/reset-password", resetPassword);
+router.post(
+  "/reset-password",
+  validateResetPassword,
+  handleValidationErrors,
+  resetPassword
+);
 
-// ✅ Routes privées - ORDRE IMPORTANT !
-router.get("/profile", protect, getUserProfile);
-//router.put("/profile", protect, upload.single("photo"), updateUserProfile);
-router.delete("/profile", protect, deleteUser);
+// ===== ROUTES PROTÉGÉES =====
+// Middleware protect appliqué à toutes les routes suivantes
+router.use(protect);
 
-// ✅ Routes favoris - CORRECTION URGENTE
-router.get("/favorites", protect, getUserFavorites);
-router.post("/favorites/parfum/:id", protect, addFavoriteParfum);
-router.delete("/favorites/parfum/:id", protect, removeFavoriteParfum);
-router.post("/favorites/note/:id", protect, addFavoriteNote);
-router.delete("/favorites/note/:id", protect, removeFavoriteNote);
+// Profil utilisateur
+router.get("/profile", getUserProfile);
+router.put("/profile", updateUserProfile);
 
-// ✅ Routes historique - CORRECTION URGENTE
-router.get("/history", protect, getUserHistory);
-router.post("/history/:id", protect, addToHistory);
-router.delete("/history", protect, clearHistory);
+// Favoris
+router.get("/favorites", getUserFavorites);
+router.post("/favorites/parfum/:id", addFavoriteParfum);
+router.delete("/favorites/parfum/:id", removeFavoriteParfum);
+router.post("/favorites/note/:id", addFavoriteNote);
+router.delete("/favorites/note/:id", removeFavoriteNote);
 
-// ✅ Routes admin - APRÈS les routes user spécifiques
-router.get("/stats", protect, admin, getUserStats);
-router.get("/export", protect, admin, exportUsersCSV);
-router.patch("/:id/admin", protect, admin, toggleAdminStatus);
+// Historique
+router.get("/history", getUserHistory);
+router.post("/history/:id", addToHistory);
+router.delete("/history", clearHistory);
 
-// ✅ Route pour lister tous les users (DOIT ÊTRE APRÈS les routes spécifiques)
-router.get("/", protect, admin, getAllUsers);
+// Compte
+router.delete("/profile", deleteUser);
+
+// ===== ROUTES ADMIN =====
+// Routes nécessitant les droits admin
+router.get("/all", admin, getAllUsers);
+router.get("/stats", admin, getUserStats);
+router.get("/export", admin, exportUsersCSV);
+router.patch("/:id/admin", admin, toggleAdminStatus);
 
 export default router;
