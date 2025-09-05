@@ -33,8 +33,8 @@ const createTransport = () => {
 // ✅ Test de connexion au démarrage
 export const testEmailConnection = async () => {
   try {
-    const transporter = createTransporter();
-    await transporter.verify();
+    const Transport = createTransport();
+    await Transport.verify();
     console.log("✅ Service email configuré correctement");
     return true;
   } catch (error) {
@@ -51,7 +51,7 @@ export const generateToken = () => {
 // ✅ NOUVEAU : Envoyer email de vérification
 export const sendVerificationEmail = async (user, token) => {
   try {
-    const transporter = createTransporter();
+    const Transport = createTransport();
 
     const verifyUrl = `${
       process.env.FRONTEND_URL || "http://localhost:3000"
@@ -113,7 +113,7 @@ export const sendVerificationEmail = async (user, token) => {
       `,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await Transport.sendMail(mailOptions);
     console.log("✅ Email de vérification envoyé à:", user.email);
     return result;
   } catch (error) {
@@ -125,7 +125,7 @@ export const sendVerificationEmail = async (user, token) => {
 // ✅ Envoyer email de reset password AMÉLIORÉ
 export const sendPasswordResetEmail = async (user, token) => {
   try {
-    const transporter = createTransporter();
+    const Transport = createTransport();
 
     const resetUrl = `${
       process.env.FRONTEND_URL || "http://localhost:3000"
@@ -200,7 +200,7 @@ export const sendPasswordResetEmail = async (user, token) => {
       `,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await Transport.sendMail(mailOptions);
     console.log("✅ Email de reset envoyé à:", user.email);
     return result;
   } catch (error) {
@@ -212,7 +212,7 @@ export const sendPasswordResetEmail = async (user, token) => {
 // ✅ Envoyer email de bienvenue (optionnel après vérification)
 export const sendWelcomeEmail = async (user) => {
   try {
-    const transporter = createTransporter();
+    const Transport = createTransport();
 
     const mailOptions = {
       from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
@@ -264,7 +264,7 @@ export const sendWelcomeEmail = async (user) => {
       `,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await Transport.sendMail(mailOptions);
     console.log("✅ Email de bienvenue envoyé à:", user.email);
     return result;
   } catch (error) {
@@ -277,7 +277,7 @@ export const sendWelcomeEmail = async (user) => {
 // ✅ Notification admin pour contact
 export const sendContactNotificationToAdmin = async (contactData) => {
   try {
-    const transporter = createTransporter();
+    const Transport = createTransport();
 
     const adminEmail = process.env.ADMIN_EMAIL || process.env.EMAIL_USER;
     if (!adminEmail) {
@@ -309,7 +309,7 @@ export const sendContactNotificationToAdmin = async (contactData) => {
       text: emailContent,
     };
 
-    const result = await transporter.sendMail(mailOptions);
+    const result = await Transport.sendMail(mailOptions);
     console.log("✅ Notification admin envoyée:", result.messageId);
     return result;
   } catch (error) {
