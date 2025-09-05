@@ -1,218 +1,171 @@
-// backend/models/NoteOlfactive.js
+// backend/models/NoteOlfactive.js - VERSION REFACTORISÉE
 import mongoose from "mongoose";
 
-const noteOlfactiveSchema = new mongoose.Schema(
+const NoteOlfactiveSchema = new mongoose.Schema(
   {
     nom: {
       type: String,
       required: true,
       unique: true,
       trim: true,
-      minlength: 2,
-      maxlength: 50,
+      maxlength: 100,
     },
-    description: {
-      type: String,
-      trim: true,
-      maxlength: 500,
-    },
-    // Type d'évaporation de la note (tête / cœur / fond)
-    type: {
-      type: String,
-      enum: ["tête", "cœur", "fond"],
-      required: true,
-    },
+
+    // ❌ SUPPRIMÉ : plus de champ "type" fixe
+    // type: { type: String, enum: ["tête", "cœur", "fond"] },
+
     famille: {
       type: String,
       enum: [
-        "citrus",
+        "agrumes",
         "florale",
-        "orientale",
-        "boisée",
-        "fraîche",
-        "gourmande",
-        "épicée",
         "fruitée",
-        "marine",
         "verte",
+        "aromatique",
+        "épicée",
+        "boisée",
+        "orientale",
+        "ambrée",
+        "musquée",
+        "animale",
+        "poudrée",
+        "gourmande",
+        "marine",
+        "aldéhydée",
+        "cuirée",
+        "fumée",
+        "résineuse",
       ],
-      default: null,
+      required: true,
     },
+
+    description: {
+      type: String,
+      maxlength: 500,
+    },
+
+    // ✅ NOUVEAU : informations sur les usages typiques
+    usages: {
+      tete: {
+        frequence: { type: Number, default: 0 }, // Nb de fois utilisée en tête
+        populaire: { type: Boolean, default: false }, // Populaire en tête ?
+      },
+      coeur: {
+        frequence: { type: Number, default: 0 },
+        populaire: { type: Boolean, default: false },
+      },
+      fond: {
+        frequence: { type: Number, default: 0 },
+        populaire: { type: Boolean, default: false },
+      },
+    },
+
+    // ✅ NOUVEAU : suggestions d'usage par défaut
+    suggestedPositions: [
+      {
+        type: String,
+        enum: ["tête", "cœur", "fond"],
+      },
+    ],
+
+    // Métadonnées utiles
     intensite: {
       type: Number,
       min: 1,
       max: 10,
       default: 5,
     },
+
     popularite: {
       type: Number,
+      min: 0,
+      max: 100,
       default: 0,
     },
-    // ⚠️ "#gray" n'est pas un hex valide -> gris par défaut
+
     couleur: {
       type: String,
-      default: "#6b7280",
+      default: "#4a90e2", // Couleur pour l'affichage
     },
-    image: {
-      type: String,
-      default: null,
+
+    synonymes: [String], // Pour la recherche
+
+    // Statistiques automatiques
+    stats: {
+      nombreParfums: { type: Number, default: 0 },
+      derniereUtilisation: Date,
     },
-    synonymes: [
-      {
-        type: String,
-        trim: true,
-      },
-    ],
-    accordsHarmonieux: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "NoteOlfactive",
-      },
-    ],
-    saison: [
-      {
-        type: String,
-        enum: ["printemps", "été", "automne", "hiver"],
-      },
-    ],
-    momentJournee: [
-      {
-        type: String,
-        enum: ["matin", "après-midi", "soir", "nuit"],
-      },
-    ],
   },
   {
     timestamps: true,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
   }
 );
 
-/* ------------------------- Indexes & Recherche ------------------------- */
-noteOlfactiveSchema.index({ nom: "text", description: "text" });
-noteOlfactiveSchema.index({ type: 1 });
-noteOlfactiveSchema.index({ famille: 1 });
-noteOlfactiveSchema.index({ popularite: -1 });
-noteOlfactiveSchema.index({ type: 1, popularite: -1 }); // composé
+// ✅ Index pour la recherche et performance
+NoteOlfactiveSchema.index({ nom: 1 });
+NoteOlfactiveSchema.index({ famille: 1 });
+NoteOlfactiveSchema.index({ popularite: -1 });
+NoteOlfactiveSchema.index({ nom: "text", synonymes: "text" });
 
-/* ------------------------------ Méthodes ------------------------------- */
-noteOlfactiveSchema.methods.incrementPopularite = function () {
-  this.popularite += 1;
+// ✅ Virtual pour obtenir la position la plus fréquente
+NoteOlfactiveSchema.virtual("positionPreferee").get(function () {
+  const { tete, coeur, fond } = this.usages;
+  const max = Math.max(tete.frequence, coeur.frequence, fond.frequence);
+
+  if (max === 0) return null;
+  if (tete.frequence === max) return "tête";
+  if (coeur.frequence === max) return "cœur";
+  return "fond";
+});
+
+// ✅ Méthode pour mettre à jour les statistiques d'usage
+NoteOlfactiveSchema.methods.updateUsage = function (position) {
+  if (!["tête", "cœur", "fond"].includes(position)) return;
+
+  const key =
+    position === "tête" ? "tete" : position === "cœur" ? "coeur" : "fond";
+  this.usages[key].frequence += 1;
+
+  // Marquer comme populaire si utilisée plus de 10 fois dans cette position
+  if (this.usages[key].frequence >= 10) {
+    this.usages[key].populaire = true;
+  }
+
+  this.stats.derniereUtilisation = new Date();
   return this.save();
 };
 
-noteOlfactiveSchema.methods.getCouleurType = function () {
-  switch (this.type) {
-    case "tête":
-      return "#fbbf24"; // jaune
-    case "cœur":
-      return "#f472b6"; // rose
-    case "fond":
-      return "#8b5cf6"; // violet
-    default:
-      return "#6b7280"; // gris
-  }
-};
+// ✅ Méthode statique pour recherche avancée
+NoteOlfactiveSchema.statics.searchWithSuggestions = function (query = {}) {
+  const { search, famille, position, populaire } = query;
 
-noteOlfactiveSchema.statics.getByFamille = function (famille) {
-  return this.find({ famille }).sort({ popularite: -1 });
-};
+  const mongoQuery = {};
 
-noteOlfactiveSchema.statics.getPopulaires = function (limit = 10) {
-  return this.find().sort({ popularite: -1 }).limit(limit);
-};
-
-noteOlfactiveSchema.statics.searchAdvanced = function (query) {
-  const searchQuery = {};
-
-  if (query.nom) {
-    searchQuery.$or = [
-      { nom: { $regex: query.nom, $options: "i" } },
-      { synonymes: { $regex: query.nom, $options: "i" } },
+  if (search) {
+    mongoQuery.$or = [
+      { nom: { $regex: search, $options: "i" } },
+      { synonymes: { $regex: search, $options: "i" } },
+      { description: { $regex: search, $options: "i" } },
     ];
   }
 
-  if (query.type) searchQuery.type = query.type;
-  if (query.famille) searchQuery.famille = query.famille;
-
-  if (query.intensite) {
-    const min = Number(query.intensite.min ?? 1);
-    const max = Number(query.intensite.max ?? 10);
-    searchQuery.intensite = { $gte: min, $lte: max };
+  if (famille) {
+    mongoQuery.famille = famille;
   }
 
-  return this.find(searchQuery).sort({ popularite: -1 });
+  if (position) {
+    const key =
+      position === "tête" ? "tete" : position === "cœur" ? "coeur" : "fond";
+    mongoQuery[`usages.${key}.populaire`] = true;
+  }
+
+  if (populaire === "true") {
+    mongoQuery.popularite = { $gte: 50 };
+  }
+
+  return this.find(mongoQuery).sort({ popularite: -1, nom: 1 });
 };
 
-/* --------- Nettoyage des références avant suppression (safe) ---------- */
-// On a besoin du document pour accéder à this._id → { document: true }
-noteOlfactiveSchema.pre(
-  "deleteOne",
-  { document: true, query: false },
-  async function () {
-    const Parfum = mongoose.model("Parfum");
-    const User = mongoose.model("User");
-
-    // Retirer la note des 3 champs de Parfum (tête / cœur / fond)
-    await Parfum.updateMany(
-      {
-        $or: [
-          { notes_tete: this._id },
-          { notes_coeur: this._id },
-          { notes_fond: this._id },
-        ],
-      },
-      {
-        $pull: {
-          notes_tete: this._id,
-          notes_coeur: this._id,
-          notes_fond: this._id,
-        },
-      }
-    );
-
-    // Retirer la note des favoris utilisateurs
-    await User.updateMany(
-      { favorisNotes: this._id },
-      { $pull: { favorisNotes: this._id } }
-    );
-
-    // Retirer la note des accords harmonieux
-    await this.model("NoteOlfactive").updateMany(
-      { accordsHarmonieux: this._id },
-      { $pull: { accordsHarmonieux: this._id } }
-    );
-  }
-);
-
-/* ------------------------------- Virtuels ------------------------------ */
-// Comptages séparés (les 3 chemins de Parfum)
-noteOlfactiveSchema.virtual("nombreParfumsTete", {
-  ref: "Parfum",
-  localField: "_id",
-  foreignField: "notes_tete",
-  count: true,
-});
-noteOlfactiveSchema.virtual("nombreParfumsCoeur", {
-  ref: "Parfum",
-  localField: "_id",
-  foreignField: "notes_coeur",
-  count: true,
-});
-noteOlfactiveSchema.virtual("nombreParfumsFond", {
-  ref: "Parfum",
-  localField: "_id",
-  foreignField: "notes_fond",
-  count: true,
-});
-
-// Nom complet (ex: "Jasmin (cœur)")
-noteOlfactiveSchema.virtual("nomComplet").get(function () {
-  return `${this.nom} (${this.type})`;
-});
-
-// Inclure les virtuels au export
-noteOlfactiveSchema.set("toJSON", { virtuals: true });
-noteOlfactiveSchema.set("toObject", { virtuals: true });
-
-const NoteOlfactive = mongoose.model("NoteOlfactive", noteOlfactiveSchema);
-export default NoteOlfactive;
+export default mongoose.model("NoteOlfactive", NoteOlfactiveSchema);

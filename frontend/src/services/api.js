@@ -92,16 +92,30 @@ export const parfumAPI = {
 };
 
 // 📝 NOTE SERVICES (VERSION CORRIGÉE)
+// frontend/src/services/api.js - SECTION NOTES MISE À JOUR
+
+// ✅ NOTES SERVICES REFACTORISÉS
 export const noteAPI = {
+  // Obtenir toutes les notes avec filtres
   getAll: (params = {}) => api.get("/notes", { params }),
+
+  // ✅ NOUVEAU : Obtenir les notes avec suggestions de position
+  getNotesWithSuggestions: (params = {}) =>
+    api.get("/notes/suggestions", { params }),
+
+  // ✅ NOUVEAU : Obtenir les familles olfactives
+  getFamilies: () => api.get("/notes/families"),
+
+  // Obtenir une note par ID
   getById: (id) => api.get(`/notes/${id}`),
 
-  // ✅ AJOUT : Recherche par type
-  getByType: (type) => api.get(`/notes/type/${type}`),
+  // ❌ SUPPRIMÉ : getByType (plus de types fixes)
+  // getByType: (type) => api.get(`/notes/type/${type}`),
 
-  // ✅ AJOUT : Recherche par nom
+  // Recherche par nom/synonymes
   search: (query) => api.get("/notes/search", { params: { q: query } }),
 
+  // CRUD Admin
   create: (data) => api.post("/notes", data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),

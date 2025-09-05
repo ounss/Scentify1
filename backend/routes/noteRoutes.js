@@ -1,46 +1,49 @@
+// backend/routes/noteRoutes.js - ROUTES REFACTORISÉES
 import express from "express";
 import {
   getNotes,
+  getNotesWithSuggestions,
   getNoteById,
-  getNotesByType,
   searchNotes,
+  getFamilies,
   createNote,
   updateNote,
   deleteNote,
-  getNotesStats,
 } from "../controllers/noteController.js";
-import { protect, admin } from "../middleware/authMiddleware.js";
-import {
-  validateNote,
-  handleValidationErrors,
-} from "../middleware/validation.js";
+import { protect, admin } from "../middleware/auth.js";
+import { validateNote } from "../middleware/validation.js";
 
 const router = express.Router();
 
-// Routes publiques
+// ===== ROUTES PUBLIQUES =====
+
+// Obtenir toutes les notes avec filtres
 router.get("/", getNotes);
+
+// ✅ NOUVEAU : Obtenir les notes avec suggestions
+router.get("/suggestions", getNotesWithSuggestions);
+
+// ✅ NOUVEAU : Obtenir les familles olfactives
+router.get("/families", getFamilies);
+
+// Rechercher des notes
 router.get("/search", searchNotes);
-router.get("/stats", getNotesStats);
-router.get("/type/:type", getNotesByType);
+
+// ❌ SUPPRIMÉ : Route par type fixe
+// router.get('/type/:type', getNotesByType);
+
+// Obtenir une note par ID
 router.get("/:id", getNoteById);
 
-// Routes admin
-router.post(
-  "/",
-  protect,
-  admin,
-  validateNote,
-  handleValidationErrors,
-  createNote
-);
-router.put(
-  "/:id",
-  protect,
-  admin,
-  validateNote,
-  handleValidationErrors,
-  updateNote
-);
+// ===== ROUTES ADMIN =====
+
+// Créer une note (admin uniquement)
+router.post("/", protect, admin, validateNote, createNote);
+
+// Mettre à jour une note (admin uniquement)
+router.put("/:id", protect, admin, validateNote, updateNote);
+
+// Supprimer une note (admin uniquement)
 router.delete("/:id", protect, admin, deleteNote);
 
 export default router;

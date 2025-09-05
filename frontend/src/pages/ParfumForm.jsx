@@ -1,25 +1,25 @@
-// frontend/src/pages/ParfumForm.jsx - VERSION CORRIGÉE
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  Camera,
-  Plus,
-  X,
   Save,
-  Upload,
-  Link as LinkIcon,
+  Search,
+  Filter,
+  X,
+  Plus,
   Star,
   Clock,
   Droplets,
   Award,
   Calendar,
   Euro,
+  Upload,
+  Camera,
+  Link as LinkIcon,
 } from "lucide-react";
 import { noteAPI, parfumAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
-import styles from "../styles/ParfumForm.module.css";
 
 export default function ParfumForm() {
   const navigate = useNavigate();
@@ -27,7 +27,7 @@ export default function ParfumForm() {
   const { isAuthenticated, isAdmin } = useAuth();
   const isEdit = Boolean(id);
 
-  // Structure de données corrigée pour correspondre au backend
+  // État du formulaire
   const [formData, setFormData] = useState({
     nom: "",
     marque: "",
@@ -46,16 +46,24 @@ export default function ParfumForm() {
     liensMarchands: [],
   });
 
-  const [allNotes, setAllNotes] = useState({
-    tete: [],
-    coeur: [],
-    fond: [],
-  });
+  // État des notes
+  const [allNotes, setAllNotes] = useState([]);
+  const [filteredNotes, setFilteredNotes] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedFamily, setSelectedFamily] = useState("tous");
+  const [families, setFamilies] = useState([]);
 
+  // État de l'interface
   const [loading, setLoading] = useState(false);
   const [loadingData, setLoadingData] = useState(isEdit);
-  
-  // Gestion des liens marchands
+  const [draggedNote, setDraggedNote] = useState(null);
+
+  // Image
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [uploadMode, setUploadMode] = useState("upload");
+
+  // Liens marchands
   const [newMerchantLink, setNewMerchantLink] = useState({
     nom: "",
     url: "",
@@ -63,22 +71,18 @@ export default function ParfumForm() {
   });
   const [showMerchantForm, setShowMerchantForm] = useState(false);
 
-  // Gestion des images
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState("");
-  const [uploadMode, setUploadMode] = useState("upload");
-
-  // Chargement des données pour l'édition
+  // Chargement initial
   useEffect(() => {
     if (isEdit && id) {
       loadParfumData();
     }
+    loadNotesAndFamilies();
   }, [isEdit, id]);
 
-  // Chargement des notes disponibles
+  // Filtrage des notes
   useEffect(() => {
-    loadNotes();
-  }, []);
+    filterNotes();
+  }, [allNotes, searchTerm, selectedFamily]);
 
   const loadParfumData = async () => {
     try {
@@ -97,7 +101,6 @@ export default function ParfumForm() {
         popularite: parfum.popularite || 0,
         longevite: parfum.longevite || "",
         sillage: parfum.sillage || "",
-        // Structure backend avec trois champs séparés
         notes_tete: (parfum.notes_tete || []).map((n) => n._id || n),
         notes_coeur: (parfum.notes_coeur || []).map((n) => n._id || n),
         notes_fond: (parfum.notes_fond || []).map((n) => n._id || n),
@@ -113,63 +116,96 @@ export default function ParfumForm() {
     }
   };
 
-  const loadNotes = async () => {
-    console.log("🔍 Début chargement des notes...");
+  const loadNotesAndFamilies = async () => {
     try {
-      const types = ["tête", "cœur", "fond"];
-      const notesData = {};
+      console.log("🔍 Chargement des notes et familles...");
 
-      for (const type of types) {
-        console.log(`📝 Chargement notes de type: ${type}`);
-        
-        try {
-          // Utilisation de la méthode getByType (désormais ajoutée à l'API)
-          const resp = await noteAPI.getByType(type);
-          console.log(`✅ Réponse pour ${type}:`, resp.data);
+      // Charger toutes les notes
+      const notesResp = await noteAPI.getNotesWithSuggestions();
+      const notes = notesResp.data.notes || [];
+      setAllNotes(notes);
 
-          const key = type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
-          notesData[key] = resp.data || [];
-          
-          console.log(`💾 Stocké ${notesData[key].length} notes pour "${key}"`);
-        } catch (error) {
-          console.warn(`⚠️ Erreur pour le type ${type}:`, error);
-          
-          // Fallback si getByType échoue pour un type spécifique
-          const key = type === "tête" ? "tete" : type === "cœur" ? "coeur" : "fond";
-          notesData[key] = [];
-        }
-      }
+      // Charger les familles
+      const familiesResp = await noteAPI.getFamilies();
+      setFamilies(familiesResp.data.families || []);
 
-      console.log("📊 Notes finales:", notesData);
-      setAllNotes(notesData);
-      
+      console.log(
+        `✅ ${notes.length} notes et ${familiesResp.data.families?.length} familles chargées`
+      );
     } catch (error) {
       console.error("❌ Erreur chargement notes:", error);
-      
-      // Méthode alternative : récupérer toutes les notes et les grouper
-      console.log("🔄 Tentative avec méthode alternative...");
-      try {
-        const resp = await noteAPI.getAll({ limit: 200 });
-        const allNotesArray = resp.data.notes || resp.data || [];
-
-        const notesData = {
-          tete: allNotesArray.filter((note) => note.type === "tête"),
-          coeur: allNotesArray.filter((note) => note.type === "cœur"),
-          fond: allNotesArray.filter((note) => note.type === "fond"),
-        };
-
-        console.log("✅ Notes chargées via méthode alternative:", notesData);
-        setAllNotes(notesData);
-        
-      } catch (fallbackError) {
-        console.error("❌ Erreur méthode alternative:", fallbackError);
-        setAllNotes({ tete: [], coeur: [], fond: [] });
-        toast.error("Impossible de charger les notes olfactives");
-      }
+      toast.error("Erreur lors du chargement des notes");
+      setAllNotes([]);
+      setFamilies([]);
     }
   };
 
-  // Handlers
+  const filterNotes = () => {
+    let filtered = allNotes;
+
+    // Filtre par recherche
+    if (searchTerm) {
+      filtered = filtered.filter(
+        (note) =>
+          note.nom.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (note.synonymes || []).some((syn) =>
+            syn.toLowerCase().includes(searchTerm.toLowerCase())
+          )
+      );
+    }
+
+    // Filtre par famille
+    if (selectedFamily !== "tous") {
+      filtered = filtered.filter((note) => note.famille === selectedFamily);
+    }
+
+    setFilteredNotes(filtered);
+  };
+
+  // Gestion du drag & drop
+  const handleDragStart = (e, note) => {
+    setDraggedNote(note);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e, position) => {
+    e.preventDefault();
+    if (!draggedNote) return;
+
+    const field = `notes_${position}`;
+    const currentNotes = formData[field] || [];
+
+    // Vérifier si la note n'est pas déjà présente
+    if (currentNotes.includes(draggedNote._id)) {
+      toast.error(`${draggedNote.nom} est déjà dans les notes de ${position}`);
+      setDraggedNote(null);
+      return;
+    }
+
+    // Ajouter la note
+    setFormData((prev) => ({
+      ...prev,
+      [field]: [...currentNotes, draggedNote._id],
+    }));
+
+    toast.success(`${draggedNote.nom} ajoutée aux notes de ${position}`);
+    setDraggedNote(null);
+  };
+
+  const removeNoteFromPosition = (position, noteId) => {
+    const field = `notes_${position}`;
+    setFormData((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((id) => id !== noteId),
+    }));
+  };
+
+  // Autres handlers
   const handleInputChange = (field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (field === "imageUrl" && value) {
@@ -177,16 +213,23 @@ export default function ParfumForm() {
     }
   };
 
-  const handleNoteToggle = (type, noteId) => {
-    const field = `notes_${type}`;
-    setFormData((prev) => {
-      const current = prev[field] || [];
-      const exists = current.includes(noteId);
-      const next = exists
-        ? current.filter((id) => id !== noteId)
-        : [...current, noteId];
-      return { ...prev, [field]: next };
-    });
+  const handleImageUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setImageFile(file);
+    const reader = new FileReader();
+    reader.onload = (ev) => setImagePreview(ev.target.result);
+    reader.readAsDataURL(file);
+
+    setFormData((prev) => ({ ...prev, imageUrl: "" }));
+  };
+
+  const removeUploadedImage = () => {
+    setImageFile(null);
+    setImagePreview("");
+    const fileInput = document.getElementById("imageUpload");
+    if (fileInput) fileInput.value = "";
   };
 
   const handleAddMerchantLink = () => {
@@ -209,27 +252,7 @@ export default function ParfumForm() {
     }));
   };
 
-  // Gestion images
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    setImageFile(file);
-    const reader = new FileReader();
-    reader.onload = (ev) => setImagePreview(ev.target.result);
-    reader.readAsDataURL(file);
-
-    setFormData((prev) => ({ ...prev, imageUrl: "" }));
-  };
-
-  const removeUploadedImage = () => {
-    setImageFile(null);
-    setImagePreview("");
-    const fileInput = document.getElementById("imageUpload");
-    if (fileInput) fileInput.value = "";
-  };
-
-  // Soumission du formulaire
+  // Soumission
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -245,11 +268,17 @@ export default function ParfumForm() {
 
       // Champs simples
       const simpleFields = [
-        "nom", "marque", "genre", "description", 
-        "anneSortie", "concentre", "prix", 
-        "longevite", "sillage"
+        "nom",
+        "marque",
+        "genre",
+        "description",
+        "anneSortie",
+        "concentre",
+        "prix",
+        "longevite",
+        "sillage",
       ];
-      
+
       simpleFields.forEach((key) => {
         const value = formData[key];
         if (value !== "" && value !== null && value !== undefined) {
@@ -257,7 +286,7 @@ export default function ParfumForm() {
         }
       });
 
-      // Notes séparées par type
+      // Notes par position
       ["notes_tete", "notes_coeur", "notes_fond"].forEach((key) => {
         (formData[key] || []).forEach((id) => {
           formDataToSend.append(key, id);
@@ -289,7 +318,7 @@ export default function ParfumForm() {
         await parfumAPI.update(id, formDataToSend);
         toast.success("Parfum modifié avec succès !");
       } else {
-        const response = await parfumAPI.create(formDataToSend);
+        await parfumAPI.create(formDataToSend);
         toast.success("Parfum ajouté avec succès !");
       }
 
@@ -298,11 +327,16 @@ export default function ParfumForm() {
       console.error("Submit ParfumForm:", error);
       toast.error(
         error?.response?.data?.message ||
-        `Erreur lors de la ${isEdit ? "modification" : "création"}`
+          `Erreur lors de la ${isEdit ? "modification" : "création"}`
       );
     } finally {
       setLoading(false);
     }
+  };
+
+  // Fonction helper pour obtenir une note par ID
+  const getNoteById = (noteId) => {
+    return allNotes.find((note) => note._id === noteId);
   };
 
   // Constantes
@@ -311,7 +345,7 @@ export default function ParfumForm() {
     { value: "homme", label: "Homme" },
     { value: "mixte", label: "Mixte" },
   ];
-  
+
   const concentres = [
     { value: "EDT", label: "Eau de Toilette" },
     { value: "EDP", label: "Eau de Parfum" },
@@ -319,469 +353,674 @@ export default function ParfumForm() {
     { value: "Parfum", label: "Parfum" },
     { value: "Autre", label: "Autre" },
   ];
-  
+
   const longeviteOptions = [
-    "Très faible (< 2h)", "Faible (2-4h)", "Modérée (4-6h)",
-    "Bonne (6-8h)", "Très bonne (8-12h)", "Excellente (> 12h)",
+    "Très faible (< 2h)",
+    "Faible (2-4h)",
+    "Modérée (4-6h)",
+    "Bonne (6-8h)",
+    "Très bonne (8-12h)",
+    "Excellente (> 12h)",
   ];
-  
+
   const sillageOptions = ["Intimiste", "Proche", "Modéré", "Fort", "Très fort"];
 
   if (loadingData) {
     return (
-      <div className={styles.loadingContainer}>
-        <div className={styles.loadingSpinner}></div>
-        <p className={styles.loadingText}>Chargement du parfum...</p>
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Chargement du parfum...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className={styles.page}>
+    <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className={styles.header}>
-        <div className={styles.headerInner}>
-          <button onClick={() => navigate(-1)} className={styles.backButton}>
-            <ArrowLeft className={styles.icon} />
-          </button>
-          <h1 className={styles.title}>
-            {isEdit ? "Modifier" : "Nouveau parfum"}
-          </h1>
-          <div className={styles.spacer}></div>
+      <header className="bg-white shadow-sm border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <button
+              onClick={() => navigate(-1)}
+              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <ArrowLeft className="w-5 h-5 mr-2" />
+              Retour
+            </button>
+            <h1 className="text-xl font-semibold text-gray-900">
+              {isEdit ? "Modifier le parfum" : "Nouveau parfum"}
+            </h1>
+            <div className="w-16"></div>
+          </div>
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className={styles.form}>
-        {/* Section Image */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Image du parfum</h2>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <form onSubmit={handleSubmit} className="space-y-8">
+          {/* Informations de base */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-6">
+              Informations de base
+            </h2>
 
-          {/* Toggle Upload/URL */}
-          <div className={styles.uploadToggle}>
-            <button
-              type="button"
-              onClick={() => setUploadMode("upload")}
-              className={`${styles.toggleButton} ${uploadMode === "upload" ? styles.active : ""}`}
-            >
-              <Upload className={styles.icon} />
-              Upload fichier
-            </button>
-            <button
-              type="button"
-              onClick={() => setUploadMode("url")}
-              className={`${styles.toggleButton} ${uploadMode === "url" ? styles.active : ""}`}
-            >
-              <LinkIcon className={styles.icon} />
-              URL externe
-            </button>
-          </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nom du parfum <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.nom}
+                  onChange={(e) => handleInputChange("nom", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Ex: Sauvage"
+                  required
+                />
+              </div>
 
-          {/* Aperçu */}
-          {(imagePreview || formData.imageUrl) && (
-            <div className={styles.imagePreview}>
-              <img
-                src={imagePreview || formData.imageUrl}
-                alt="Aperçu parfum"
-                className={styles.previewImage}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Marque <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={formData.marque}
+                  onChange={(e) => handleInputChange("marque", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  placeholder="Ex: Dior"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Genre <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={formData.genre}
+                  onChange={(e) => handleInputChange("genre", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                  required
+                >
+                  {genres.map((g) => (
+                    <option key={g.value} value={g.value}>
+                      {g.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Année de sortie
+                </label>
+                <div className="relative">
+                  <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="number"
+                    value={formData.anneSortie}
+                    onChange={(e) =>
+                      handleInputChange("anneSortie", e.target.value)
+                    }
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    min="1900"
+                    max={new Date().getFullYear() + 1}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Concentration
+                </label>
+                <select
+                  value={formData.concentre}
+                  onChange={(e) =>
+                    handleInputChange("concentre", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  {concentres.map((c) => (
+                    <option key={c.value} value={c.value}>
+                      {c.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Prix (€)
+                </label>
+                <div className="relative">
+                  <Euro className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="number"
+                    value={formData.prix}
+                    onChange={(e) => handleInputChange("prix", e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    min="0"
+                    step="0.01"
+                    placeholder="0.00"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Description
+              </label>
+              <textarea
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                rows={4}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                placeholder="Décrivez ce parfum..."
               />
-              <button
-                type="button"
-                onClick={imagePreview ? removeUploadedImage : () => handleInputChange("imageUrl", "")}
-                className={styles.removeImageButton}
-              >
-                <X className={styles.icon} />
-              </button>
             </div>
-          )}
+          </div>
 
-          {/* Upload */}
-          {uploadMode === "upload" && (
-            <div className={styles.uploadZone}>
-              <input
-                type="file"
-                id="imageUpload"
-                accept="image/*"
-                onChange={handleImageUpload}
-                className={styles.fileInput}
-              />
-              <label htmlFor="imageUpload" className={styles.uploadLabel}>
-                <Camera className={styles.placeholderIcon} />
-                <span className={styles.placeholderText}>
-                  {imageFile ? "Changer l'image" : "Choisir une image"}
-                </span>
-                <span className={styles.uploadHint}>
-                  PNG, JPG, WEBP jusqu'à 5MB
-                </span>
-              </label>
-            </div>
-          )}
+          {/* Performance */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-6">
+              Performance
+            </h2>
 
-          {/* URL */}
-          {uploadMode === "url" && (
-            <div className={styles.formGroup}>
-              <label className={styles.label}>URL de l'image</label>
-              <div className={styles.inputWithIcon}>
-                <LinkIcon className={styles.inputIcon} />
-                <input
-                  type="url"
-                  value={formData.imageUrl}
-                  onChange={(e) => handleInputChange("imageUrl", e.target.value)}
-                  className={styles.input}
-                  placeholder="https://example.com/image.jpg"
-                />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Clock className="inline w-4 h-4 mr-1" />
+                  Longévité
+                </label>
+                <select
+                  value={formData.longevite}
+                  onChange={(e) =>
+                    handleInputChange("longevite", e.target.value)
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Sélectionner</option>
+                  {longeviteOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Droplets className="inline w-4 h-4 mr-1" />
+                  Sillage
+                </label>
+                <select
+                  value={formData.sillage}
+                  onChange={(e) => handleInputChange("sillage", e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                >
+                  <option value="">Sélectionner</option>
+                  {sillageOptions.map((opt) => (
+                    <option key={opt} value={opt}>
+                      {opt}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
-          )}
-        </section>
 
-        {/* Informations de base */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Informations de base</h2>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              Nom du parfum <span className={styles.required}>*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.nom}
-              onChange={(e) => handleInputChange("nom", e.target.value)}
-              className={styles.input}
-              placeholder="Ex: Sauvage"
-              required
-            />
-          </div>
-
-          <div className={styles.formGroup}>
-            <label className={styles.label}>
-              Marque <span className={styles.required}>*</span>
-            </label>
-            <input
-              type="text"
-              value={formData.marque}
-              onChange={(e) => handleInputChange("marque", e.target.value)}
-              className={styles.input}
-              placeholder="Ex: Dior"
-              required
-            />
-          </div>
-
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                Genre <span className={styles.required}>*</span>
-              </label>
-              <select
-                value={formData.genre}
-                onChange={(e) => handleInputChange("genre", e.target.value)}
-                className={styles.select}
-                required
-              >
-                {genres.map((g) => (
-                  <option key={g.value} value={g.value}>
-                    {g.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Année de sortie</label>
-              <div className={styles.inputWithIcon}>
-                <Calendar className={styles.inputIcon} />
-                <input
-                  type="number"
-                  value={formData.anneSortie}
-                  onChange={(e) => handleInputChange("anneSortie", e.target.value)}
-                  className={styles.input}
-                  min="1900"
-                  max={new Date().getFullYear() + 1}
-                />
+            {isAdmin && (
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <Award className="inline w-4 h-4 mr-1" />
+                  Popularité (0-100)
+                </label>
+                <div className="flex items-center space-x-4">
+                  <input
+                    type="range"
+                    value={formData.popularite}
+                    onChange={(e) =>
+                      handleInputChange("popularite", e.target.value)
+                    }
+                    className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                    min="0"
+                    max="100"
+                  />
+                  <span className="bg-gray-100 px-3 py-1 rounded-md font-medium min-w-[3rem] text-center">
+                    {formData.popularite}
+                  </span>
+                </div>
               </div>
-            </div>
+            )}
           </div>
 
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Concentration</label>
-              <select
-                value={formData.concentre}
-                onChange={(e) => handleInputChange("concentre", e.target.value)}
-                className={styles.select}
-              >
-                {concentres.map((c) => (
-                  <option key={c.value} value={c.value}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+          {/* Notes olfactives avec Drag & Drop */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Palette des notes */}
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-medium text-gray-900 mb-6">
+                Palette des notes olfactives
+              </h2>
 
-            <div className={styles.formGroup}>
-              <label className={styles.label}>Prix (€)</label>
-              <div className={styles.inputWithIcon}>
-                <Euro className={styles.inputIcon} />
-                <input
-                  type="number"
-                  value={formData.prix}
-                  onChange={(e) => handleInputChange("prix", e.target.value)}
-                  className={styles.input}
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </div>
-            </div>
-          </div>
+              {/* Filtres */}
+              <div className="space-y-4 mb-6">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="Rechercher une note..."
+                  />
+                </div>
 
-          <div className={styles.formGroup}>
-            <label className={styles.label}>Description</label>
-            <textarea
-              value={formData.description}
-              onChange={(e) => handleInputChange("description", e.target.value)}
-              rows={4}
-              className={styles.textarea}
-              placeholder="Décrivez ce parfum..."
-            />
-          </div>
-        </section>
-
-        {/* Performance */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Performance</h2>
-
-          <div className={styles.formRow}>
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                <Clock className={styles.labelIcon} />
-                Longévité
-              </label>
-              <select
-                value={formData.longevite}
-                onChange={(e) => handleInputChange("longevite", e.target.value)}
-                className={styles.select}
-              >
-                <option value="">Sélectionner</option>
-                {longeviteOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                <Droplets className={styles.labelIcon} />
-                Sillage
-              </label>
-              <select
-                value={formData.sillage}
-                onChange={(e) => handleInputChange("sillage", e.target.value)}
-                className={styles.select}
-              >
-                <option value="">Sélectionner</option>
-                {sillageOptions.map((opt) => (
-                  <option key={opt} value={opt}>
-                    {opt}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {isAdmin && (
-            <div className={styles.formGroup}>
-              <label className={styles.label}>
-                <Award className={styles.labelIcon} />
-                Popularité (0-100)
-              </label>
-              <div className={styles.rangeGroup}>
-                <input
-                  type="range"
-                  value={formData.popularite}
-                  onChange={(e) => handleInputChange("popularite", e.target.value)}
-                  className={styles.range}
-                  min="0"
-                  max="100"
-                />
-                <span className={styles.rangeValue}>{formData.popularite}</span>
-              </div>
-            </div>
-          )}
-        </section>
-
-        {/* Notes olfactives */}
-        <section className={styles.section}>
-          <h2 className={styles.sectionTitle}>Notes olfactives</h2>
-
-          {[
-            ["tete", "tête"],
-            ["coeur", "cœur"], 
-            ["fond", "fond"],
-          ].map(([key, label]) => (
-            <div key={key} className={styles.notesGroup}>
-              <h3 className={`${styles.notesTitle} ${styles[`notes${key.charAt(0).toUpperCase() + key.slice(1)}`]}`}>
-                <Star className={styles.notesIcon} />
-                Notes de {label}
-              </h3>
-
-              <div className={styles.notesGrid}>
-                {(allNotes[key] || []).map((note) => (
-                  <button
-                    key={note._id}
-                    type="button"
-                    onClick={() => handleNoteToggle(key, note._id)}
-                    className={`${styles.noteButton} ${
-                      (formData[`notes_${key}`] || []).includes(note._id)
-                        ? `${styles.noteSelected} ${styles[`note${key.charAt(0).toUpperCase() + key.slice(1)}Selected`]}`
-                        : styles.noteUnselected
-                    }`}
+                <div className="relative">
+                  <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <select
+                    value={selectedFamily}
+                    onChange={(e) => setSelectedFamily(e.target.value)}
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
                   >
-                    {note.nom}
-                  </button>
-                ))}
+                    <option value="tous">Toutes les familles</option>
+                    {families.map((family) => (
+                      <option key={family.famille} value={family.famille}>
+                        {family.famille} ({family.count})
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
-              {(allNotes[key] || []).length === 0 && (
-                <p className={styles.noNotesText}>
-                  Aucune note de {label} disponible
-                </p>
-              )}
-            </div>
-          ))}
-        </section>
-
-        {/* Liens marchands */}
-        <section className={styles.section}>
-          <div className={styles.sectionHeader}>
-            <h2 className={styles.sectionTitle}>Liens marchands</h2>
-            <button
-              type="button"
-              onClick={() => setShowMerchantForm(true)}
-              className={styles.addButton}
-            >
-              <Plus className={styles.icon} />
-            </button>
-          </div>
-
-          {formData.liensMarchands.length > 0 ? (
-            <div className={styles.merchantList}>
-              {formData.liensMarchands.map((link, index) => (
-                <div key={index} className={styles.merchantItem}>
-                  <div className={styles.merchantInfo}>
-                    <h4 className={styles.merchantName}>{link.nom}</h4>
-                    <a
-                      href={link.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={styles.merchantUrl}
+              {/* Liste des notes */}
+              <div className="max-h-96 overflow-y-auto space-y-2">
+                {filteredNotes.length === 0 ? (
+                  <p className="text-gray-500 text-center py-8">
+                    Aucune note trouvée
+                  </p>
+                ) : (
+                  filteredNotes.map((note) => (
+                    <div
+                      key={note._id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, note)}
+                      className="group flex items-center justify-between p-3 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200 hover:border-indigo-300 hover:bg-indigo-50 cursor-move transition-all"
                     >
-                      {link.url}
-                    </a>
-                    {link.prix && (
-                      <span className={styles.merchantPrice}>{link.prix}€</span>
+                      <div className="flex items-center space-x-3">
+                        <div
+                          className="w-4 h-4 rounded-full"
+                          style={{ backgroundColor: note.couleur || "#4a90e2" }}
+                        ></div>
+                        <div>
+                          <div className="font-medium text-gray-900">
+                            {note.nom}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {note.famille}
+                            {note.positionPreferee && (
+                              <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-800 rounded-full text-xs">
+                                {note.positionPreferee}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-xs text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity">
+                        Glisser
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Zones de dépôt */}
+            <div className="space-y-6">
+              {[
+                {
+                  key: "tete",
+                  label: "Notes de tête",
+                  color: "bg-yellow-50 border-yellow-200",
+                  textColor: "text-yellow-800",
+                },
+                {
+                  key: "coeur",
+                  label: "Notes de cœur",
+                  color: "bg-pink-50 border-pink-200",
+                  textColor: "text-pink-800",
+                },
+                {
+                  key: "fond",
+                  label: "Notes de fond",
+                  color: "bg-purple-50 border-purple-200",
+                  textColor: "text-purple-800",
+                },
+              ].map(({ key, label, color, textColor }) => (
+                <div key={key} className="bg-white rounded-lg shadow-sm p-6">
+                  <h3 className={`text-lg font-medium mb-4 ${textColor}`}>
+                    <Star className="inline w-5 h-5 mr-2" />
+                    {label}
+                  </h3>
+
+                  <div
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, key)}
+                    className={`min-h-[120px] p-4 border-2 border-dashed rounded-lg ${color} transition-colors`}
+                  >
+                    {formData[`notes_${key}`]?.length === 0 ? (
+                      <div className="text-center text-gray-500 py-8">
+                        <div className="text-sm">Déposez les notes ici</div>
+                        <div className="text-xs mt-1">
+                          ou glissez-déposez depuis la palette
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {(formData[`notes_${key}`] || []).map((noteId) => {
+                          const note = getNoteById(noteId);
+                          if (!note) return null;
+
+                          return (
+                            <div
+                              key={noteId}
+                              className="flex items-center space-x-2 bg-white px-3 py-2 rounded-lg border shadow-sm"
+                            >
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{
+                                  backgroundColor: note.couleur || "#4a90e2",
+                                }}
+                              ></div>
+                              <span className="text-sm font-medium">
+                                {note.nom}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  removeNoteFromPosition(key, noteId)
+                                }
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                      </div>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveMerchantLink(index)}
-                    className={styles.removeButton}
-                  >
-                    <X className={styles.icon} />
-                  </button>
                 </div>
               ))}
             </div>
-          ) : (
-            <p className={styles.noMerchantsText}>Aucun lien marchand ajouté</p>
-          )}
+          </div>
 
-          {showMerchantForm && (
-            <div className={styles.merchantForm}>
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Nom du marchand</label>
-                <input
-                  type="text"
-                  value={newMerchantLink.nom}
-                  onChange={(e) =>
-                    setNewMerchantLink({ ...newMerchantLink, nom: e.target.value })
-                  }
-                  className={styles.input}
-                  placeholder="Ex: Sephora"
-                />
-              </div>
+          {/* Image */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <h2 className="text-lg font-medium text-gray-900 mb-6">
+              Image du parfum
+            </h2>
 
-              <div className={styles.formGroup}>
-                <label className={styles.label}>URL</label>
-                <input
-                  type="url"
-                  value={newMerchantLink.url}
-                  onChange={(e) =>
-                    setNewMerchantLink({ ...newMerchantLink, url: e.target.value })
-                  }
-                  className={styles.input}
-                  placeholder="https://..."
-                />
-              </div>
-
-              <div className={styles.formGroup}>
-                <label className={styles.label}>Prix (€)</label>
-                <input
-                  type="number"
-                  value={newMerchantLink.prix}
-                  onChange={(e) =>
-                    setNewMerchantLink({ ...newMerchantLink, prix: e.target.value })
-                  }
-                  className={styles.input}
-                  min="0"
-                  step="0.01"
-                  placeholder="0.00"
-                />
-              </div>
-
-              <div className={styles.formActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowMerchantForm(false)}
-                  className={styles.cancelButton}
-                >
-                  Annuler
-                </button>
-                <button
-                  type="button"
-                  onClick={handleAddMerchantLink}
-                  className={styles.addMerchantButton}
-                >
-                  <Plus className={styles.icon} />
-                  Ajouter
-                </button>
-              </div>
+            {/* Toggle Upload/URL */}
+            <div className="flex space-x-4 mb-6">
+              <button
+                type="button"
+                onClick={() => setUploadMode("upload")}
+                className={`flex items-center px-4 py-2 rounded-md border transition-colors ${
+                  uploadMode === "upload"
+                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <Upload className="w-4 h-4 mr-2" />
+                Upload fichier
+              </button>
+              <button
+                type="button"
+                onClick={() => setUploadMode("url")}
+                className={`flex items-center px-4 py-2 rounded-md border transition-colors ${
+                  uploadMode === "url"
+                    ? "bg-indigo-50 border-indigo-200 text-indigo-700"
+                    : "bg-white border-gray-300 text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                <LinkIcon className="w-4 h-4 mr-2" />
+                URL externe
+              </button>
             </div>
-          )}
-        </section>
 
-        {/* Submit */}
-        <div className={styles.submitSection}>
-          <button
-            type="submit"
-            disabled={loading || !formData.nom || !formData.marque || !formData.genre}
-            className={styles.submitButton}
-          >
-            {loading ? (
-              <div className={styles.loadingSubmit}>
-                <div className={styles.spinner}></div>
-                {isEdit ? "Modification..." : "Création..."}
+            {/* Aperçu */}
+            {(imagePreview || formData.imageUrl) && (
+              <div className="relative mb-6 inline-block">
+                <img
+                  src={imagePreview || formData.imageUrl}
+                  alt="Aperçu parfum"
+                  className="w-32 h-32 object-cover rounded-lg border"
+                />
+                <button
+                  type="button"
+                  onClick={
+                    imagePreview
+                      ? removeUploadedImage
+                      : () => handleInputChange("imageUrl", "")
+                  }
+                  className="absolute -top-2 -right-2 bg-red-100 text-red-600 rounded-full p-1 hover:bg-red-200 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+
+            {/* Upload */}
+            {uploadMode === "upload" && (
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-indigo-400 transition-colors">
+                <input
+                  type="file"
+                  id="imageUpload"
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <label htmlFor="imageUpload" className="cursor-pointer">
+                  <Camera className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                  <div className="text-sm text-gray-600">
+                    {imageFile ? "Changer l'image" : "Choisir une image"}
+                  </div>
+                  <div className="text-xs text-gray-500 mt-1">
+                    PNG, JPG, WEBP jusqu'à 5MB
+                  </div>
+                </label>
+              </div>
+            )}
+
+            {/* URL */}
+            {uploadMode === "url" && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  URL de l'image
+                </label>
+                <div className="relative">
+                  <LinkIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <input
+                    type="url"
+                    value={formData.imageUrl}
+                    onChange={(e) =>
+                      handleInputChange("imageUrl", e.target.value)
+                    }
+                    className="w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                    placeholder="https://example.com/image.jpg"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Liens marchands */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-lg font-medium text-gray-900">
+                Liens marchands
+              </h2>
+              <button
+                type="button"
+                onClick={() => setShowMerchantForm(true)}
+                className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Ajouter
+              </button>
+            </div>
+
+            {formData.liensMarchands.length > 0 ? (
+              <div className="space-y-3">
+                {formData.liensMarchands.map((link, index) => (
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900">{link.nom}</h4>
+                      <a
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-sm text-indigo-600 hover:text-indigo-800 transition-colors"
+                      >
+                        {link.url}
+                      </a>
+                      {link.prix && (
+                        <div className="text-sm text-gray-600 mt-1">
+                          {link.prix}€
+                        </div>
+                      )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveMerchantLink(index)}
+                      className="text-gray-400 hover:text-red-500 transition-colors ml-4"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                ))}
               </div>
             ) : (
-              <>
-                <Save className={styles.icon} />
-                {isEdit ? "Modifier le parfum" : "Créer le parfum"}
-              </>
+              <p className="text-gray-500 text-center py-8">
+                Aucun lien marchand ajouté
+              </p>
             )}
-          </button>
-        </div>
-      </form>
+
+            {showMerchantForm && (
+              <div className="mt-6 p-4 bg-gray-50 rounded-lg border">
+                <h3 className="text-sm font-medium text-gray-900 mb-4">
+                  Nouveau lien marchand
+                </h3>
+
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nom du marchand
+                    </label>
+                    <input
+                      type="text"
+                      value={newMerchantLink.nom}
+                      onChange={(e) =>
+                        setNewMerchantLink({
+                          ...newMerchantLink,
+                          nom: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="Ex: Sephora"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      URL
+                    </label>
+                    <input
+                      type="url"
+                      value={newMerchantLink.url}
+                      onChange={(e) =>
+                        setNewMerchantLink({
+                          ...newMerchantLink,
+                          url: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      placeholder="https://..."
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Prix (€)
+                    </label>
+                    <input
+                      type="number"
+                      value={newMerchantLink.prix}
+                      onChange={(e) =>
+                        setNewMerchantLink({
+                          ...newMerchantLink,
+                          prix: e.target.value,
+                        })
+                      }
+                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-indigo-500 focus:border-indigo-500"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                    />
+                  </div>
+
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowMerchantForm(false)}
+                      className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md hover:bg-gray-50 transition-colors"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAddMerchantLink}
+                      className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md hover:bg-indigo-700 transition-colors"
+                    >
+                      Ajouter
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Submit */}
+          <div className="bg-white rounded-lg shadow-sm p-6">
+            <button
+              type="submit"
+              disabled={
+                loading || !formData.nom || !formData.marque || !formData.genre
+              }
+              className="w-full flex items-center justify-center px-6 py-3 bg-indigo-600 text-white font-medium rounded-md hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-3"></div>
+                  {isEdit ? "Modification..." : "Création..."}
+                </>
+              ) : (
+                <>
+                  <Save className="w-5 h-5 mr-2" />
+                  {isEdit ? "Modifier le parfum" : "Créer le parfum"}
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 }
