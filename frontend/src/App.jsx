@@ -114,24 +114,14 @@ function App() {
               </PublicRoute>
             }
           />
-          {/* ✅ NOUVELLES ROUTES À AJOUTER : */}
-          {/* Route vérification email */}
+   
+          {/* Route verify email */}
           <Route path="/verify-email" element={<VerifyEmail />} />
           {/* Route reset password */}
           <Route path="/reset-password" element={<ResetPassword />} />
-          // ✅ Modification du lien "Mot de passe oublié" dans Auth.jsx : //
-          Remplacer le lien existant par :
-          {isLogin && (
-            <div className="forgot-password">
-              <button
-                type="button"
-                onClick={() => setForgotPasswordMode(!forgotPasswordMode)}
-                className="forgot-link"
-              >
-                Mot de passe oublié ?
-              </button>
-            </div>
-          )}
+          <Route path="/verify-email" element={<VerifyEmail />} />
+
+          <Route path="/reset-password" element={<ResetPassword />} />
           <Routes>
             {/* Routes avec layout standard */}
             <Route
@@ -207,8 +197,7 @@ function App() {
                 </PrivateRoute>
               }
             />
-            // Dans App.jsx, assure-toi que la route HistoryPage utilise le
-            Layout :
+
             <Route
               path="/history"
               element={
