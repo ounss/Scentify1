@@ -11,7 +11,7 @@ import {
   getParfumsStats,
   exportParfumsCSV,
 } from "../controllers/parfumController.js";
-//import { getNotesStats } from "../controllers/noteController.js";
+//import { //getNotesStats } from "../controllers/noteController.js";
 
 const router = express.Router();
 
@@ -21,7 +21,7 @@ router.use(protect, admin);
 // ✅ ROUTES STATS - URLs cohérentes avec le frontend
 router.get("/stats/users", getUserStats);
 router.get("/stats/parfums", getParfumsStats);
-router.get("/stats/notes", getNotesStats);
+router.get("/stats/notes", //getNotesStats);
 
 // ✅ ROUTES GESTION UTILISATEURS
 router.get("/users", getAllUsers);
