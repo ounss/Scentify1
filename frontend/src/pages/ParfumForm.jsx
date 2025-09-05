@@ -247,8 +247,10 @@ export default function ParfumForm() {
   };
 
   // Soumission
+  // ✅ CORRECTION dans ParfumForm.jsx - fonction handleSubmit
+
   const handleSubmit = async (e) => {
-    e?.preventDefault?.();
+    e.preventDefault();
 
     if (!isAuthenticated) {
       toast.error("Vous devez être connecté");
@@ -261,28 +263,47 @@ export default function ParfumForm() {
       const formDataToSend = new FormData();
 
       // Champs simples
-      [
+      const simpleFields = [
         "nom",
         "marque",
         "genre",
         "description",
-        "anneSortie",
+        "anneeSortie", // ✅ CORRIGÉ: était "anneSortie"
         "concentre",
         "prix",
         "longevite",
         "sillage",
-      ].forEach((key) => {
+      ];
+
+      simpleFields.forEach((key) => {
         const value = formData[key];
         if (value !== "" && value !== null && value !== undefined) {
           formDataToSend.append(key, value);
         }
       });
 
-      // Notes
+      // ✅ CORRECTION PRINCIPALE : Notes par position
+      // Problème: Les arrays étaient mal formatés pour FormData
       ["notes_tete", "notes_coeur", "notes_fond"].forEach((key) => {
-        (formData[key] || []).forEach((id) => {
-          formDataToSend.append(key, id);
+        const notes = formData[key] || [];
+
+        // ✅ SOLUTION 1: Filtrer les IDs valides uniquement
+        const validNotes = notes.filter((id) => {
+          // Vérifier que c'est un string et qu'il ressemble à un ObjectId
+          if (typeof id !== "string" || id.length !== 24) {
+            console.warn(`⚠️ ID note invalide ignoré: ${id}`);
+            return false;
+          }
+          return true;
         });
+
+        // ✅ SOLUTION 2: Ajouter chaque note individuellement à FormData
+        validNotes.forEach((id, index) => {
+          formDataToSend.append(`${key}[${index}]`, id);
+        });
+
+        // ✅ ALTERNATIVE: Envoyer comme array JSON si le backend le supporte
+        // formDataToSend.append(key, JSON.stringify(validNotes));
       });
 
       // Liens marchands
@@ -301,9 +322,15 @@ export default function ParfumForm() {
         formDataToSend.append("imageUrl", formData.imageUrl);
       }
 
-      // Popularité (admin)
+      // Popularité (admin uniquement)
       if (isAdmin && formData.popularite !== undefined) {
         formDataToSend.append("popularite", formData.popularite);
+      }
+
+      // ✅ DEBUG: Afficher ce qui est envoyé
+      console.log("🔍 FormData envoyée:");
+      for (let pair of formDataToSend.entries()) {
+        console.log(pair[0] + ": " + pair[1]);
       }
 
       if (isEdit) {
@@ -317,10 +344,19 @@ export default function ParfumForm() {
       navigate("/admin");
     } catch (error) {
       console.error("Submit ParfumForm:", error);
-      toast.error(
-        error?.response?.data?.message ||
-          `Erreur lors de la ${isEdit ? "modification" : "création"}`
-      );
+
+      // ✅ AMÉLIORATION: Afficher l'erreur détaillée
+      if (error?.response?.data?.errors) {
+        console.error("❌ Erreurs de validation:", error.response.data.errors);
+        error.response.data.errors.forEach((err) => {
+          toast.error(`${err.field}: ${err.message}`);
+        });
+      } else {
+        toast.error(
+          error?.response?.data?.message ||
+            `Erreur lors de la ${isEdit ? "modification" : "création"}`
+        );
+      }
     } finally {
       setLoading(false);
     }

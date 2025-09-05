@@ -152,18 +152,41 @@ const parfumSchema = Joi.object({
   imageUrl: Joi.string().uri().allow(""),
 });
 
+// ✅ CORRECTION dans backend/middleware/validation.js
+
 export const validateParfum = (req, res, next) => {
   // Traitement spécial pour multipart/form-data
   const data = { ...req.body };
 
-  // Conversion des arrays depuis les form-data
+  console.log("🔍 DEBUG validation - req.body reçu:", Object.keys(req.body));
+  console.log("🔍 DEBUG validation - req.body complet:", req.body);
+
+  // ✅ CORRECTION: Conversion des arrays depuis les form-data
   ["notes_tete", "notes_coeur", "notes_fond"].forEach((field) => {
-    if (data[field]) {
+    // Cas 1: Array indexé depuis FormData notes_tete[0], notes_tete[1], etc.
+    const indexedNotes = [];
+    let i = 0;
+    while (req.body[`${field}[${i}]`]) {
+      indexedNotes.push(req.body[`${field}[${i}]`]);
+      i++;
+    }
+
+    if (indexedNotes.length > 0) {
+      data[field] = indexedNotes;
+    }
+    // Cas 2: Array direct (si c'était déjà un array)
+    else if (data[field]) {
       data[field] = Array.isArray(data[field]) ? data[field] : [data[field]];
     }
+    // Cas 3: Aucune note pour cette position
+    else {
+      data[field] = [];
+    }
+
+    console.log(`✅ ${field} traité:`, data[field]);
   });
 
-  // Reconstruction des liens marchands
+  // ✅ CORRECTION: Reconstruction des liens marchands (déjà correcte)
   if (req.body) {
     const liens = [];
     let i = 0;
@@ -180,12 +203,27 @@ export const validateParfum = (req, res, next) => {
     }
   }
 
+  // ✅ CORRECTION: Conversion des champs numériques depuis FormData
+  if (data.anneeSortie && typeof data.anneeSortie === "string") {
+    data.anneeSortie = parseInt(data.anneeSortie);
+  }
+  if (data.popularite && typeof data.popularite === "string") {
+    data.popularite = parseInt(data.popularite);
+  }
+  if (data.prix && typeof data.prix === "string") {
+    data.prix = parseFloat(data.prix);
+  }
+
+  console.log("🔍 DEBUG validation - data final avant validation:", data);
+
   const { error, value } = parfumSchema.validate(data, {
     abortEarly: false,
     stripUnknown: true,
   });
 
   if (error) {
+    console.error("❌ Erreur validation Joi:", error.details);
+
     const errors = error.details.map((detail) => ({
       field: detail.path.join("."),
       message: detail.message,
@@ -197,7 +235,10 @@ export const validateParfum = (req, res, next) => {
     });
   }
 
+  // ✅ Stocker les données validées
   req.validatedData = value;
+  console.log("✅ Validation réussie, données validées:", value);
+
   next();
 };
 // Ajouter à la fin de validation.js :

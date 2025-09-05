@@ -7,6 +7,7 @@ import {
   deleteParfumFromCloudinary,
   extractPublicIdFromUrl as extractPublicIdFromUrlFromConfig,
 } from "../config/cloudinary.js";
+
 /* --------------------------------------------
    Helpers
 --------------------------------------------- */
@@ -495,32 +496,43 @@ export const getParfumsBySimilarity = async (req, res) => {
 };
 
 /* ===========================
-   ✅ CRUD avec gestion Cloudinary - VERSION CORRIGÉE
+   ✅ CRUD avec gestion Cloudinary - VERSION CORRIGÉE & UNIFIÉE
    =========================== */
 
 /**
- * ✅ createParfum — version corrigée avec gestion d'erreur améliorée
+ * ✅ createParfum — version corrigée
+ * - Utilise req.validatedData si présent (ex: middleware de validation)
+ * - Validation des notes + messages d'erreur détaillés
+ * - Gestion robuste de l’URL image (secure_url > url > path) ou imageUrl
+ * - Compatibilité concentration/concentre
  */
 export const createParfum = async (req, res) => {
   try {
     console.log("🔍 DEBUG createParfum - req.file:", req.file);
     console.log(
-      "🔍 DEBUG createParfum - req.body keys:",
-      Object.keys(req.body)
+      "🔍 DEBUG createParfum - req.validatedData:",
+      req.validatedData
     );
+
+    // ✅ Utiliser req.validatedData si fourni par un middleware de validation
+    const validatedData = req.validatedData || req.body;
 
     // Vérifier les notes si elles existent
     const allNotes = [
-      ...(req.body.notes_tete || []),
-      ...(req.body.notes_coeur || []),
-      ...(req.body.notes_fond || []),
+      ...(validatedData.notes_tete || []),
+      ...(validatedData.notes_coeur || []),
+      ...(validatedData.notes_fond || []),
     ];
+
+    console.log("🔍 DEBUG - Notes à vérifier:", allNotes);
 
     if (allNotes.length > 0) {
       const invalidNoteIds = allNotes.filter(
         (noteId) => !mongoose.Types.ObjectId.isValid(noteId)
       );
+
       if (invalidNoteIds.length > 0) {
+        console.error("❌ IDs de notes invalides:", invalidNoteIds);
         return res.status(400).json({
           message: "IDs de notes invalides",
           invalidIds: invalidNoteIds,
@@ -530,14 +542,26 @@ export const createParfum = async (req, res) => {
       const notesExistantes = await NoteOlfactive.find({
         _id: { $in: allNotes },
       });
+
+      console.log(
+        `🔍 DEBUG - ${allNotes.length} notes à vérifier, ${notesExistantes.length} trouvées`
+      );
+
       if (notesExistantes.length !== allNotes.length) {
-        return res
-          .status(400)
-          .json({ message: "Certaines notes olfactives n'existent pas" });
+        const notesExistantesIds = notesExistantes.map((n) => n._id.toString());
+        const notesMissingIds = allNotes.filter(
+          (id) => !notesExistantesIds.includes(id)
+        );
+
+        console.error("❌ Notes manquantes:", notesMissingIds);
+        return res.status(400).json({
+          message: "Certaines notes olfactives n'existent pas",
+          missingNotes: notesMissingIds,
+        });
       }
     }
 
-    // ✅ (REMPLACÉ) Gestion robuste de l'URL image
+    // ✅ Gestion robuste de l'URL image
     let photoUrl = null;
     if (req.file) {
       if (req.file.secure_url && typeof req.file.secure_url === "string") {
@@ -553,30 +577,38 @@ export const createParfum = async (req, res) => {
           message: "Erreur upload image - URL non disponible",
         });
       }
+    } else if (validatedData.imageUrl) {
+      photoUrl = validatedData.imageUrl;
     }
 
+    // Compatibilité du champ concentration/concentre
+    const concentration =
+      validatedData.concentration ?? validatedData.concentre ?? undefined;
+
+    // ✅ Création du parfum avec les données validées
     const parfum = new Parfum({
-      nom: req.body.nom,
-      marque: req.body.marque,
-      genre: req.body.genre,
-      description: req.body.description || "",
-      notes_tete: req.body.notes_tete || [],
-      notes_coeur: req.body.notes_coeur || [],
-      notes_fond: req.body.notes_fond || [],
-      prix: req.body.prix || null,
-      liensMarchands: req.body.liensMarchands || [],
-      codeBarres: req.body.codeBarres || undefined,
-      // ✅ URL Cloudinary stockée comme string (pas d'objet)
-      photo: photoUrl,
-      // Champs optionnels avec validation
-      anneeSortie: req.body.anneeSortie
-        ? parseInt(req.body.anneeSortie)
-        : new Date().getFullYear(),
-      concentration: req.body.concentration,
-      popularite: req.body.popularite ? parseInt(req.body.popularite) : 0,
-      longevite: req.body.longevite || "",
-      sillage: req.body.sillage || "",
+      nom: validatedData.nom,
+      marque: validatedData.marque,
+      genre: validatedData.genre,
+      description: validatedData.description || "",
+      notes_tete: validatedData.notes_tete || [],
+      notes_coeur: validatedData.notes_coeur || [],
+      notes_fond: validatedData.notes_fond || [],
+      prix:
+        validatedData.prix !== undefined && validatedData.prix !== null
+          ? validatedData.prix
+          : null,
+      liensMarchands: validatedData.liensMarchands || [],
+      codeBarres: validatedData.codeBarres || undefined,
+      photo: photoUrl, // URL Cloudinary ou externe
+      anneeSortie: validatedData.anneeSortie || new Date().getFullYear(), // garde ton défaut d'avant
+      concentration, // compatibilité
+      popularite: validatedData.popularite || 0,
+      longevite: validatedData.longevite || "",
+      sillage: validatedData.sillage || "",
     });
+
+    console.log("🔍 DEBUG - Parfum à sauvegarder:", parfum);
 
     await parfum.save();
     await parfum.populate([
@@ -598,24 +630,23 @@ export const createParfum = async (req, res) => {
 };
 
 /**
- * ✅ updateParfum — version corrigée avec gestion d'erreur améliorée
- * ✅ ICI: Gestion complète de l'image (upload OU URL manuelle) — SECTION REMPLACÉE
+ * ✅ updateParfum — version corrigée
+ * - Utilise req.validatedData si présent
+ * - Validation des notes
+ * - Gestion de l’image (upload OU URL manuelle)
+ * - ✅ Conserve ta logique existante de suppression de l’ancienne image Cloudinary
+ * - Garde le nettoyage des champs & conversions numériques
  */
 export const updateParfum = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = { ...req.body };
+
+    // ✅ Utiliser req.validatedData si fourni par un middleware de validation
+    const validatedData = req.validatedData || req.body;
 
     console.log("🔍 DEBUG updateParfum - ID:", id);
+    console.log("🔍 DEBUG updateParfum - validatedData:", validatedData);
     console.log("🔍 DEBUG updateParfum - req.file:", req.file);
-    console.log(
-      "🔍 DEBUG updateParfum - imageUrl dans body:",
-      req.body.imageUrl
-    );
-    console.log(
-      "🔍 DEBUG updateParfum - updateData keys:",
-      Object.keys(updateData)
-    );
 
     if (!mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({ message: "ID de parfum invalide" });
@@ -623,9 +654,9 @@ export const updateParfum = async (req, res) => {
 
     // Vérifier les notes si elles sont mises à jour
     const allNotes = [
-      ...(updateData.notes_tete || []),
-      ...(updateData.notes_coeur || []),
-      ...(updateData.notes_fond || []),
+      ...(validatedData.notes_tete || []),
+      ...(validatedData.notes_coeur || []),
+      ...(validatedData.notes_fond || []),
     ];
 
     if (allNotes.length > 0) {
@@ -649,12 +680,12 @@ export const updateParfum = async (req, res) => {
       }
     }
 
-    // ✅ CORRECTION: Gestion complète de l'image (fichier uploadé OU URL manuelle)
-    if (req.file) {
-      // Cas 1: Fichier uploadé via multer
-      let newPhotoUrl = null;
+    // Gestion de l'image
+    let updateData = { ...validatedData };
 
-      // Ordre de priorité: secure_url > url > path (si string)
+    if (req.file) {
+      // Ordre de priorité: secure_url > url > path
+      let newPhotoUrl = null;
       if (req.file.secure_url && typeof req.file.secure_url === "string") {
         newPhotoUrl = req.file.secure_url;
       } else if (req.file.url && typeof req.file.url === "string") {
@@ -675,11 +706,13 @@ export const updateParfum = async (req, res) => {
         public_id: req.file.public_id || "N/A",
       });
 
-      // Supprimer l'ancienne image si elle existe
+      // ✅ Supprimer l'ancienne image si elle existe (on conserve ta logique)
       const oldParfum = await Parfum.findById(id).select("photo");
       if (oldParfum && oldParfum.photo) {
         try {
-          const publicId = extractPublicIdFromUrl(oldParfum.photo);
+          const publicId =
+            extractPublicIdFromUrl(oldParfum.photo) ??
+            extractPublicIdFromUrlFromConfig(oldParfum.photo);
           if (publicId) {
             await deleteParfumFromCloudinary(publicId);
             console.log("✅ Ancienne image supprimée:", publicId);
@@ -693,21 +726,16 @@ export const updateParfum = async (req, res) => {
       }
 
       updateData.photo = newPhotoUrl;
-    } else if (req.body.imageUrl && req.body.imageUrl.trim() !== "") {
-      // Cas 2: URL manuelle fournie
-      const imageUrl = req.body.imageUrl.trim();
-      console.log("✅ Nouvelle image reçue (URL manuelle):", imageUrl);
-
-      updateData.photo = imageUrl;
-
-      // Note: On ne supprime pas l'ancienne image car c'est une URL externe
-      // et on ne peut pas être sûr si c'était sur Cloudinary ou non
+    } else if (validatedData.imageUrl && validatedData.imageUrl.trim() !== "") {
+      // Cas URL manuelle
+      updateData.photo = validatedData.imageUrl.trim();
+      // Note: on ne supprime pas l’ancienne image Cloudinary dans ce cas
     }
 
-    // Nettoyer imageUrl des updateData pour éviter qu'il soit enregistré en BDD
+    // Nettoyer imageUrl des updateData
     delete updateData.imageUrl;
 
-    // ✅ PROTECTION: Nettoyer updateData des objets non désirés
+    // ✅ PROTECTION: Nettoyer updateData des objets non désirés (on garde ta logique)
     Object.keys(updateData).forEach((key) => {
       const value = updateData[key];
       if (
@@ -720,13 +748,22 @@ export const updateParfum = async (req, res) => {
       }
     });
 
-    // ✅ Validation des champs numériques
+    // ✅ Validation / conversions numériques (on conserve)
     if (updateData.anneeSortie) {
-      updateData.anneeSortie = parseInt(updateData.anneeSortie);
+      updateData.anneeSortie = parseInt(updateData.anneeSortie, 10);
     }
     if (updateData.popularite !== undefined) {
-      updateData.popularite = parseInt(updateData.popularite) || 0;
+      updateData.popularite = parseInt(updateData.popularite, 10) || 0;
     }
+
+    // Compatibilité concentration/concentre
+    if (
+      updateData.concentration === undefined &&
+      updateData.concentre !== undefined
+    ) {
+      updateData.concentration = updateData.concentre;
+    }
+    delete updateData.concentre; // on unifie côté BDD
 
     console.log("🔍 DEBUG updateData final:", updateData);
 
@@ -756,7 +793,7 @@ export const updateParfum = async (req, res) => {
 };
 
 /**
- * ✅ deleteParfum — version corrigée avec gestion d'erreur améliorée
+ * ✅ deleteParfum — version conservée (suppression image Cloudinary si présente)
  */
 export const deleteParfum = async (req, res) => {
   try {
