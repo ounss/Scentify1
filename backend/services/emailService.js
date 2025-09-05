@@ -2,10 +2,10 @@ import nodemailer from "nodemailer";
 import crypto from "crypto";
 
 // ✅ Configuration transporteur email CORRIGÉE
-const createTransporter = () => {
+const createTransport = () => {
   if (process.env.NODE_ENV === "production") {
     // Configuration pour Gmail en production
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       service: "gmail",
       auth: {
         user: process.env.EMAIL_USER, // votre-email@gmail.com
@@ -15,7 +15,7 @@ const createTransporter = () => {
     });
   } else {
     // ✅ Configuration SMTP pour développement (CORRIGÉ)
-    return nodemailer.createTransporter({
+    return nodemailer.createTransport({
       host: process.env.SMTP_HOST || "smtp.gmail.com", // ✅ RESTAURÉ
       port: process.env.SMTP_PORT || 587,
       secure: false, // true pour 465, false pour autres ports
