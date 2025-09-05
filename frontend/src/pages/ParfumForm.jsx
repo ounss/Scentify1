@@ -116,23 +116,52 @@ export default function ParfumForm() {
     }
   };
 
+  // Dans ParfumForm.jsx, remplacez UNIQUEMENT cette fonction :
+
   const loadNotesAndFamilies = async () => {
     try {
+      console.log("🔍 Chargement des notes et familles...");
+
+      // ✅ CORRIGÉ: Utilise noteAPI.getAll() au lieu de getNotesWithSuggestions()
       const notesResp = await noteAPI.getAll();
-      const notes = notesResp.data || [];
+      console.log("🔍 Réponse API notes:", notesResp);
+
+      // ✅ CORRIGÉ: Gestion flexible de la structure de réponse
+      const notes = notesResp.data?.notes || notesResp.data || [];
       setAllNotes(notes);
 
-      const uniqueFamilies = [...new Set(notes.map((n) => n.famille))].filter(
-        Boolean
-      );
-      const familiesWithCount = uniqueFamilies.map((famille) => ({
-        famille,
-        count: notes.filter((n) => n.famille === famille).length,
-      }));
-      setFamilies(familiesWithCount);
+      console.log(`✅ ${notes.length} notes chargées:`, notes.slice(0, 3));
+
+      // ✅ Extraire les familles uniques des notes chargées
+      if (notes.length > 0) {
+        const uniqueFamilies = [
+          ...new Set(notes.map((note) => note.famille)),
+        ].filter(Boolean);
+        const familiesWithCount = uniqueFamilies.map((famille) => ({
+          famille,
+          count: notes.filter((note) => note.famille === famille).length,
+        }));
+        setFamilies(familiesWithCount);
+
+        console.log(
+          `✅ ${familiesWithCount.length} familles extraites:`,
+          familiesWithCount
+        );
+      } else {
+        console.log("⚠️ Aucune note trouvée");
+        setFamilies([]);
+      }
     } catch (error) {
-      console.error("Erreur chargement notes:", error);
-      toast.error("Erreur lors du chargement des notes");
+      console.error("❌ Erreur chargement notes:", error);
+      console.error("❌ Détails erreur:", error.response?.data);
+
+      // Toast informatif au lieu d'alarmant
+      if (error.response?.status === 404) {
+        toast.error("Aucune note disponible");
+      } else {
+        toast.error("Impossible de charger les notes olfactives");
+      }
+
       setAllNotes([]);
       setFamilies([]);
     }
