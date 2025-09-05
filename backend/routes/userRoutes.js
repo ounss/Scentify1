@@ -30,7 +30,7 @@ import { protect, admin } from "../middleware/authMiddleware.js";
 import {
   validateRegister,
   validateLogin,
-  //validateResetPassword,
+  ////validateResetPassword,
   handleValidationErrors,
 } from "../middleware/validation.js";
 
@@ -48,7 +48,7 @@ router.get("/verify-email/:token", verifyEmail);
 router.post("/forgot-password", forgotPassword);
 router.post(
   "/reset-password",
-  validateResetPassword,
+  //validateResetPassword,
   handleValidationErrors,
   resetPassword
 );
