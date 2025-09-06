@@ -1,51 +1,75 @@
+// frontend/src/pages/VerifyEmail.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { CheckCircle, XCircle, Mail, ArrowLeft } from "lucide-react";
 import { authAPI } from "../services/api";
-import { useAuth } from "../contexts/AuthContext";
+// On n'a pas besoin d'appeler login(email, password) ici.
+// Le backend renvoie un JWT : on l'enregistre puis on rafraîchit l'app proprement.
 
 const VerifyEmail = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
-  const { login } = useAuth();
-  const [status, setStatus] = useState("loading"); // loading, success, error
+  const [status, setStatus] = useState("loading"); // "loading" | "success" | "error"
   const [message, setMessage] = useState("");
 
   useEffect(() => {
+    let isMounted = true;
+
     const verifyToken = async () => {
       const token = searchParams.get("token");
 
       if (!token) {
+        if (!isMounted) return;
         setStatus("error");
-        setMessage("Token de vérification manquant");
+        setMessage("Token de vérification manquant.");
         return;
       }
 
       try {
-        const response = await authAPI.verifyEmail(token);
+        // On appelle l'API qui active le compte
+        const res = await authAPI.verifyEmail(token);
+        // Attendus côté backend: { message, token, user }
+        const apiMessage = res?.data?.message || "Email vérifié avec succès !";
+        const jwt = res?.data?.token;
+        const user = res?.data?.user;
 
-        // Si l'API retourne un token JWT, connecter l'utilisateur automatiquement
-        if (response.data.token) {
-          localStorage.setItem("token", response.data.token);
-          // Utiliser le login du contexte pour mettre à jour l'état
-          await login({ email: response.data.user.email, password: "dummy" }); // Hack temporaire
+        // Si un JWT est renvoyé, on le stocke pour connecter l'utilisateur
+        if (jwt) {
+          localStorage.setItem("token", jwt);
+        }
+        if (user) {
+          try {
+            localStorage.setItem("user", JSON.stringify(user));
+          } catch {
+            // ignore JSON errors
+          }
         }
 
+        if (!isMounted) return;
         setStatus("success");
-        setMessage(response.data.message || "Email vérifié avec succès !");
+        setMessage(apiMessage);
 
-        // Rediriger après 3 secondes
+        // Redirection douce (on rafraîchit l'app pour que le contexte Auth se mette à jour)
         setTimeout(() => {
-          navigate("/");
-        }, 3000);
+          // window.location.replace("/") garantit un refresh complet de la SPA
+          window.location.replace("/");
+        }, 2000);
       } catch (error) {
+        const apiErr =
+          error?.response?.data?.message ||
+          error?.message ||
+          "Erreur de vérification.";
+        if (!isMounted) return;
         setStatus("error");
-        setMessage(error.response?.data?.message || "Erreur de vérification");
+        setMessage(apiErr);
       }
     };
 
     verifyToken();
-  }, [searchParams, navigate, login]);
+    return () => {
+      isMounted = false;
+    };
+  }, [searchParams, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-orange-50 to-red-50 flex items-center justify-center p-4">
@@ -60,7 +84,7 @@ const VerifyEmail = () => {
           </h1>
         </div>
 
-        {/* Contenu selon le status */}
+        {/* Contenus */}
         {status === "loading" && (
           <div className="space-y-4">
             <div className="animate-spin w-12 h-12 border-4 border-orange-500 border-t-transparent rounded-full mx-auto"></div>
@@ -95,7 +119,7 @@ const VerifyEmail = () => {
 
             <div className="space-y-3 pt-4">
               <button
-                onClick={() => navigate("/auth")}
+                onClick={() => navigate("/auth")} // tu peux aussi déclencher ici un appel: authAPI.resendVerification(email)
                 className="w-full bg-orange-500 hover:bg-orange-600 text-white font-medium py-3 px-4 rounded-lg transition-colors"
               >
                 <Mail className="w-4 h-4 inline mr-2" />
