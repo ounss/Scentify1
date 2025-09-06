@@ -2,7 +2,7 @@
 import axios from "axios";
 
 // Configuration de base
-const API_BASE_URL = 
+const API_BASE_URL =
   process.env.NODE_ENV === "production"
     ? "https://scentify-perfume.onrender.com/api"
     : "http://localhost:10000/api";
@@ -42,7 +42,7 @@ api.interceptors.response.use(
 
 // 🔐 AUTH SERVICES
 export const authAPI = {
-  login: (credentials) => api.post("/auth/login", credentials),
+  login: (credentials) => api.post("/users/login", credentials),
   register: (userData) => api.post("/auth/register", userData),
   logout: () => {
     localStorage.removeItem("token");
@@ -53,8 +53,10 @@ export const authAPI = {
   changePassword: (data) => api.put("/users/me/password", data),
   deleteAccount: () => api.delete("/users/me"),
   forgotPassword: (email) => api.post("/users/forgot-password", { email }),
-  resetPassword: (token, password) => api.post("/users/reset-password", { token, password }),
-  resendVerification: (email) => api.post("/users/resend-verification", { email }),
+  resetPassword: (token, password) =>
+    api.post("/users/reset-password", { token, password }),
+  resendVerification: (email) =>
+    api.post("/users/resend-verification", { email }),
   verifyEmail: (token) => api.get(`/users/verify-email/${token}`),
 };
 
