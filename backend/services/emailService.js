@@ -1,7 +1,14 @@
+// backend/services/emailService.js
 import nodemailer from "nodemailer";
 import crypto from "crypto";
 
-// ✅ Configuration transporteur email CORRIGÉE
+// ————————————————————————————————
+// Helpers
+// ————————————————————————————————
+const normalizeBaseUrl = (url) =>
+  (url || "https://scentify-perfumes.onrender.com").replace(/\/+$/, "");
+
+// ✅ Configuration transporteur email
 const createTransport = () => {
   if (process.env.NODE_ENV === "production") {
     // Configuration pour Gmail en production
@@ -14,10 +21,10 @@ const createTransport = () => {
       secure: true,
     });
   } else {
-    // ✅ Configuration SMTP pour développement (CORRIGÉ)
+    // ✅ Configuration SMTP pour développement
     return nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.gmail.com", // ✅ RESTAURÉ
-      port: process.env.SMTP_PORT || 587,
+      host: process.env.SMTP_HOST || "smtp.gmail.com",
+      port: Number(process.env.SMTP_PORT || 587),
       secure: false, // true pour 465, false pour autres ports
       auth: {
         user: process.env.EMAIL_USER,
@@ -48,14 +55,19 @@ export const generateToken = () => {
   return crypto.randomBytes(32).toString("hex");
 };
 
-// ✅ NOUVEAU : Envoyer email de vérification
+// ✅ Email de vérification
 export const sendVerificationEmail = async (user, token) => {
   try {
-    const Transport = createTransport();
+    // ⛔️ Ne pas envoyer un lien avec token manquant
+    if (!token) {
+      throw new Error(
+        "Verification token manquant : passe un token valide à sendVerificationEmail."
+      );
+    }
 
-    const verifyUrl = `${
-      process.env.FRONTEND_URL || "https://scentify-perfumes.onrender.com/"
-    }/verify-email?token=${token}`;
+    const Transport = createTransport();
+    const baseUrl = normalizeBaseUrl(process.env.FRONTEND_URL);
+    const verifyUrl = `${baseUrl}/verify-email?token=${token}`;
 
     const mailOptions = {
       from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
@@ -64,7 +76,7 @@ export const sendVerificationEmail = async (user, token) => {
       html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px;">
           <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <!-- Header avec logo -->
+            <!-- Header -->
             <div style="text-align: center; margin-bottom: 30px;">
               <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #a44949, #c56b6b); border-radius: 15px; margin: 0 auto; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
                 <span style="color: white; font-size: 24px; font-weight: bold;">S</span>
@@ -73,13 +85,11 @@ export const sendVerificationEmail = async (user, token) => {
               <p style="color: #666; margin: 5px 0 0 0;">Votre guide dans l'univers des parfums</p>
             </div>
 
-            <!-- Contenu principal -->
             <h2 style="color: #2c2c2c; margin-bottom: 20px;">Bienvenue ${user.username} !</h2>
             <p style="color: #2c2c2c; line-height: 1.6; margin-bottom: 15px;">
               Votre compte Scentify a été créé avec succès. Pour commencer à explorer notre univers olfactif, veuillez vérifier votre adresse email.
             </p>
 
-            <!-- Bouton CTA -->
             <div style="text-align: center; margin: 30px 0;">
               <a href="${verifyUrl}" 
                  style="background: linear-gradient(135deg, #a44949, #c56b6b); 
@@ -94,7 +104,6 @@ export const sendVerificationEmail = async (user, token) => {
               </a>
             </div>
 
-            <!-- Lien alternatif -->
             <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0;">
               Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :
             </p>
@@ -102,7 +111,6 @@ export const sendVerificationEmail = async (user, token) => {
               ${verifyUrl}
             </p>
 
-            <!-- Footer -->
             <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
             <p style="color: #666; font-size: 14px; line-height: 1.6; text-align: center;">
               L'équipe Scentify<br>
@@ -122,14 +130,19 @@ export const sendVerificationEmail = async (user, token) => {
   }
 };
 
-// ✅ Envoyer email de reset password AMÉLIORÉ
+// ✅ Email de reset password
 export const sendPasswordResetEmail = async (user, token) => {
   try {
-    const Transport = createTransport();
+    // ⛔️ Ne pas envoyer un lien avec token manquant
+    if (!token) {
+      throw new Error(
+        "Password reset token manquant : passe un token valide à sendPasswordResetEmail."
+      );
+    }
 
-    const resetUrl = `${
-      process.env.FRONTEND_URL || "https://scentify-perfumes.onrender.com/"
-    }/reset-password?token=${token}`;
+    const Transport = createTransport();
+    const baseUrl = normalizeBaseUrl(process.env.FRONTEND_URL);
+    const resetUrl = `${baseUrl}/reset-password?token=${token}`;
 
     const mailOptions = {
       from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
@@ -138,7 +151,7 @@ export const sendPasswordResetEmail = async (user, token) => {
       html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: Arial, sans-serif; background-color: #f8f9fa; padding: 20px;">
           <div style="background-color: white; border-radius: 10px; padding: 30px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);">
-            <!-- Header avec logo -->
+            <!-- Header -->
             <div style="text-align: center; margin-bottom: 30px;">
               <div style="width: 60px; height: 60px; background: linear-gradient(135deg, #a44949, #c56b6b); border-radius: 15px; margin: 0 auto; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
                 <span style="color: white; font-size: 24px; font-weight: bold;">S</span>
@@ -147,7 +160,6 @@ export const sendPasswordResetEmail = async (user, token) => {
               <p style="color: #666; margin: 5px 0 0 0;">Votre guide dans l'univers des parfums</p>
             </div>
 
-            <!-- Contenu principal -->
             <h2 style="color: #2c2c2c; margin-bottom: 20px;">Réinitialisation de mot de passe</h2>
             <p style="color: #2c2c2c; line-height: 1.6; margin-bottom: 15px;">Bonjour ${user.username},</p>
             <p style="color: #2c2c2c; line-height: 1.6; margin-bottom: 15px;">
@@ -157,7 +169,6 @@ export const sendPasswordResetEmail = async (user, token) => {
               Cliquez sur le bouton ci-dessous pour créer un nouveau mot de passe :
             </p>
 
-            <!-- Bouton CTA -->
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetUrl}" 
                  style="background: linear-gradient(135deg, #a44949, #c56b6b); 
@@ -172,14 +183,12 @@ export const sendPasswordResetEmail = async (user, token) => {
               </a>
             </div>
 
-            <!-- Informations importantes -->
             <div style="background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 8px; padding: 15px; margin: 25px 0;">
               <p style="margin: 0; color: #856404; font-size: 14px;">
                 ⏰ <strong>Ce lien expirera dans 1 heure</strong> pour votre sécurité.
               </p>
             </div>
 
-            <!-- Lien alternatif -->
             <p style="color: #666; font-size: 14px; line-height: 1.6; margin: 20px 0;">
               Si le bouton ne fonctionne pas, copiez et collez ce lien dans votre navigateur :
             </p>
@@ -187,7 +196,6 @@ export const sendPasswordResetEmail = async (user, token) => {
               ${resetUrl}
             </p>
 
-            <!-- Footer -->
             <hr style="border: none; border-top: 1px solid #e5e5e5; margin: 30px 0;">
             <p style="color: #666; font-size: 14px; line-height: 1.6;">
               Si vous n'avez pas demandé cette réinitialisation, ignorez cet email en toute sécurité.
@@ -209,10 +217,11 @@ export const sendPasswordResetEmail = async (user, token) => {
   }
 };
 
-// ✅ Envoyer email de bienvenue (optionnel après vérification)
+// ✅ Email de bienvenue (optionnel)
 export const sendWelcomeEmail = async (user) => {
   try {
     const Transport = createTransport();
+    const baseUrl = normalizeBaseUrl(process.env.FRONTEND_URL);
 
     const mailOptions = {
       from: `"Scentify" <${process.env.EMAIL_FROM || process.env.EMAIL_USER}>`,
@@ -228,9 +237,7 @@ export const sendWelcomeEmail = async (user) => {
               <h1 style="color: #2c2c2c; margin: 0;">Scentify</h1>
             </div>
 
-            <h2 style="color: #2c2c2c; margin-bottom: 20px;">Bienvenue ${
-              user.username
-            } ! 👋</h2>
+            <h2 style="color: #2c2c2c; margin-bottom: 20px;">Bienvenue ${user.username} ! 👋</h2>
             <p style="color: #2c2c2c; line-height: 1.6;">
               Votre compte Scentify a été créé avec succès. Nous sommes ravis de vous accueillir dans notre univers olfactif !
             </p>
@@ -244,10 +251,7 @@ export const sendWelcomeEmail = async (user) => {
             </ul>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${
-                process.env.FRONTEND_URL ||
-                "https://scentify-perfumes.onrender.com"
-              }" 
+              <a href="${baseUrl}" 
                  style="background: linear-gradient(135deg, #a44949, #c56b6b); 
                         color: white; 
                         padding: 15px 30px; 
@@ -272,8 +276,7 @@ export const sendWelcomeEmail = async (user) => {
     return result;
   } catch (error) {
     console.error("❌ Erreur envoi email bienvenue:", error);
-    // Ne pas faire échouer l'inscription si l'email ne peut pas être envoyé
-    return null;
+    return null; // on n'échoue pas l'inscription
   }
 };
 
@@ -287,22 +290,26 @@ export const sendContactNotificationToAdmin = async (contactData) => {
       throw new Error("ADMIN_EMAIL non configuré");
     }
 
-    const dashboardUrl = `${
-      process.env.FRONTEND_URL || "https://scentify-perfumes.onrender.com"
-    }/admin/dashboard`;
+    const dashboardUrl = `${normalizeBaseUrl(
+      process.env.FRONTEND_URL
+    )}/admin/dashboard`;
 
     const emailContent = `
       🔔 NOUVEAU MESSAGE DE CONTACT
       
       De: ${contactData.name} (${contactData.email})
       Sujet: ${contactData.subject}
-      Date: ${new Date(contactData.date).toLocaleString("fr-FR")}
+      Date: ${
+        contactData.date
+          ? new Date(contactData.date).toLocaleString("fr-FR")
+          : new Date().toLocaleString("fr-FR")
+      }
       
       MESSAGE:
       ${contactData.message}
       
       Voir dans le dashboard: ${dashboardUrl}
-      Message ID: ${contactData.id}
+      Message ID: ${contactData.id || "N/A"}
     `;
 
     const mailOptions = {
@@ -321,7 +328,7 @@ export const sendContactNotificationToAdmin = async (contactData) => {
   }
 };
 
-// ✅ Configuration des variables d'environnement nécessaires
+// ✅ Variables d'environnement requises (basique)
 export const getRequiredEnvVars = () => {
   const required = ["EMAIL_USER", "EMAIL_PASS"];
   const missing = required.filter((key) => !process.env[key]);
