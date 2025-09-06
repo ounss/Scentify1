@@ -205,7 +205,10 @@ async function migrateNotes() {
 if (import.meta.url === `file://${process.argv[1]}`) {
   // Connexion à MongoDB
   mongoose
-    .connect(process.env.MONGODB_URI || "mongodb://localhost:27017/scentify")
+    .connect(
+      process.env.MONGODB_URI ||
+        "mongodb+srv://ounsbnhl:if6qHUODl7DFalNo@scentify.ggems57.mongodb.net/"
+    )
     .then(() => {
       console.log("🔗 Connecté à MongoDB");
       return migrateNotes();
