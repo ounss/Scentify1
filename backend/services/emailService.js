@@ -5,8 +5,15 @@ import crypto from "crypto";
 // ————————————————————————————————
 // Helpers
 // ————————————————————————————————
-const normalizeBaseUrl = (url) =>
-  (url || "https://scentify-perfumes.onrender.com").replace(/\/+$/, "");
+const normalizeBaseUrl = (url) => {
+  const frontendUrl = url || "https://scentify-perfumes.onrender.com";
+  console.log("🔧 Debug normalizeBaseUrl:");
+  console.log("  - URL passée en paramètre:", url);
+  console.log("  - process.env.FRONTEND_URL:", process.env.FRONTEND_URL);
+  console.log("  - URL finale utilisée:", frontendUrl);
+
+  return frontendUrl.replace(/\/+$/, "");
+}; //
 
 // ✅ Configuration transporteur email
 const createTransport = () => {
