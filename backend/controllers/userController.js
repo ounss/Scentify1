@@ -503,7 +503,10 @@ export const getUserFavorites = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
       .populate("favorisParfums", "nom marque photo genre popularite")
-      .populate("favorisNotes", "nom type famille");
+      .populate(
+        "favorisNotes",
+        "nom famille suggestedPositions usages couleur"
+      );
 
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });

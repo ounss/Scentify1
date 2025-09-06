@@ -144,9 +144,21 @@ export const getParfums = async (req, res) => {
 
     const parfums = await Parfum.find(query)
       .populate([
-        { path: "notes_tete", select: "nom type famille" },
-        { path: "notes_coeur", select: "nom type famille" },
-        { path: "notes_fond", select: "nom type famille" },
+        {
+          path: "notes_tete",
+          select:
+            "nom famille suggestedPositions usages couleur intensite popularite",
+        },
+        {
+          path: "notes_coeur",
+          select:
+            "nom famille suggestedPositions usages couleur intensite popularite",
+        },
+        {
+          path: "notes_fond",
+          select:
+            "nom famille suggestedPositions usages couleur intensite popularite",
+        },
       ])
       .sort(sortOptions)
       .skip(skip)
@@ -239,9 +251,18 @@ export const searchParfums = async (req, res) => {
 
     const parfums = await Parfum.find(query)
       .populate([
-        { path: "notes_tete", select: "nom type famille" },
-        { path: "notes_coeur", select: "nom type famille" },
-        { path: "notes_fond", select: "nom type famille" },
+        {
+          path: "notes_tete",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_coeur",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_fond",
+          select: "nom famille suggestedPositions usages couleur",
+        },
       ])
       .sort({ popularite: -1 })
       .limit(20);
@@ -265,9 +286,18 @@ export const getParfumById = async (req, res) => {
     }
 
     const parfum = await Parfum.findById(id).populate([
-      { path: "notes_tete", select: "nom type famille" },
-      { path: "notes_coeur", select: "nom type famille" },
-      { path: "notes_fond", select: "nom type famille" },
+      {
+        path: "notes_tete",
+        select: "nom famille suggestedPositions usages couleur",
+      },
+      {
+        path: "notes_coeur",
+        select: "nom famille suggestedPositions usages couleur",
+      },
+      {
+        path: "notes_fond",
+        select: "nom famille suggestedPositions usages couleur",
+      },
     ]);
 
     if (!parfum) {
@@ -322,9 +352,18 @@ export const getSimilarParfums = async (req, res) => {
       ],
     })
       .populate([
-        { path: "notes_tete", select: "nom type famille" },
-        { path: "notes_coeur", select: "nom type famille" },
-        { path: "notes_fond", select: "nom type famille" },
+        {
+          path: "notes_tete",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_coeur",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_fond",
+          select: "nom famille suggestedPositions usages couleur",
+        },
       ])
       .sort({ popularite: -1 })
       .limit(6);
@@ -360,9 +399,18 @@ export const getParfumsByNote = async (req, res) => {
       ],
     })
       .populate([
-        { path: "notes_tete", select: "nom type famille" },
-        { path: "notes_coeur", select: "nom type famille" },
-        { path: "notes_fond", select: "nom type famille" },
+        {
+          path: "notes_tete",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_coeur",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_fond",
+          select: "nom famille suggestedPositions usages couleur",
+        },
       ])
       .sort({ popularite: -1 })
       .skip(skip)
@@ -448,9 +496,18 @@ export const getParfumsBySimilarity = async (req, res) => {
       ],
     })
       .populate([
-        { path: "notes_tete", select: "nom type famille" },
-        { path: "notes_coeur", select: "nom type famille" },
-        { path: "notes_fond", select: "nom type famille" },
+        {
+          path: "notes_tete",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_coeur",
+          select: "nom famille suggestedPositions usages couleur",
+        },
+        {
+          path: "notes_fond",
+          select: "nom famille suggestedPositions usages couleur",
+        },
       ])
       .sort({ popularite: -1 });
 
@@ -612,9 +669,18 @@ export const createParfum = async (req, res) => {
 
     await parfum.save();
     await parfum.populate([
-      { path: "notes_tete", select: "nom type famille" },
-      { path: "notes_coeur", select: "nom type famille" },
-      { path: "notes_fond", select: "nom type famille" },
+      {
+        path: "notes_tete",
+        select: "nom famille suggestedPositions usages couleur",
+      },
+      {
+        path: "notes_coeur",
+        select: "nom famille suggestedPositions usages couleur",
+      },
+      {
+        path: "notes_fond",
+        select: "nom famille suggestedPositions usages couleur",
+      },
     ]);
 
     console.log("✅ Parfum créé avec succès - photo:", parfum.photo);
@@ -771,9 +837,18 @@ export const updateParfum = async (req, res) => {
       new: true,
       runValidators: true,
     }).populate([
-      { path: "notes_tete", select: "nom type famille" },
-      { path: "notes_coeur", select: "nom type famille" },
-      { path: "notes_fond", select: "nom type famille" },
+      {
+        path: "notes_tete",
+        select: "nom famille suggestedPositions usages couleur",
+      },
+      {
+        path: "notes_coeur",
+        select: "nom famille suggestedPositions usages couleur",
+      },
+      {
+        path: "notes_fond",
+        select: "nom famille suggestedPositions usages couleur",
+      },
     ]);
 
     if (!parfum) {
