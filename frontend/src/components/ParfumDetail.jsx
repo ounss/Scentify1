@@ -86,19 +86,22 @@ export default function ParfumDetail() {
       setParfum(parfumResponse.data);
       setLoading(false);
 
-      // 2) Charger les parfums similaires (robuste sur la forme de la réponse)
+      // 2) 🔧 FIX: Charger les parfums similaires avec l'endpoint correct
       try {
+        // ✅ CORRECTION: Utiliser l'URL correcte qui correspond à la route backend
         const similarResponse = await parfumAPI.getSimilar(id);
+
         let similarData = [];
         if (similarResponse?.data) {
+          // Backend retourne directement un tableau de parfums similaires
           if (Array.isArray(similarResponse.data)) {
             similarData = similarResponse.data;
           } else if (Array.isArray(similarResponse.data.parfums)) {
             similarData = similarResponse.data.parfums;
           }
         }
-        setSimilarParfums(similarData);
 
+        console.log("🔍 Parfums similaires reçus:", similarData);
         setSimilarParfums(similarData || []);
       } catch (similarError) {
         console.warn("Erreur chargement parfums similaires:", similarError);
@@ -551,7 +554,7 @@ export default function ParfumDetail() {
             <h2 className={styles.sectionTitle}>Parfums similaires</h2>
           </div>
 
-          {/* 🔧 FIX 1: Amélioration de la logique d'affichage des parfums similaires */}
+          {/* 🔧 FIX: Amélioration de la logique d'affichage des parfums similaires */}
           {similarLoading ? (
             <div className={styles.emptySimilar}>
               <div className={styles.spinner} />

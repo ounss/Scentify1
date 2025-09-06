@@ -1,61 +1,40 @@
-// frontend/src/services/api.js
+// frontend/src/services/api.js - VERSION CORRIGÉE avec getSimilar
 import axios from "axios";
 
-// ✅ Configuration API CORRIGÉE
-const BASE_URL =
-  process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
+// Configuration de base
+const API_BASE_URL = 
+  process.env.NODE_ENV === "production"
+    ? "https://scentify-perfume.onrender.com/api"
+    : "http://localhost:10000/api";
 
-console.log("Base URL configurée:", BASE_URL);
-console.log("🔗 Base URL configurée:", BASE_URL);
-
+// Instance Axios
 const api = axios.create({
-  baseURL: BASE_URL,
-  timeout: 15000, // ✅ Timeout pour éviter les blocages
+  baseURL: API_BASE_URL,
+  timeout: 10000,
   headers: {
     "Content-Type": "application/json",
   },
 });
 
-// ✅ Intercepteur requête - JWT automatique
+// Intercepteur pour ajouter le token
 api.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
-      console.log("📡 Token ajouté à la requête:", config.url);
-    } else {
-      console.log("⚠️ Pas de token pour la requête:", config.url);
     }
     return config;
   },
-  (error) => {
-    console.error("❌ Erreur intercepteur requête:", error);
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
-// ✅ Intercepteur réponse - Gestion erreurs améliorée
+// Intercepteur pour gérer les réponses et erreurs
 api.interceptors.response.use(
-  (response) => {
-    console.log("✅ Réponse API:", response.config.url, response.status);
-    return response;
-  },
+  (response) => response,
   (error) => {
-    console.error("❌ Erreur API:", error.config?.url, error.response?.status);
-    console.error("❌ Détails erreur:", error.response?.data);
-
-    // Gestion spécifique des erreurs réseau
-    if (error.code === "NETWORK_ERROR" || error.code === "ECONNREFUSED") {
-      console.error("🌐 Erreur de connexion réseau - Serveur inaccessible");
-    }
-
     if (error.response?.status === 401) {
-      console.log("🚪 Token invalide/expiré, suppression...");
       localStorage.removeItem("token");
-      // Redirection optionnelle
-      if (window.location.pathname !== "/auth") {
-        window.location.href = "/auth";
-      }
+      window.location.href = "/auth";
     }
     return Promise.reject(error);
   }
@@ -63,14 +42,20 @@ api.interceptors.response.use(
 
 // 🔐 AUTH SERVICES
 export const authAPI = {
-  register: (userData) => api.post("/users/register", userData),
-  login: (credentials) => api.post("/users/login", credentials),
-  getProfile: () => api.get("/users/profile"),
-  updateProfile: (data) => api.put("/users/profile", data),
-  forgotPassword: (email) => api.post("/users/forgot-password", { email }), // ✅ NÉCESSAIRE
-  resetPassword: (token, password) => api.post("/users/reset-password", { token, password }), // ✅ NÉCESSAIRE
-  resendVerification: (email) => api.post("/users/resend-verification", { email }), // ✅ NÉCESSAIRE
-  verifyEmail: (token) => api.get(`/users/verify-email/${token}`), // ✅ NÉCESSAIR
+  login: (credentials) => api.post("/auth/login", credentials),
+  register: (userData) => api.post("/auth/register", userData),
+  logout: () => {
+    localStorage.removeItem("token");
+    return Promise.resolve();
+  },
+  getCurrentUser: () => api.get("/users/me"),
+  updateProfile: (data) => api.put("/users/me", data),
+  changePassword: (data) => api.put("/users/me/password", data),
+  deleteAccount: () => api.delete("/users/me"),
+  forgotPassword: (email) => api.post("/users/forgot-password", { email }),
+  resetPassword: (token, password) => api.post("/users/reset-password", { token, password }),
+  resendVerification: (email) => api.post("/users/resend-verification", { email }),
+  verifyEmail: (token) => api.get(`/users/verify-email/${token}`),
 };
 
 // ✅ NOUVEAU : API pour contact
@@ -78,48 +63,50 @@ export const contactAPI = {
   sendMessage: (contactData) => api.post("/contact/send", contactData),
   getMessages: () => api.get("/contact"), // Admin only
   updateMessage: (id, data) => api.patch(`/contact/${id}`, data), // Admin only
-}; // ✅ CORRIGÉ
+};
 
-// 🌸 PARFUM SERVICES (VERSION CORRIGÉE)
+// 🌸 PARFUM SERVICES (VERSION CORRIGÉE avec getSimilar)
 export const parfumAPI = {
   getAll: (params = {}) => api.get("/parfums", { params }),
   getById: (id) => api.get(`/parfums/${id}`),
+
+  // 🔧 FIX: Ajout de la fonction getSimilar manquante
+  getSimilar: (id) => api.get(`/parfums/${id}/similar`),
+
   create: (data) => api.post("/parfums", data),
   update: (id, data) => api.put(`/parfums/${id}`, data),
   delete: (id) => api.delete(`/parfums/${id}`),
   search: (query, params = {}) =>
     api.get("/parfums/search", { params: { q: query, ...params } }),
 
-  // ✅ AJOUT : Recherche par notes multiples (utilise le paramètre 'notes' du backend)
+  // ✅ Recherche par notes multiples (utilise le paramètre 'notes' du backend)
   getByNotes: (noteIds) => {
     const notesParam = Array.isArray(noteIds) ? noteIds.join(",") : noteIds;
     return api.get("/parfums", { params: { notes: notesParam } });
   },
 
-  // ✅ AJOUT : Recherche par une seule note
+  // ✅ Recherche par une seule note
   getByNote: (noteId) => api.get(`/parfums/note/${noteId}`),
+
+  // ✅ Recherche par similarité avec plusieurs parfums
+  getBySimilarity: (parfumIds, options = {}) =>
+    api.post("/parfums/similarity", { parfumIds, ...options }),
 };
 
 // 📝 NOTE SERVICES (VERSION CORRIGÉE)
-// frontend/src/services/api.js - SECTION NOTES MISE À JOUR
-
-// ✅ NOTES SERVICES REFACTORISÉS
 export const noteAPI = {
   // Obtenir toutes les notes avec filtres
   getAll: (params = {}) => api.get("/notes", { params }),
 
-  // ✅ NOUVEAU : Obtenir les notes avec suggestions de position
+  // ✅ Obtenir les notes avec suggestions de position
   getNotesWithSuggestions: (params = {}) =>
     api.get("/notes/suggestions", { params }),
 
-  // ✅ NOUVEAU : Obtenir les familles olfactives
+  // ✅ Obtenir les familles olfactives
   getFamilies: () => api.get("/notes/families"),
 
   // Obtenir une note par ID
   getById: (id) => api.get(`/notes/${id}`),
-
-  // ❌ SUPPRIMÉ : getByType (plus de types fixes)
-  // getByType: (type) => api.get(`/notes/type/${type}`),
 
   // Recherche par nom/synonymes
   search: (query) => api.get("/notes/search", { params: { q: query } }),
@@ -148,7 +135,7 @@ export const historyAPI = {
 
 // 👨‍💼 ADMIN SERVICES
 export const adminAPI = {
-  getUsers: (params = {}) => api.get("/admin/users", { params }), // ✅ Route corrigée
+  getUsers: (params = {}) => api.get("/admin/users", { params }),
   getUserStats: () => api.get("/admin/stats/users"),
   exportUsers: () => api.get("/admin/users/export", { responseType: "blob" }),
   toggleAdmin: (id) => api.patch(`/admin/users/${id}/admin`),
@@ -163,13 +150,6 @@ export const uploadAPI = {
       headers: { "Content-Type": "multipart/form-data" },
     });
   },
-  // uploadUserAvatar: (file) => {
-  //   const formData = new FormData();
-  //   formData.append("photo", file);
-  //   return api.put("/users/profile/avatar", formData, {
-  //     headers: { "Content-Type": "multipart/form-data" },
-  //   });
-  // },
 };
 
 // ✅ Test de connectivité
