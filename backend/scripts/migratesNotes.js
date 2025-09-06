@@ -3,6 +3,28 @@ import mongoose from "mongoose";
 import NoteOlfactive from "../models/NoteOlfactive.js";
 import Parfum from "../models/Parfum.js";
 
+// ✅ Palette des couleurs par familles (ajout)
+const COULEURS_FAMILLES = {
+  agrumes: "#f59e0b",
+  florale: "#ec4899",
+  fruitée: "#ef4444",
+  verte: "#10b981",
+  aromatique: "#8b5cf6",
+  épicée: "#dc2626",
+  boisée: "#92400e",
+  orientale: "#7c2d12",
+  ambrée: "#d97706",
+  musquée: "#6b7280",
+  animale: "#374151",
+  poudrée: "#f472b6",
+  gourmande: "#a855f7",
+  marine: "#06b6d4",
+  aldéhydée: "#e5e7eb",
+  cuirée: "#451a03",
+  fumée: "#6b7280",
+  résineuse: "#365314",
+};
+
 async function migrateNotes() {
   try {
     console.log("🔄 Début de la migration des notes...");
@@ -88,7 +110,7 @@ async function migrateNotes() {
         suggestedPositions.push(note.type);
       }
 
-      // Mise à jour
+      // ✅ Mise à jour (ajout du champ couleur)
       await NoteOlfactive.findByIdAndUpdate(noteId, {
         $set: {
           usages: {
@@ -108,6 +130,8 @@ async function migrateNotes() {
           suggestedPositions,
           "stats.nombreParfums": stats.parfums.size,
           "stats.derniereUtilisation": new Date(),
+          // ✅ AJOUT : Couleur par famille
+          couleur: COULEURS_FAMILLES[note.famille] || "#4a90e2",
         },
         $unset: {
           type: "", // Supprimer l'ancien champ type
@@ -127,6 +151,7 @@ async function migrateNotes() {
     for (const note of unusedNotes) {
       const suggestedPositions = note.type ? [note.type] : ["cœur"]; // Par défaut cœur
 
+      // ✅ Mise à jour (ajout du champ couleur)
       await NoteOlfactive.findByIdAndUpdate(note._id, {
         $set: {
           usages: {
@@ -136,6 +161,8 @@ async function migrateNotes() {
           },
           suggestedPositions,
           "stats.nombreParfums": 0,
+          // ✅ AJOUT : Couleur par famille
+          couleur: COULEURS_FAMILLES[note.famille] || "#4a90e2",
         },
         $unset: {
           type: "",

@@ -23,6 +23,10 @@ import {
   MessageSquare,
   Shield,
   Activity,
+  // ✅ Ajout pour la nouvelle section Notes
+  Palette,
+  TrendingUp,
+  Layers,
 } from "lucide-react";
 import { adminAPI } from "../services/adminAPI.js";
 import { parfumAPI, noteAPI, authAPI } from "../services/api.js";
@@ -47,9 +51,12 @@ export default function AdminPanel() {
   // Recherches & filtres
   const [searchUsers, setSearchUsers] = useState("");
   const [searchParfums, setSearchParfums] = useState("");
-  const [searchNotes, setSearchNotes] = useState("");
+  const [searchNotes, setSearchNotes] = useState(""); // (déjà présent)
   const [filterGenre, setFilterGenre] = useState("tous");
-  const [filterNoteType, setFilterNoteType] = useState("tous");
+  const [filterNoteType, setFilterNoteType] = useState("tous"); // ⚠️ Conservé pour ne rien retirer
+  // ✅ Nouveaux filtres pour la section Notes corrigée
+  const [filterNoteFamily, setFilterNoteFamily] = useState("toutes");
+  const [filterNotePosition, setFilterNotePosition] = useState("toutes");
 
   // Modales & édition (UTILISATEUR/NOTE uniquement)
   const [showUserForm, setShowUserForm] = useState(false);
@@ -304,12 +311,25 @@ export default function AdminPanel() {
     return matchSearch && matchGenre;
   });
 
+  // ✅ Nouvelle fonction de filtrage des notes (remplace l’ancienne)
   const filteredNotes = notes.filter((n) => {
-    const matchSearch = n.nom
-      ?.toLowerCase()
-      .includes(searchNotes.toLowerCase());
-    const matchType = filterNoteType === "tous" || n.type === filterNoteType;
-    return matchSearch && matchType;
+    const search = (searchNotes || "").toLowerCase();
+    const matchSearch =
+      n.nom?.toLowerCase().includes(search) ||
+      n.description?.toLowerCase().includes(search) ||
+      n.famille?.toLowerCase().includes(search);
+
+    const matchFamily =
+      filterNoteFamily === "toutes" || n.famille === filterNoteFamily;
+
+    const matchPosition =
+      filterNotePosition === "toutes" ||
+      (n.suggestedPositions &&
+        n.suggestedPositions.includes(filterNotePosition)) ||
+      // Fallback pour ancien format
+      (n.type && n.type === filterNotePosition);
+
+    return matchSearch && matchFamily && matchPosition;
   });
 
   // === ONGLETS DE NAVIGATION ===
@@ -332,12 +352,21 @@ export default function AdminPanel() {
     setShowUserForm(true);
   };
 
+  // ✅ startEditNote mis à jour (compatibilité ancien/nouveau format)
   const startEditNote = (n) => {
     setEditingItem(n);
     setNoteForm({
       nom: n.nom || "",
-      type: n.type || "tete",
       famille: n.famille || "",
+      description: n.description || "",
+      intensite: n.intensite || 5,
+      popularite: n.popularite || 0,
+      couleur: n.couleur || "#4a90e2",
+      suggestedPositions: n.suggestedPositions || [],
+      // Fallback pour ancien format
+      ...(n.type && !n.suggestedPositions && { suggestedPositions: [n.type] }),
+      // ⚠️ On conserve aussi le champ type pour compat backend actuel
+      type: n.type || "tete",
     });
     setShowNoteForm(true);
   };
@@ -773,7 +802,7 @@ export default function AdminPanel() {
             </div>
           )}
 
-          {/* NOTES */}
+          {/* === SECTION NOTES CORRIGÉE === */}
           {activeTab === "notes" && (
             <div className={styles.section}>
               <div className={styles.sectionHeader}>
@@ -791,10 +820,10 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              {/* Filtres et recherche */}
+              {/* Filtres pour les notes */}
               <div className={styles.filtersRow}>
-                <div className={styles.searchBar}>
-                  <Search className={styles.searchIcon} />
+                <div className={styles.searchBox}>
+                  <Search className={styles.icon} />
                   <input
                     type="text"
                     placeholder="Rechercher une note..."
@@ -803,59 +832,299 @@ export default function AdminPanel() {
                     className={styles.searchInput}
                   />
                 </div>
+
                 <select
-                  value={filterNoteType}
-                  onChange={(e) => setFilterNoteType(e.target.value)}
+                  value={filterNoteFamily}
+                  onChange={(e) => setFilterNoteFamily(e.target.value)}
                   className={styles.filterSelect}
                 >
-                  <option value="tous">Tous les types</option>
-                  <option value="tete">Tête</option>
-                  <option value="coeur">Cœur</option>
-                  <option value="fond">Fond</option>
+                  <option value="toutes">Toutes les familles</option>
+                  <option value="agrumes">Agrumes</option>
+                  <option value="florale">Florale</option>
+                  <option value="fruitée">Fruitée</option>
+                  <option value="verte">Verte</option>
+                  <option value="aromatique">Aromatique</option>
+                  <option value="épicée">Épicée</option>
+                  <option value="boisée">Boisée</option>
+                  <option value="orientale">Orientale</option>
+                  <option value="ambrée">Ambrée</option>
+                  <option value="musquée">Musquée</option>
+                  <option value="animale">Animale</option>
+                  <option value="poudrée">Poudrée</option>
+                  <option value="gourmande">Gourmande</option>
+                  <option value="marine">Marine</option>
+                  <option value="aldéhydée">Aldéhydée</option>
+                  <option value="cuirée">Cuirée</option>
+                  <option value="fumée">Fumée</option>
+                  <option value="résineuse">Résineuse</option>
+                </select>
+
+                <select
+                  value={filterNotePosition}
+                  onChange={(e) => setFilterNotePosition(e.target.value)}
+                  className={styles.filterSelect}
+                >
+                  <option value="toutes">Toutes positions</option>
+                  <option value="tête">Notes de tête</option>
+                  <option value="cœur">Notes de cœur</option>
+                  <option value="fond">Notes de fond</option>
                 </select>
               </div>
 
+              {/* Statistiques des notes */}
+              <div className={styles.statsGrid}>
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>
+                    <Star className={styles.icon} />
+                  </div>
+                  <div className={styles.statContent}>
+                    <div className={styles.statNumber}>
+                      {filteredNotes.length}
+                    </div>
+                    <div className={styles.statLabel}>Notes totales</div>
+                  </div>
+                </div>
+
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>
+                    <Palette className={styles.icon} />
+                  </div>
+                  <div className={styles.statContent}>
+                    <div className={styles.statNumber}>
+                      {[...new Set(filteredNotes.map((n) => n.famille))].length}
+                    </div>
+                    <div className={styles.statLabel}>Familles olfactives</div>
+                  </div>
+                </div>
+
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>
+                    <TrendingUp className={styles.icon} />
+                  </div>
+                  <div className={styles.statContent}>
+                    <div className={styles.statNumber}>
+                      {filteredNotes.filter((n) => n.popularite > 50).length}
+                    </div>
+                    <div className={styles.statLabel}>Notes populaires</div>
+                  </div>
+                </div>
+
+                <div className={styles.statCard}>
+                  <div className={styles.statIcon}>
+                    <Layers className={styles.icon} />
+                  </div>
+                  <div className={styles.statContent}>
+                    <div className={styles.statNumber}>
+                      {
+                        filteredNotes.filter(
+                          (n) =>
+                            n.suggestedPositions &&
+                            n.suggestedPositions.length > 1
+                        ).length
+                      }
+                    </div>
+                    <div className={styles.statLabel}>
+                      Notes multi-positions
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               {/* Grille des notes */}
-              <div className={styles.cardGrid}>
+              <div className={styles.notesGrid}>
                 {filteredNotes.map((note) => (
-                  <div key={note._id} className={styles.noteCard}>
-                    <div className={styles.cardHeader}>
-                      <h3 className={styles.cardTitle}>{note.nom}</h3>
-                      <span
-                        className={`${styles.typeBadge} ${
-                          styles[`type${note.type}`]
-                        }`}
-                      >
-                        {note.type}
-                      </span>
+                  <div
+                    key={note._id}
+                    className={styles.noteCard}
+                    style={{
+                      borderLeft: `4px solid ${note.couleur || "#4a90e2"}`,
+                      background: `linear-gradient(135deg, ${
+                        note.couleur || "#4a90e2"
+                      }08, ${note.couleur || "#4a90e2"}03)`,
+                    }}
+                  >
+                    {/* En-tête de la note */}
+                    <div className={styles.noteHeader}>
+                      <div className={styles.noteTitle}>
+                        <h3 className={styles.noteName}>{note.nom}</h3>
+                        <span
+                          className={styles.familyBadge}
+                          style={{ backgroundColor: note.couleur || "#4a90e2" }}
+                        >
+                          {note.famille}
+                        </span>
+                      </div>
+                      <div className={styles.noteActions}>
+                        <button
+                          onClick={() => startEditNote(note)}
+                          className={styles.iconButton}
+                          title="Modifier"
+                        >
+                          <Edit3 className={styles.icon} />
+                        </button>
+                        <button
+                          onClick={() => deleteNote(note._id)}
+                          className={`${styles.iconButton} ${styles.iconButtonDanger}`}
+                          title="Supprimer"
+                        >
+                          <Trash2 className={styles.icon} />
+                        </button>
+                      </div>
                     </div>
-                    <div className={styles.cardContent}>
-                      {note.famille && (
-                        <p className={styles.noteFamille}>
-                          Famille: {note.famille}
-                        </p>
-                      )}
-                      <p className={styles.noteType}>Note de {note.type}</p>
+
+                    {/* Description */}
+                    {note.description && (
+                      <p className={styles.noteDescription}>
+                        {note.description}
+                      </p>
+                    )}
+
+                    {/* Positions suggérées */}
+                    <div className={styles.suggestedPositions}>
+                      <div className={styles.sectionLabel}>
+                        Positions suggérées:
+                      </div>
+                      <div className={styles.positionTags}>
+                        {note.suggestedPositions &&
+                        note.suggestedPositions.length > 0 ? (
+                          note.suggestedPositions.map((position, index) => (
+                            <span
+                              key={index}
+                              className={`${styles.positionTag} ${
+                                styles[
+                                  `position${position
+                                    .replace("ê", "e")
+                                    .replace("œ", "oe")}`
+                                ]
+                              }`}
+                            >
+                              {position}
+                            </span>
+                          ))
+                        ) : (
+                          <span className={styles.noPositions}>
+                            Aucune position définie
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <div className={styles.cardActions}>
-                      <button
-                        onClick={() => startEditNote(note)}
-                        className={styles.iconButton}
-                        title="Modifier"
-                      >
-                        <Edit3 className={styles.icon} />
-                      </button>
-                      <button
-                        onClick={() => deleteNote(note._id)}
-                        className={`${styles.iconButton} ${styles.iconButtonDanger}`}
-                        title="Supprimer"
-                      >
-                        <Trash2 className={styles.icon} />
-                      </button>
+
+                    {/* Statistiques d'usage */}
+                    {note.usages && (
+                      <div className={styles.usageStats}>
+                        <div className={styles.sectionLabel}>
+                          Statistiques d'usage:
+                        </div>
+                        <div className={styles.usageGrid}>
+                          {["tete", "coeur", "fond"].map((position) => {
+                            const usage = note.usages[position];
+                            const positionLabel =
+                              position === "tete"
+                                ? "Tête"
+                                : position === "coeur"
+                                ? "Cœur"
+                                : "Fond";
+
+                            return (
+                              <div key={position} className={styles.usageItem}>
+                                <div className={styles.usageLabel}>
+                                  {positionLabel}
+                                </div>
+                                <div className={styles.usageValue}>
+                                  <span className={styles.frequence}>
+                                    {usage?.frequence || 0}
+                                  </span>
+                                  {usage?.populaire && (
+                                    <Star className={styles.popularIcon} />
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Métriques */}
+                    <div className={styles.noteMetrics}>
+                      <div className={styles.metric}>
+                        <span className={styles.metricLabel}>Intensité:</span>
+                        <div className={styles.intensityBar}>
+                          <div
+                            className={styles.intensityFill}
+                            style={{
+                              width: `${(note.intensite || 5) * 10}%`,
+                              backgroundColor: note.couleur || "#4a90e2",
+                            }}
+                          ></div>
+                          <span className={styles.intensityValue}>
+                            {note.intensite || 5}/10
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className={styles.metric}>
+                        <span className={styles.metricLabel}>Popularité:</span>
+                        <div className={styles.popularityBar}>
+                          <div
+                            className={styles.popularityFill}
+                            style={{
+                              width: `${note.popularite || 0}%`,
+                              backgroundColor: note.couleur || "#4a90e2",
+                            }}
+                          ></div>
+                          <span className={styles.popularityValue}>
+                            {note.popularite || 0}/100
+                          </span>
+                        </div>
+                      </div>
                     </div>
+
+                    {/* Position préférée (calculée) */}
+                    {note.positionPreferee && (
+                      <div className={styles.preferredPosition}>
+                        <span className={styles.sectionLabel}>
+                          Position préférée:
+                        </span>
+                        <span
+                          className={`${styles.positionTag} ${styles.preferred}`}
+                        >
+                          {note.positionPreferee}
+                        </span>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
+
+              {/* Message si aucune note */}
+              {filteredNotes.length === 0 && (
+                <div className={styles.emptyState}>
+                  <Star className={styles.emptyIcon} />
+                  <h3 className={styles.emptyTitle}>Aucune note trouvée</h3>
+                  <p className={styles.emptyText}>
+                    {searchNotes ||
+                    filterNoteFamily !== "toutes" ||
+                    filterNotePosition !== "toutes"
+                      ? "Aucune note ne correspond à vos critères de recherche."
+                      : "Commencez par ajouter des notes olfactives à votre base de données."}
+                  </p>
+                  {(searchNotes ||
+                    filterNoteFamily !== "toutes" ||
+                    filterNotePosition !== "toutes") && (
+                    <button
+                      onClick={() => {
+                        setSearchNotes("");
+                        setFilterNoteFamily("toutes");
+                        setFilterNotePosition("toutes");
+                      }}
+                      className={styles.clearFiltersButton}
+                    >
+                      Effacer les filtres
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
