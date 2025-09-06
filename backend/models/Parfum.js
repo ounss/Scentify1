@@ -221,6 +221,127 @@ ParfumSchema.pre("save", function (next) {
   }
   next();
 });
+// backend/models/Parfum.js - Ajoutez ces hooks à la fin de votre fichier
+
+import NoteOlfactive from "./NoteOlfactive.js";
+
+// Hook après sauvegarde d'un parfum (création ou modification)
+ParfumSchema.post("save", async function (doc, next) {
+  try {
+    console.log(`🔄 Mise à jour des stats pour parfum: ${doc.nom}`);
+    await updateNoteStatistics(doc);
+    next();
+  } catch (error) {
+    console.error("❌ Erreur mise à jour stats:", error);
+    next(); // Continue même en cas d'erreur pour ne pas bloquer la sauvegarde
+  }
+});
+
+// Hook après suppression d'un parfum
+ParfumSchema.post("findOneAndDelete", async function (doc, next) {
+  try {
+    if (doc) {
+      console.log(`🗑️ Recalcul des stats après suppression: ${doc.nom}`);
+      await updateNoteStatistics(doc);
+    }
+    next();
+  } catch (error) {
+    console.error("❌ Erreur recalcul stats après suppression:", error);
+    next();
+  }
+});
+
+// Hook après mise à jour d'un parfum
+ParfumSchema.post("findOneAndUpdate", async function (doc, next) {
+  try {
+    if (doc) {
+      console.log(`📝 Recalcul des stats après modification: ${doc.nom}`);
+      await updateNoteStatistics(doc);
+    }
+    next();
+  } catch (error) {
+    console.error("❌ Erreur recalcul stats après modification:", error);
+    next();
+  }
+});
+
+// Fonction pour mettre à jour les statistiques des notes
+async function updateNoteStatistics(parfum) {
+  try {
+    // Collecter toutes les notes utilisées dans ce parfum
+    const allNoteIds = new Set([
+      ...(parfum.notes_tete || []).map((id) => id.toString()),
+      ...(parfum.notes_coeur || []).map((id) => id.toString()),
+      ...(parfum.notes_fond || []).map((id) => id.toString()),
+    ]);
+
+    console.log(`📊 Recalcul pour ${allNoteIds.size} notes`);
+
+    // Mettre à jour les statistiques pour chaque note concernée
+    for (const noteId of allNoteIds) {
+      await recalculateNoteStats(noteId);
+    }
+
+    console.log(`✅ Stats mises à jour pour ${allNoteIds.size} notes`);
+  } catch (error) {
+    console.error("❌ Erreur updateNoteStatistics:", error);
+  }
+}
+
+// Fonction pour recalculer les stats d'une note spécifique
+async function recalculateNoteStats(noteId) {
+  try {
+    const Parfum = mongoose.model("Parfum");
+
+    // Compter les usages par position
+    const teteCount = await Parfum.countDocuments({ notes_tete: noteId });
+    const coeurCount = await Parfum.countDocuments({ notes_coeur: noteId });
+    const fondCount = await Parfum.countDocuments({ notes_fond: noteId });
+
+    const totalUsage = teteCount + coeurCount + fondCount;
+
+    // Déterminer les positions suggérées (fréquence >= 3)
+    const suggestedPositions = [];
+    if (teteCount >= 3) suggestedPositions.push("tête");
+    if (coeurCount >= 3) suggestedPositions.push("cœur");
+    if (fondCount >= 3) suggestedPositions.push("fond");
+
+    // Si aucune position fréquente, garder celle avec le plus d'usage
+    if (suggestedPositions.length === 0 && totalUsage > 0) {
+      const maxUsage = Math.max(teteCount, coeurCount, fondCount);
+      if (teteCount === maxUsage) suggestedPositions.push("tête");
+      else if (coeurCount === maxUsage) suggestedPositions.push("cœur");
+      else suggestedPositions.push("fond");
+    }
+
+    // Mettre à jour la note
+    await NoteOlfactive.findByIdAndUpdate(noteId, {
+      usages: {
+        tete: {
+          frequence: teteCount,
+          populaire: teteCount >= 10,
+        },
+        coeur: {
+          frequence: coeurCount,
+          populaire: coeurCount >= 10,
+        },
+        fond: {
+          frequence: fondCount,
+          populaire: fondCount >= 10,
+        },
+      },
+      suggestedPositions: suggestedPositions,
+      "stats.nombreParfums": totalUsage,
+      "stats.derniereUtilisation": totalUsage > 0 ? new Date() : undefined,
+    });
+
+    console.log(
+      `📈 Note ${noteId}: T:${teteCount} C:${coeurCount} F:${fondCount}`
+    );
+  } catch (error) {
+    console.error(`❌ Erreur recalcul note ${noteId}:`, error);
+  }
+}
 
 /* -------------------------------- Méthodes -------------------------------- */
 ParfumSchema.methods.incrementPopularite = function () {

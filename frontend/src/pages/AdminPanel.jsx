@@ -114,10 +114,18 @@ export default function AdminPanel() {
 
   const handleRefresh = async () => {
     setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
+    try {
+      // Actualiser les stats des notes en premier
+      await fetch("/api/notes/refresh-stats", { method: "POST" });
+      // Puis recharger toutes les données
+      await loadData();
+    } catch (error) {
+      console.error("Erreur actualisation:", error);
+      await loadData(); // Recharger quand même les données
+    } finally {
+      setRefreshing(false);
+    }
   };
-
   // === EXPORTS CSV ===
   const handleExportUsers = async () => {
     try {

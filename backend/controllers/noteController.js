@@ -16,14 +16,7 @@ export const getNotes = async (req, res) => {
       sort = "nom",
     } = req.query;
 
-    console.log("🔍 Recherche notes avec filtres:", {
-      search,
-      famille,
-      position,
-      populaire,
-    });
-
-    // Construction de la requête
+    // Construction de la requête (gardez votre logique existante)
     const query = {};
 
     if (search) {
@@ -38,11 +31,10 @@ export const getNotes = async (req, res) => {
       query.famille = famille;
     }
 
-    // Filtre par position populaire
     if (position && ["tête", "cœur", "fond"].includes(position)) {
       const key =
         position === "tête" ? "tete" : position === "cœur" ? "coeur" : "fond";
-      query[`usages.${key}.populaire`] = true;
+      query[`usages.${key}.frequence`] = { $gt: 0 }; // Au lieu de populaire seulement
     }
 
     if (populaire === "true") {
@@ -88,6 +80,64 @@ export const getNotes = async (req, res) => {
   } catch (error) {
     console.error("❌ Erreur getNotes:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+export const refreshNoteStats = async (req, res) => {
+  try {
+    console.log("🔄 Actualisation forcée des statistiques des notes...");
+
+    // Obtenir toutes les notes
+    const notes = await NoteOlfactive.find({});
+    let updatedCount = 0;
+
+    for (const note of notes) {
+      // Recalculer les statistiques pour chaque note
+      const teteCount = await Parfum.countDocuments({ notes_tete: note._id });
+      const coeurCount = await Parfum.countDocuments({ notes_coeur: note._id });
+      const fondCount = await Parfum.countDocuments({ notes_fond: note._id });
+
+      const totalUsage = teteCount + coeurCount + fondCount;
+
+      // Positions suggérées
+      const suggestedPositions = [];
+      if (teteCount >= 3) suggestedPositions.push("tête");
+      if (coeurCount >= 3) suggestedPositions.push("cœur");
+      if (fondCount >= 3) suggestedPositions.push("fond");
+
+      if (suggestedPositions.length === 0 && totalUsage > 0) {
+        const maxUsage = Math.max(teteCount, coeurCount, fondCount);
+        if (teteCount === maxUsage) suggestedPositions.push("tête");
+        else if (coeurCount === maxUsage) suggestedPositions.push("cœur");
+        else suggestedPositions.push("fond");
+      }
+
+      // Mettre à jour
+      await NoteOlfactive.findByIdAndUpdate(note._id, {
+        usages: {
+          tete: { frequence: teteCount, populaire: teteCount >= 10 },
+          coeur: { frequence: coeurCount, populaire: coeurCount >= 10 },
+          fond: { frequence: fondCount, populaire: fondCount >= 10 },
+        },
+        suggestedPositions,
+        "stats.nombreParfums": totalUsage,
+        "stats.derniereUtilisation": totalUsage > 0 ? new Date() : null,
+      });
+
+      updatedCount++;
+    }
+
+    console.log(`✅ ${updatedCount} notes mises à jour`);
+
+    res.json({
+      message: "Statistiques actualisées",
+      updated: updatedCount,
+    });
+  } catch (error) {
+    console.error("❌ Erreur refreshNoteStats:", error);
+    res.status(500).json({
+      message: "Erreur lors de l'actualisation",
+      error: error.message,
+    });
   }
 };
 
