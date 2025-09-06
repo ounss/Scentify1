@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - CORRECTION FAVORIS URGENTE
+// frontend/src/contexts/AuthContext.jsx - VERSION COMPLÈTE
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
 import api from "../services/api";
@@ -37,6 +37,9 @@ const authReducer = (state, action) => {
     case "REFRESH_USER_COMPLETE":
       return { ...state, user: action.payload, loading: false };
 
+    case "CLEAR_ERROR":
+      return { ...state, error: null };
+
     // ✅ CORRECTION FAVORIS - STRUCTURE CORRIGÉE
     case "UPDATE_FAVORIS_PARFUMS":
       if (!state.user) return state;
@@ -54,96 +57,65 @@ const authReducer = (state, action) => {
         ...state,
         user: {
           ...state.user,
-          favorisNotes: action.payload, // Remplacer complètement la liste
+          favorisNotes: action.payload,
         },
       };
-
-    case "CLEAR_ERROR":
-      return { ...state, error: null };
 
     default:
       return state;
   }
 };
 
-const initialState = {
-  user: null,
-  token: localStorage.getItem("token"),
-  loading: true,
-  error: null,
-};
-
 export function AuthProvider({ children }) {
-  const [state, dispatch] = useReducer(authReducer, initialState);
+  const [state, dispatch] = useReducer(authReducer, {
+    user: null,
+    token: null,
+    loading: true,
+    error: null,
+  });
 
-  // ✅ VÉRIFIER TOKEN AU CHARGEMENT
+  // ✅ Initialisation au chargement
   useEffect(() => {
-    const checkAuth = async () => {
+    const initAuth = async () => {
       const token = localStorage.getItem("token");
-
       if (token) {
+        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         try {
-          // ✅ IMPORTANT: Définir le header Authorization AVANT l'appel
-          api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
           const response = await authAPI.getProfile();
-
           dispatch({
             type: "LOGIN_SUCCESS",
-            payload: { user: response.data, token },
+            payload: { token, user: response.data },
           });
         } catch (error) {
-          // Token invalide/expiré
+          console.error("❌ Token invalide, suppression:", error);
           localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
-          dispatch({ type: "LOGOUT" });
+          dispatch({ type: "SET_LOADING", payload: false });
         }
+      } else {
+        dispatch({ type: "SET_LOADING", payload: false });
       }
-
-      // ✅ IMPORTANT: Arrêter le loading même si pas de token
-      dispatch({ type: "SET_LOADING", payload: false });
     };
 
-    checkAuth();
+    initAuth();
   }, []);
 
-  // ✅ ÉCOUTER LES ÉVÉNEMENTS DE MISE À JOUR FAVORIS
-  useEffect(() => {
-    const handleFavorisUpdate = async () => {
-      if (!state.user) return;
-
-      try {
-        console.log("🔄 Refresh favoris après changement...");
-        const response = await authAPI.getProfile();
-
-        dispatch({
-          type: "UPDATE_FAVORIS_PARFUMS",
-          payload: response.data.favorisParfums || [],
-        });
-
-        console.log(
-          "✅ Favoris mis à jour:",
-          response.data.favorisParfums?.length || 0
-        );
-      } catch (error) {
-        console.error("❌ Erreur refresh favoris:", error);
-      }
-    };
-
-    // Écouter les événements favoris
-    window.addEventListener("favorisUpdated", handleFavorisUpdate);
-
-    return () => {
-      window.removeEventListener("favorisUpdated", handleFavorisUpdate);
-    };
-  }, [state.user]);
-
-  // ✅ ACTIONS PRINCIPALES
+  // ✅ FONCTION LOGIN
   const login = async (credentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.login(credentials);
-      console.log("✅ Login réussie:", response.data.user?.username);
+      console.log("✅ Login réussi:", response.data.user?.username);
+
+      // Vérifier si l'email est vérifié
+      if (!response.data.user?.isVerified) {
+        dispatch({ type: "SET_LOADING", payload: false });
+        return {
+          success: false,
+          needsVerification: true,
+          error: "Veuillez vérifier votre email avant de vous connecter.",
+        };
+      }
 
       dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
       return { success: true };
@@ -151,15 +123,33 @@ export function AuthProvider({ children }) {
       const message = error.response?.data?.message || "Erreur de connexion";
       console.error("❌ Erreur login:", message);
       dispatch({ type: "LOGIN_ERROR", payload: message });
+
+      // Cas spécial : email non vérifié
+      if (error.response?.data?.needsVerification) {
+        return { success: false, needsVerification: true, error: message };
+      }
+
       return { success: false, error: message };
     }
   };
 
+  // ✅ FONCTION REGISTER
   const register = async (userData) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
       const response = await authAPI.register(userData);
       console.log("✅ Registration réussie:", response.data.user?.username);
+
+      // Si needsVerification est true, ne pas connecter automatiquement
+      if (response.data.user && !response.data.user.isVerified) {
+        dispatch({ type: "SET_LOADING", payload: false });
+        return {
+          success: true,
+          needsVerification: true,
+          message:
+            response.data.message || "Compte créé ! Vérifiez votre email.",
+        };
+      }
 
       dispatch({ type: "LOGIN_SUCCESS", payload: response.data });
       return { success: true };
@@ -171,17 +161,19 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ✅ FONCTION LOGOUT
   const logout = () => {
     console.log("🚪 Déconnexion");
     dispatch({ type: "LOGOUT" });
   };
 
+  // ✅ FONCTION UPDATE USER
   const updateUser = (userData) => {
     console.log("🔄 Mise à jour utilisateur:", userData.username);
     dispatch({ type: "UPDATE_USER", payload: userData });
   };
 
-  // ✅ REFRESH USER - CORRECTION
+  // ✅ FONCTION REFRESH USER
   const refreshUser = async () => {
     if (!state.user) return null;
 
@@ -196,11 +188,93 @@ export function AuthProvider({ children }) {
     }
   };
 
+  // ✅ FONCTION CLEAR ERROR
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });
   };
 
-  // ✅ VALEURS EXPOSÉES
+  // 🔐 ========== NOUVELLES FONCTIONS PASSWORD ==========
+
+  // ✅ FORGOT PASSWORD - Demander la réinitialisation
+  const forgotPassword = async (email) => {
+    try {
+      dispatch({ type: "SET_LOADING", payload: true });
+      const response = await authAPI.forgotPassword(email);
+
+      console.log("✅ Email de reset envoyé à:", email);
+      return {
+        success: true,
+        message: response.data.message || "Email de réinitialisation envoyé !",
+      };
+    } catch (error) {
+      console.error("❌ Erreur forgotPassword:", error);
+      const message =
+        error.response?.data?.message || "Erreur lors de l'envoi de l'email";
+      dispatch({ type: "LOGIN_ERROR", payload: message });
+
+      return {
+        success: false,
+        error: message,
+      };
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
+  // ✅ RESET PASSWORD - Définir le nouveau mot de passe
+  const resetPassword = async (token, password) => {
+    try {
+      dispatch({ type: "SET_LOADING", payload: true });
+      const response = await authAPI.resetPassword(token, password);
+
+      console.log("✅ Mot de passe réinitialisé avec succès");
+      return {
+        success: true,
+        message:
+          response.data.message || "Mot de passe réinitialisé avec succès !",
+      };
+    } catch (error) {
+      console.error("❌ Erreur resetPassword:", error);
+      const message =
+        error.response?.data?.message || "Erreur lors de la réinitialisation";
+      dispatch({ type: "LOGIN_ERROR", payload: message });
+
+      return {
+        success: false,
+        error: message,
+      };
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
+  // ✅ RESEND VERIFICATION - Renvoyer l'email de vérification
+  const resendVerificationEmail = async (email) => {
+    try {
+      dispatch({ type: "SET_LOADING", payload: true });
+      const response = await authAPI.resendVerification(email);
+
+      console.log("✅ Email de vérification renvoyé à:", email);
+      return {
+        success: true,
+        message: response.data.message || "Email de vérification renvoyé !",
+      };
+    } catch (error) {
+      console.error("❌ Erreur resendVerification:", error);
+      const message =
+        error.response?.data?.message || "Erreur lors du renvoi de l'email";
+      dispatch({ type: "LOGIN_ERROR", payload: message });
+
+      return {
+        success: false,
+        error: message,
+      };
+    } finally {
+      dispatch({ type: "SET_LOADING", payload: false });
+    }
+  };
+
+  // ✅ VALEURS EXPOSÉES - TOUTES LES FONCTIONS
   const value = {
     // État
     user: state.user,
@@ -209,6 +283,7 @@ export function AuthProvider({ children }) {
     error: state.error,
     isAuthenticated: !!state.user,
     isAdmin: state.user?.isAdmin || false,
+    needsVerification: state.error?.includes("vérifier"), // Helper pour détecter si verification requise
 
     // Actions principales
     login,
@@ -217,6 +292,11 @@ export function AuthProvider({ children }) {
     updateUser,
     refreshUser,
     clearError,
+
+    // ✅ NOUVELLES ACTIONS PASSWORD
+    forgotPassword, // Demander reset (depuis /auth)
+    resetPassword, // Définir nouveau mot de passe (depuis /reset-password)
+    resendVerificationEmail, // Renvoyer email de vérification (depuis /auth)
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
