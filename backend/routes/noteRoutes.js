@@ -9,6 +9,7 @@ import {
   createNote,
   updateNote,
   deleteNote,
+  recalculateAllStats,
 } from "../controllers/noteController.js";
 import { protect, admin } from "../middleware/authMiddleware.js";
 import { validateNote } from "../middleware/validation.js";
@@ -46,5 +47,5 @@ router.put("/:id", protect, admin, validateNote, updateNote);
 // Supprimer une note (admin uniquement)
 router.delete("/:id", protect, admin, deleteNote);
 // Ajoutez cette route
-router.post("/refresh-stats", refreshNoteStats);
+router.post("/recalculate", recalculateAllStats);
 export default router;

@@ -116,7 +116,7 @@ export default function AdminPanel() {
     setRefreshing(true);
     try {
       // Actualiser les stats des notes en premier
-      await fetch("/api/notes/refresh-stats", { method: "POST" });
+      await fetch("/api/notes/recalculate", { method: "POST" });
       // Puis recharger toutes les données
       await loadData();
     } catch (error) {

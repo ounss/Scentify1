@@ -82,7 +82,7 @@ export const getNotes = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
-export const refreshNoteStats = async (req, res) => {
+export const recalculateAllStats = async (req, res) => {
   try {
     console.log("🔄 Actualisation forcée des statistiques des notes...");
 
