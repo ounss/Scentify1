@@ -3,11 +3,10 @@ import { Mail, Phone, MapPin, Send, MessageCircle } from "lucide-react";
 import toast from "react-hot-toast";
 
 export default function Contact() {
-  // Dans Contact.jsx, assure-toi que formData contient :
   const [formData, setFormData] = useState({
-    name: "", // pas "nom"
+    name: "",
     email: "",
-    subject: "", // pas "sujet"
+    subject: "",
     message: "",
   });
   const [isLoading, setIsLoading] = useState(false);
@@ -18,8 +17,11 @@ export default function Contact() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+
     try {
-      // Remplacer le mock par l'appel API réel
+      console.log("🚀 Envoi du formulaire:", formData);
+
+      // ✅ Correction: Utiliser l'URL complète ou via le service API
       const response = await fetch("/api/contact/send", {
         method: "POST",
         headers: {
@@ -28,15 +30,20 @@ export default function Contact() {
         body: JSON.stringify(formData),
       });
 
-      const result = await response.json();
+      console.log("📡 Réponse serveur:", response.status);
 
       if (!response.ok) {
-        throw new Error(result.message || "Erreur lors de l'envoi");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `Erreur ${response.status}`);
       }
+
+      const result = await response.json();
+      console.log("✅ Succès:", result);
 
       toast.success("Message envoyé avec succès !");
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
+      console.error("❌ Erreur formulaire:", err);
       toast.error(err.message || "Erreur lors de l'envoi du message");
     } finally {
       setIsLoading(false);
@@ -45,7 +52,7 @@ export default function Contact() {
 
   return (
     <main className="contact">
-      {/* Bandeau d’accent */}
+      {/* Bandeau d'accent */}
       <div className="contact-accent" aria-hidden="true" />
 
       <div className="container">
@@ -53,7 +60,7 @@ export default function Contact() {
         <header className="contact-hero text-center mb-6">
           <h1 className="contact-title">Contactez-nous</h1>
           <p className="contact-subtitle">
-            Une question sur un parfum ? Une suggestion ? L’équipe Scentify vous
+            Une question sur un parfum ? Une suggestion ? L'équipe Scentify vous
             accompagne dans votre découverte olfactive.
           </p>
         </header>
@@ -65,7 +72,7 @@ export default function Contact() {
             <div className="card info-card">
               <h2 className="info-title">Parlons parfums</h2>
               <p className="info-text">
-                Notre passion pour l’univers olfactif nous pousse à vous offrir
+                Notre passion pour l'univers olfactif nous pousse à vous offrir
                 la meilleure expérience possible. Partagez vos découvertes,
                 suggestions ou questions — on vous lit !
               </p>
@@ -157,6 +164,7 @@ export default function Contact() {
                     required
                     className="form-input"
                     autoComplete="name"
+                    placeholder="Votre nom complet"
                   />
                 </div>
 
@@ -173,6 +181,7 @@ export default function Contact() {
                     required
                     className="form-input"
                     autoComplete="email"
+                    placeholder="votre@email.com"
                   />
                 </div>
               </div>
