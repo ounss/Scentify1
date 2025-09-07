@@ -1,4 +1,3 @@
-
 /* ===== VARIABLES ===== */
 :root {
   --primary: #a44949;
@@ -2371,7 +2370,7 @@ ul {
 }
 
 .card-image {
-  aspect-ratio: 1;
+  aspect-ratio: 3/4; /* Change de 1 à 3/4 pour les bouteilles */
   position: relative;
   overflow: hidden;
 }
@@ -2380,6 +2379,7 @@ ul {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block; /* Évite les espaces en bas */
 }
 
 .card-badge {

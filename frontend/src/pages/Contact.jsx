@@ -21,7 +21,6 @@ export default function Contact() {
     try {
       console.log("🚀 Envoi du formulaire:", formData);
 
-      // ✅ Correction: Utiliser l'URL complète ou via le service API
       const response = await fetch("/api/contact/send", {
         method: "POST",
         headers: {
@@ -30,17 +29,45 @@ export default function Contact() {
         body: JSON.stringify(formData),
       });
 
-      console.log("📡 Réponse serveur:", response.status);
+      console.log("📡 Status de la réponse:", response.status);
+      console.log("📡 Headers:", response.headers.get("content-type"));
 
+      // ✅ Gestion robuste des réponses
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `Erreur ${response.status}`);
+        // Essayer de parser le JSON d'erreur
+        let errorMessage = `Erreur ${response.status}`;
+        try {
+          const errorData = await response.json();
+          errorMessage = errorData.message || errorMessage;
+        } catch (jsonError) {
+          // Si même l'erreur n'est pas du JSON, utiliser le statusText
+          errorMessage = response.statusText || errorMessage;
+        }
+        throw new Error(errorMessage);
       }
 
-      const result = await response.json();
-      console.log("✅ Succès:", result);
+      // ✅ Gestion du succès avec vérification du content-type
+      let result = {};
+      const contentType = response.headers.get("content-type");
 
-      toast.success("Message envoyé avec succès !");
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          result = await response.json();
+        } catch (jsonError) {
+          console.warn(
+            "⚠️ Réponse non-JSON mais status OK, considéré comme succès"
+          );
+          result = { message: "Message envoyé avec succès" };
+        }
+      } else {
+        // Réponse non-JSON mais status OK
+        result = { message: "Message envoyé avec succès" };
+      }
+
+      console.log("✅ Succès:", result);
+      toast.success(result.message || "Message envoyé avec succès !");
+
+      // Reset du formulaire
       setFormData({ name: "", email: "", subject: "", message: "" });
     } catch (err) {
       console.error("❌ Erreur formulaire:", err);
