@@ -122,10 +122,8 @@ export default function ParfumCard({ parfum }) {
       <div className="card-image">
         <picture>
           <OptimizedImage
-            src={parfum.photo}
-            width={300}
-            height={200}
-            quality={75}
+            className={styles.photo}
+            src={parfum?.photo}
             alt={parfum.nom}
           />
         </picture>

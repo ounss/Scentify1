@@ -366,21 +366,19 @@ export default function ParfumDetail() {
           <div className={styles.left}>
             <article className={styles.photoCard}>
               <OptimizedImage
+                src={parfum.photo}
+                alt={parfum.nom}
                 className={styles.photo}
-                src={parfum?.photo}
-                alt={`Photo du parfum ${parfum.nom} de ${parfum.marque}`}
                 width={600}
                 height={800}
-                loading="eager"
-                fallbackSrc="https://res.cloudinary.com/dyxmkgpgp/image/upload/v1756928420/parfum-en-bouteille-noire-sur-la-table_ixbh79.jpg"
+              loading="eager"
+              fallbackSrc="https://res.cloudinary.com/dyxmkgpgp/image/upload/v1756928420/parfum-en-bouteille-noire-sur-la-table_ixbh79.jpg"
               />
-
               <span
                 className={`${styles.badge} ${getGenreClass(parfum.genre)}`}
               >
                 {parfum.genre}
               </span>
-
               {parfum.popularite > 80 && (
                 <span className={styles.badgePop}>
                   <Star className={styles.icon} />
