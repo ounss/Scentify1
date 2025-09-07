@@ -315,7 +315,12 @@ export default function AdminPanel() {
     { id: "users", label: "Utilisateurs", icon: Users, count: users.length },
     { id: "parfums", label: "Parfums", icon: Package, count: parfums.length },
     { id: "notes", label: "Notes", icon: Star, count: notes.length },
-    { id: "contact", label: "Messages", icon: MessageSquare },
+    {
+      id: "contact",
+      label: "Messages",
+      icon: MessageSquare,
+      count: contact.length,
+    },
   ];
 
   // === FONCTIONS D'ÉDITION ===
