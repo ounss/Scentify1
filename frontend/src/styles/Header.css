@@ -1,8 +1,5 @@
-/* ===== HEADER DESKTOP AVEC ONGLETS ===== */
-
-/* Header responsive de base */
+/* ===== HEADER RESPONSIVE ===== */
 .header-responsive {
-  padding: 1rem;
   position: fixed;
   top: 0;
   left: 0;
@@ -12,6 +9,7 @@
   border-bottom: 1px solid var(--gray-200);
   z-index: 100;
   transition: var(--transition);
+  padding: 0.75rem 0;
 }
 
 .header-responsive:hover {
@@ -19,13 +17,25 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
 }
 
-/* Logo amélioré */
+/* Container du header */
+.header-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 4rem;
+}
+
+/* ===== LOGO ===== */
 .logo {
   display: flex;
   align-items: center;
   gap: 0.75rem;
   color: var(--gray-800);
   transition: var(--transition);
+  text-decoration: none;
 }
 
 .logo:hover {
@@ -40,10 +50,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-title);
   font-weight: 700;
   color: var(--white);
   box-shadow: 0 4px 12px rgba(164, 73, 73, 0.3);
   transition: var(--transition);
+  font-optical-sizing: auto;
 }
 
 .logo:hover .logo-icon {
@@ -51,14 +63,26 @@
   box-shadow: 0 6px 16px rgba(164, 73, 73, 0.4);
 }
 
-/* ===== ONGLETS DESKTOP ===== */
+.logo-text {
+  font-family: var(--font-title);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--gray-800);
+  font-optical-sizing: auto;
+}
+
+/* ===== NAVIGATION DESKTOP - ONGLETS ===== */
+.desktop-nav {
+  display: none; /* Caché par défaut */
+}
+
 .desktop-tabs {
   display: flex;
   align-items: center;
-  background: var(--gray-50);
+  background: linear-gradient(135deg, var(--gray-50), var(--white));
   border: 1px solid var(--gray-200);
   border-radius: 1rem;
-  padding: 3rem;
+  padding: 0.25rem;
   gap: 0.25rem;
   position: relative;
   box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.05);
@@ -71,12 +95,15 @@
   gap: 0.5rem;
   padding: 0.75rem 1.25rem;
   border-radius: 0.75rem;
+  font-family: var(--font-body);
   font-weight: 500;
   color: var(--gray-600);
   text-decoration: none;
   transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   z-index: 1;
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .desktop-tab:hover {
@@ -98,32 +125,31 @@
   bottom: -2px;
   left: 50%;
   transform: translateX(-50%);
-  width: 24px;
+  width: 20px;
   height: 3px;
   background: linear-gradient(90deg, var(--primary), var(--primary-dark));
   border-radius: 2px;
   opacity: 0.8;
 }
 
-/* Animation des onglets */
-.desktop-tab::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-radius: 0.75rem;
-  opacity: 0;
-  transition: opacity 300ms ease;
-  z-index: -1;
+.desktop-tab-icon {
+  width: 1rem;
+  height: 1rem;
+  transition: transform var(--transition);
 }
 
-.desktop-tab.active::after {
-  opacity: 0.05;
+.desktop-tab.active .desktop-tab-icon {
+  transform: scale(1.1);
 }
 
 /* ===== ACTIONS DESKTOP ===== */
+.desktop-actions {
+  display: none; /* Caché par défaut */
+  align-items: center;
+  gap: 1rem;
+}
 
-/* Badge Admin amélioré */
+/* Badge admin */
 .admin-badge {
   display: flex;
   align-items: center;
@@ -131,14 +157,17 @@
   padding: 0.5rem 1rem;
   background: linear-gradient(135deg, #f97316, #ea580c);
   color: var(--white);
+  border: 1px solid rgba(255, 255, 255, 0.2);
   border-radius: 0.75rem;
+  font-family: var(--font-body);
   font-weight: 600;
   text-decoration: none;
   box-shadow: 0 4px 14px rgba(249, 115, 22, 0.4);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 300ms ease;
   position: relative;
   overflow: hidden;
-  transition: all 300ms ease;
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .admin-badge::before {
@@ -168,19 +197,22 @@
 
 /* Avatar utilisateur */
 .user-avatar {
-  width: 40px;
-  height: 40px;
+  width: 2.5rem;
+  height: 2.5rem;
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  border-radius: 50%;
+  border-radius: 0.75rem;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-body);
   font-weight: 600;
   color: var(--white);
   border: 2px solid var(--white);
   box-shadow: 0 3px 10px rgba(164, 73, 73, 0.3);
   transition: var(--transition);
   text-decoration: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .user-avatar:hover {
@@ -188,19 +220,23 @@
   box-shadow: 0 4px 15px rgba(164, 73, 73, 0.4);
 }
 
-/* Bouton déconnexion desktop */
+/* Bouton de déconnexion */
 .logout-btn {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 1rem;
   background: rgba(239, 68, 68, 0.1);
   color: var(--primary-dark);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 0.75rem;
+  font-family: var(--font-body);
   font-weight: 500;
   transition: var(--transition);
   cursor: pointer;
+  text-decoration: none;
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .logout-btn:hover {
@@ -209,7 +245,7 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-/* Boutons d'authentification desktop */
+/* Boutons d'authentification */
 .auth-buttons {
   display: flex;
   gap: 0.75rem;
@@ -225,10 +261,13 @@
   color: var(--white);
   border: none;
   border-radius: 0.75rem;
+  font-family: var(--font-body);
   font-weight: 600;
   text-decoration: none;
   transition: all 300ms ease;
   box-shadow: 0 4px 12px rgba(164, 73, 73, 0.3);
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .btn-primary:hover {
@@ -246,9 +285,12 @@
   color: var(--gray-700);
   border: 1px solid var(--gray-300);
   border-radius: 0.75rem;
+  font-family: var(--font-body);
   font-weight: 500;
   text-decoration: none;
   transition: var(--transition);
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .btn-secondary:hover {
@@ -258,7 +300,33 @@
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* ===== MENU MOBILE (inchangé) ===== */
+/* ===== BURGER MENU (mobile/tablette) ===== */
+.burger-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  border-radius: 0.5rem;
+  color: var(--gray-700);
+  transition: var(--transition);
+  cursor: pointer;
+}
+
+.burger-btn:hover {
+  background: var(--gray-100);
+  color: var(--gray-900);
+}
+
+.burger-icon {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+/* ===== MENU MOBILE ===== */
 .mobile-menu-overlay {
   position: fixed;
   inset: 0;
@@ -283,6 +351,8 @@
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.1);
   transform: translateX(100%);
   transition: transform 300ms ease-out;
+  display: flex;
+  flex-direction: column;
 }
 
 .mobile-menu-panel.open {
@@ -321,9 +391,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-body);
   font-weight: 700;
   color: var(--white);
   box-shadow: 0 4px 12px rgba(164, 73, 73, 0.3);
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .mobile-nav-item {
@@ -336,6 +409,10 @@
   transition: all 200ms ease;
   margin-bottom: 0.25rem;
   text-decoration: none;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .mobile-nav-item:hover {
@@ -374,10 +451,13 @@
   color: var(--primary-dark);
   border: 1px solid rgba(239, 68, 68, 0.2);
   border-radius: 0.75rem;
+  font-family: var(--font-body);
   font-weight: 500;
   transition: var(--transition);
   margin-top: 1rem;
   cursor: pointer;
+  font-optical-sizing: auto;
+  font-variation-settings: "wdth" 100, "YTLC" 500;
 }
 
 .mobile-logout-btn:hover {
@@ -386,98 +466,7 @@
   box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
-/* ===== BOTTOM NAVIGATION MOBILE (inchangé) ===== */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(255, 255, 255, 0.95);
-  backdrop-filter: blur(10px);
-  border-top: 1px solid var(--gray-200);
-  z-index: 100;
-  padding: 0.5rem 0 env(safe-area-inset-bottom);
-}
-
-.nav-container {
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  max-width: 500px;
-  margin: 0 auto;
-  padding: 0 1rem;
-}
-
-.nav-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-  padding: 0.5rem;
-  color: var(--gray-500);
-  text-decoration: none;
-  transition: all 200ms ease;
-  border-radius: 0.75rem;
-  min-width: 60px;
-}
-
-.nav-item.active {
-  color: var(--primary);
-  transform: translateY(-2px);
-}
-
-.nav-item.active .nav-icon {
-  transform: scale(1.1);
-}
-
-.nav-item:hover {
-  color: var(--gray-700);
-  background: rgba(0, 0, 0, 0.05);
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-  transition: transform 200ms ease;
-}
-
-.nav-label {
-  font-size: 0.75rem;
-  font-weight: 500;
-}
-
-/* ===== RESPONSIVE ===== */
-
-/* Ajuster le padding du body */
-body {
-  padding-top: 80px; /* Augmenté pour le nouveau header */
-  padding-bottom: 70px;
-}
-
-/* Desktop: pas de bottom nav */
-@media (min-width: 768px) {
-  .bottom-nav {
-    display: none;
-  }
-
-  body {
-    padding-bottom: 0;
-  }
-}
-
-/* Mobile - ajustement du padding */
-@media (max-width: 767px) {
-  body {
-    padding-top: 70px;
-    padding-bottom: 80px;
-  }
-
-  .desktop-tabs {
-    display: none;
-  }
-}
-
-/* Animations d'entrée */
+/* ===== ANIMATIONS ===== */
 @keyframes slideInFromRight {
   from {
     transform: translateX(100%);
@@ -493,23 +482,37 @@ body {
   animation: slideInFromRight 300ms ease-out;
 }
 
-/* Focus states pour accessibilité */
-.desktop-tab:focus-visible,
-.nav-item:focus-visible,
-.mobile-nav-item:focus-visible {
-  outline: 2px solid var(--primary);
-  outline-offset: 2px;
+/* ===== RESPONSIVE ===== */
+
+/* Mobile et tablette : burger visible, onglets cachés */
+@media (max-width: 1023px) {
+  .burger-btn {
+    display: flex;
+  }
+
+  .desktop-nav,
+  .desktop-actions {
+    display: none;
+  }
 }
 
-.admin-badge:focus-visible {
-  outline: 2px solid #f97316;
-  outline-offset: 2px;
-}
-
-/* Responsive breakpoints additionnels */
+/* Desktop : onglets visibles, burger caché */
 @media (min-width: 1024px) {
+  .burger-btn {
+    display: none;
+  }
+
+  .desktop-nav,
+  .desktop-actions {
+    display: flex;
+  }
+
+  .header-container {
+    padding: 0 2rem;
+  }
+
   .desktop-tab {
-    padding: 0.75rem 1.5rem;
+    padding: 0.625rem 1.25rem;
   }
 
   .logo-icon {
@@ -518,8 +521,26 @@ body {
   }
 }
 
+/* Large desktop */
 @media (min-width: 1280px) {
   .header-responsive {
-    padding: 0.25rem 0;
+    padding: 0.5rem 0;
   }
+
+  .desktop-tab {
+    padding: 0.75rem 1.5rem;
+  }
+}
+
+/* ===== FOCUS STATES (accessibilité) ===== */
+.desktop-tab:focus-visible,
+.mobile-nav-item:focus-visible,
+.burger-btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.admin-badge:focus-visible {
+  outline: 2px solid #f97316;
+  outline-offset: 2px;
 }
