@@ -121,9 +121,9 @@ export default function HistoryFavoritesPage() {
   };
 
   // ✅ CORRECTION : retirer un favori (API corrigée)
-  const removeFavorite = async (parfumId) => {
+  const removeFavoriteParfum = async (parfumId) => {
     try {
-      await favoritesAPI.removeParfum(parfumId); // ✅ CORRIGÉ
+      await favoritesAPI.removeFavoriteParfum(parfumId); // ✅ CORRIGÉ
       setFavorites((prev) => ({
         ...prev,
         parfums: (prev?.parfums || []).filter((p) => p._id !== parfumId),
@@ -381,7 +381,7 @@ export default function HistoryFavoritesPage() {
                       <Eye className={styles.icon} />
                     </button>
                     <button
-                      onClick={() => removeFavorite(parfum._id)}
+                      onClick={() => removeFavoriteParfum(parfum._id)}
                       className={styles.removeButton}
                       aria-label={`Retirer ${parfum.nom} des favoris`}
                     >
