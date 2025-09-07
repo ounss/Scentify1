@@ -21,7 +21,11 @@ export default function Contact() {
     try {
       console.log("🚀 Envoi du formulaire:", formData);
 
-      const response = await fetch("/api/contact/send", {
+      // ✅ CORRECTION : URL complète vers votre backend Render
+      const apiUrl =
+        process.env.REACT_APP_API_URL ||
+        "https://scentify-perfume.onrender.com";
+      const response = await fetch(`${apiUrl}/api/contact/send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
