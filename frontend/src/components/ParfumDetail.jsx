@@ -14,7 +14,7 @@ import { parfumAPI, favoritesAPI, historyAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
 import ParfumCard from "./ParfumCard";
 import toast from "react-hot-toast";
-import SafeImage from "./SafeImage";
+import OptimizedImage from "./OptimizedImage";
 import styles from "../styles/ParfumDetail.module.css";
 
 export default function ParfumDetail() {
@@ -365,10 +365,13 @@ export default function ParfumDetail() {
           {/* Colonne image */}
           <div className={styles.left}>
             <article className={styles.photoCard}>
-              <SafeImage
+              <OptimizedImage
                 className={styles.photo}
                 src={parfum?.photo}
                 alt={`Photo du parfum ${parfum.nom} de ${parfum.marque}`}
+                width={600}
+                height={800}
+                loading="eager"
                 fallbackSrc="https://res.cloudinary.com/dyxmkgpgp/image/upload/v1756928420/parfum-en-bouteille-noire-sur-la-table_ixbh79.jpg"
               />
 
