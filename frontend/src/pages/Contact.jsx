@@ -25,7 +25,7 @@ export default function Contact() {
       const apiUrl =
         process.env.REACT_APP_API_URL ||
         "https://scentify-perfume.onrender.com";
-      const response = await fetch(`${apiUrl}/api/contact/send`, {
+      const response = await fetch(`${apiUrl}/contact/send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
