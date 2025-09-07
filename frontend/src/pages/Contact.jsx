@@ -21,10 +21,10 @@ export default function Contact() {
     try {
       console.log("🚀 Envoi du formulaire:", formData);
 
-      // ✅ CORRECTION : URL complète vers votre backend Render
       const apiUrl =
         process.env.REACT_APP_API_URL ||
         "https://scentify-perfume.onrender.com/api";
+
       const response = await fetch(`${apiUrl}/contact/send`, {
         method: "POST",
         headers: {
@@ -34,23 +34,18 @@ export default function Contact() {
       });
 
       console.log("📡 Status de la réponse:", response.status);
-      console.log("📡 Headers:", response.headers.get("content-type"));
 
-      // ✅ Gestion robuste des réponses
       if (!response.ok) {
-        // Essayer de parser le JSON d'erreur
         let errorMessage = `Erreur ${response.status}`;
         try {
           const errorData = await response.json();
           errorMessage = errorData.message || errorMessage;
         } catch (jsonError) {
-          // Si même l'erreur n'est pas du JSON, utiliser le statusText
           errorMessage = response.statusText || errorMessage;
         }
         throw new Error(errorMessage);
       }
 
-      // ✅ Gestion du succès avec vérification du content-type
       let result = {};
       const contentType = response.headers.get("content-type");
 
@@ -58,13 +53,10 @@ export default function Contact() {
         try {
           result = await response.json();
         } catch (jsonError) {
-          console.warn(
-            "⚠️ Réponse non-JSON mais status OK, considéré comme succès"
-          );
+          console.warn("⚠️ Réponse non-JSON mais status OK");
           result = { message: "Message envoyé avec succès" };
         }
       } else {
-        // Réponse non-JSON mais status OK
         result = { message: "Message envoyé avec succès" };
       }
 
@@ -83,12 +75,12 @@ export default function Contact() {
 
   return (
     <main className="contact">
-      {/* Bandeau d'accent */}
+      {/* Bandeau d'accent harmonisé avec Scentify */}
       <div className="contact-accent" aria-hidden="true" />
 
       <div className="container">
-        {/* Header / Hero */}
-        <header className="contact-hero text-center mb-6">
+        {/* Hero section avec typographie The Seasons */}
+        <header className="contact-hero">
           <h1 className="contact-title">Contactez-nous</h1>
           <p className="contact-subtitle">
             Une question sur un parfum ? Une suggestion ? L'équipe Scentify vous
@@ -96,19 +88,21 @@ export default function Contact() {
           </p>
         </header>
 
-        {/* Grid principale */}
+        {/* Grid responsive harmonisée */}
         <div className="contact-grid">
-          {/* Colonne infos */}
+          {/* Colonne informations */}
           <section className="contact-infos">
+            {/* Card principale d'introduction */}
             <div className="card info-card">
               <h2 className="info-title">Parlons parfums</h2>
               <p className="info-text">
                 Notre passion pour l'univers olfactif nous pousse à vous offrir
                 la meilleure expérience possible. Partagez vos découvertes,
-                suggestions ou questions — on vous lit !
+                suggestions ou questions — nous vous lisons avec attention !
               </p>
             </div>
 
+            {/* Stack des moyens de contact */}
             <div className="info-stack">
               <div className="card info-item">
                 <div className="icon-pill icon-mail" aria-hidden="true">
@@ -120,6 +114,7 @@ export default function Contact() {
                     <a
                       className="footer-link"
                       href="mailto:contact@scentify.app"
+                      aria-label="Nous envoyer un email"
                     >
                       contact@scentify.app
                     </a>
@@ -133,7 +128,15 @@ export default function Contact() {
                 </div>
                 <div>
                   <h3 className="info-item-title">Téléphone</h3>
-                  <p className="info-item-text">+32 2 123 45 67</p>
+                  <p className="info-item-text">
+                    <a
+                      href="tel:+3221234567"
+                      className="footer-link"
+                      aria-label="Nous appeler"
+                    >
+                      +32 2 123 45 67
+                    </a>
+                  </p>
                 </div>
               </div>
 
@@ -148,32 +151,40 @@ export default function Contact() {
               </div>
             </div>
 
-            {/* FAQ rapide */}
+            {/* FAQ rapide avec style Scentify */}
             <div className="card faq-card">
               <div className="faq-head">
-                <MessageCircle className="icon" />
+                <MessageCircle className="icon" aria-hidden="true" />
                 <h3 className="faq-title">Questions fréquentes</h3>
               </div>
               <div className="faq-body">
-                <p>
-                  <strong>Comment fonctionne la recommandation ?</strong>
-                  <br />
-                  Nos algorithmes analysent les notes olfactives pour vous
-                  proposer des parfums similaires.
-                </p>
-                <p>
-                  <strong>Puis-je acheter directement ?</strong>
-                  <br />
-                  Scentify vous oriente vers des partenaires marchands
-                  sélectionnés.
-                </p>
+                <div>
+                  <p>
+                    <strong>Comment fonctionne la recommandation ?</strong>
+                  </p>
+                  <p>
+                    Nos algorithmes analysent les notes olfactives pour vous
+                    proposer des parfums réellement similaires, au-delà des
+                    associations marketing traditionnelles.
+                  </p>
+                </div>
+                <div>
+                  <p>
+                    <strong>Puis-je acheter directement sur Scentify ?</strong>
+                  </p>
+                  <p>
+                    Scentify privilégie la découverte et vous oriente vers nos
+                    partenaires marchands sélectionnés pour finaliser vos
+                    achats.
+                  </p>
+                </div>
               </div>
             </div>
           </section>
 
           {/* Colonne formulaire */}
           <section className="card contact-form">
-            <header className="form-head text-center">
+            <header className="form-head">
               <h2 className="form-title">Envoyez-nous un message</h2>
               <p className="form-subtitle">
                 Nous vous répondrons dans les plus brefs délais.
@@ -181,7 +192,7 @@ export default function Contact() {
             </header>
 
             <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-2 gap-4">
+              <div className="grid grid-2">
                 <div className="form-group">
                   <label className="form-label" htmlFor="name">
                     Nom complet *
@@ -196,6 +207,7 @@ export default function Contact() {
                     className="form-input"
                     autoComplete="name"
                     placeholder="Votre nom complet"
+                    aria-describedby="name-error"
                   />
                 </div>
 
@@ -213,6 +225,7 @@ export default function Contact() {
                     className="form-input"
                     autoComplete="email"
                     placeholder="votre@email.com"
+                    aria-describedby="email-error"
                   />
                 </div>
               </div>
@@ -228,13 +241,17 @@ export default function Contact() {
                   onChange={handleChange}
                   required
                   className="form-select"
+                  aria-describedby="subject-error"
                 >
                   <option value="">Choisissez un sujet</option>
                   <option value="question">Question générale</option>
                   <option value="parfum">Question sur un parfum</option>
                   <option value="suggestion">Suggestion d'amélioration</option>
-                  <option value="bug">Signaler un problème</option>
-                  <option value="partenariat">Partenariat</option>
+                  <option value="bug">Signaler un problème technique</option>
+                  <option value="partenariat">
+                    Proposition de partenariat
+                  </option>
+                  <option value="autre">Autre</option>
                 </select>
               </div>
 
@@ -249,22 +266,32 @@ export default function Contact() {
                   onChange={handleChange}
                   required
                   rows={6}
-                  placeholder="Décrivez votre demande en détail…"
+                  placeholder="Décrivez votre demande en détail… Plus vous serez précis, mieux nous pourrons vous aider !"
                   className="form-textarea"
+                  aria-describedby="message-error"
+                  minLength={10}
                 />
               </div>
 
               <button
                 type="submit"
                 disabled={isLoading}
-                className="btn btn-primary btn-full contact-submit"
+                className="contact-submit"
                 aria-busy={isLoading}
+                aria-describedby={isLoading ? "submit-status" : undefined}
               >
                 {isLoading ? (
-                  <span className="spinner" aria-label="Envoi en cours…" />
+                  <>
+                    <span
+                      className="spinner"
+                      aria-label="Envoi en cours"
+                      id="submit-status"
+                    />
+                    <span>Envoi en cours…</span>
+                  </>
                 ) : (
                   <>
-                    <Send className="btn-icon svg" />
+                    <Send className="svg" aria-hidden="true" />
                     <span>Envoyer le message</span>
                   </>
                 )}
@@ -272,7 +299,11 @@ export default function Contact() {
 
               <p className="form-note">
                 En envoyant ce message, vous acceptez que nous utilisions vos
-                données pour vous répondre.
+                données pour vous répondre. Consultez notre{" "}
+                <a href="/privacy" className="footer-link">
+                  politique de confidentialité
+                </a>
+                .
               </p>
             </form>
           </section>
