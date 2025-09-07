@@ -4,7 +4,7 @@ import { useSearchParams } from "react-router-dom";
 import { Search, Filter } from "lucide-react";
 import { parfumAPI, noteAPI } from "../services/api";
 import ParfumCard from "../components/ParfumCard";
-import styles from "../styles/home.css";
+import styles from "../styles/Home.module.css";
 
 export default function Home() {
   const [parfums, setParfums] = useState([]);
