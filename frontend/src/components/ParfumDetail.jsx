@@ -163,7 +163,7 @@ export default function ParfumDetail() {
       setFavoriteLoading(true);
 
       if (isFavorite) {
-        await favoritesAPI.removeParfum(parfum._id);
+        await favoritesAPI.removeFavoriteParfum(parfum._id);
         setIsFavorite(false);
         toast.success("Retiré des favoris");
       } else {
