@@ -24,7 +24,7 @@ export default function Contact() {
       // ✅ CORRECTION : URL complète vers votre backend Render
       const apiUrl =
         process.env.REACT_APP_API_URL ||
-        "https://scentify-perfume.onrender.com";
+        "https://scentify-perfume.onrender.com/api";
       const response = await fetch(`${apiUrl}/contact/send`, {
         method: "POST",
         headers: {
