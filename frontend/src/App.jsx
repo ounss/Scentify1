@@ -10,6 +10,7 @@ import Home from "./pages/Home";
 import Auth from "./pages/Auth";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
+import Error from "./pages/Error";
 import Contact from "./pages/Contact";
 import Profile from "./pages/Profile";
 import AdminPanel from "./pages/AdminPanel";
