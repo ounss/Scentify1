@@ -319,7 +319,6 @@ export default function AdminPanel() {
       id: "contact",
       label: "Messages",
       icon: MessageSquare,
-      count: contact.length,
     },
   ];
 
