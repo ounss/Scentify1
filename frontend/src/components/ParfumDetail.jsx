@@ -422,9 +422,10 @@ export default function ParfumDetail() {
                 <p className={styles.description}>{parfum.description}</p>
               )}
             </header>
-
             {/* Notes olfactives */}
-            {parfum.notes?.length > 0 && (
+            {(parfum.notes_tete?.length > 0 ||
+              parfum.notes_coeur?.length > 0 ||
+              parfum.notes_fond?.length > 0) && (
               <section className={`${styles.card} ${styles.slideUp}`}>
                 <div className={styles.sectionHead}>
                   <Sparkles className={`${styles.icon} ${styles.primary}`} />
@@ -432,44 +433,77 @@ export default function ParfumDetail() {
                 </div>
 
                 <div className={styles.notes}>
-                  {["tête", "cœur", "fond"].map((type) => {
-                    const notes = parfum.notes.filter(
-                      (n) =>
-                        (n.type || "").toLowerCase() === type.toLowerCase() ||
-                        (n.type === "coeur" && type === "cœur") ||
-                        (n.type === "tete" && type === "tête")
-                    );
-
-                    if (!notes.length) return null;
-
-                    const { groupClass, typeClass, chipClass } =
-                      getNoteTypeClass(type);
-
-                    return (
-                      <div
-                        key={type}
-                        className={`${styles.noteGroup} ${groupClass}`}
+                  {/* Notes de tête */}
+                  {parfum.notes_tete?.length > 0 && (
+                    <div
+                      className={`${styles.noteGroup} ${styles.noteGroupHead}`}
+                    >
+                      <h3
+                        className={`${styles.noteType} ${styles.noteTypeHead}`}
                       >
-                        <h3 className={`${styles.noteType} ${typeClass}`}>
-                          Notes de {type}
-                        </h3>
-                        <div className={styles.noteChips}>
-                          {notes.map((note, index) => (
-                            <span
-                              key={`${note._id}-${index}`}
-                              className={`${styles.chip} ${chipClass}`}
-                            >
-                              {note.nom}
-                            </span>
-                          ))}
-                        </div>
+                        Notes de tête
+                      </h3>
+                      <div className={styles.noteChips}>
+                        {parfum.notes_tete.map((note, index) => (
+                          <span
+                            key={`tete-${note._id}-${index}`}
+                            className={`${styles.chip} ${styles.chipHead}`}
+                          >
+                            {note.nom}
+                          </span>
+                        ))}
                       </div>
-                    );
-                  })}
+                    </div>
+                  )}
+
+                  {/* Notes de cœur */}
+                  {parfum.notes_coeur?.length > 0 && (
+                    <div
+                      className={`${styles.noteGroup} ${styles.noteGroupHeart}`}
+                    >
+                      <h3
+                        className={`${styles.noteType} ${styles.noteTypeHeart}`}
+                      >
+                        Notes de cœur
+                      </h3>
+                      <div className={styles.noteChips}>
+                        {parfum.notes_coeur.map((note, index) => (
+                          <span
+                            key={`coeur-${note._id}-${index}`}
+                            className={`${styles.chip} ${styles.chipHeart}`}
+                          >
+                            {note.nom}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Notes de fond */}
+                  {parfum.notes_fond?.length > 0 && (
+                    <div
+                      className={`${styles.noteGroup} ${styles.noteGroupBase}`}
+                    >
+                      <h3
+                        className={`${styles.noteType} ${styles.noteTypeBase}`}
+                      >
+                        Notes de fond
+                      </h3>
+                      <div className={styles.noteChips}>
+                        {parfum.notes_fond.map((note, index) => (
+                          <span
+                            key={`fond-${note._id}-${index}`}
+                            className={`${styles.chip} ${styles.chipBase}`}
+                          >
+                            {note.nom}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </section>
             )}
-
             {/* Liens marchands */}
             {parfum.liensMarchands?.length > 0 && (
               <section className={`${styles.card} ${styles.slideUp}`}>
