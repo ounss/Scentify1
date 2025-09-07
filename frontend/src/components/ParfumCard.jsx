@@ -5,7 +5,7 @@ import { Heart } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { favoritesAPI } from "../services/api";
 import toast from "react-hot-toast";
-import SafeImage from "./SafeImage";
+import OptimizedImage from "./OptimizedImage";
 
 export default function ParfumCard({ parfum }) {
   const navigate = useNavigate();
@@ -121,10 +121,12 @@ export default function ParfumCard({ parfum }) {
     >
       <div className="card-image">
         <picture>
-          <SafeImage
-            src={imgSrc}
-            alt={`${parfum?.nom || "Parfum"} de ${parfum?.marque || ""}`}
-            loading="lazy"
+          <OptimizedImage
+            src={parfum.photo}
+            width={300}
+            height={200}
+            quality={75}
+            alt={parfum.nom}
           />
         </picture>
 
