@@ -218,26 +218,6 @@ export default function Header() {
                 </>
               ) : (
                 <>
-                  {/* Boutons d'authentification */}
-                  <div className="mobile-auth-buttons">
-                    <Link
-                      to="/auth"
-                      onClick={() => setShowMobileMenu(false)}
-                      className="mobile-auth-primary"
-                    >
-                      <User className="w-5 h-5" />
-                      <span>Créer un compte</span>
-                    </Link>
-                    <Link
-                      to="/auth"
-                      onClick={() => setShowMobileMenu(false)}
-                      className="mobile-auth-secondary"
-                    >
-                      <LogOut className="w-5 h-5" />
-                      <span>Se connecter</span>
-                    </Link>
-                  </div>
-
                   {/* Navigation publique */}
                   <nav className="space-y-2">
                     <Link
@@ -257,6 +237,25 @@ export default function Header() {
                       <span className="font-medium">Contact</span>
                     </Link>
                   </nav>
+                  {/* Boutons d'authentification */}
+                  <div className="mobile-auth-buttons">
+                    <Link
+                      to="/auth"
+                      onClick={() => setShowMobileMenu(false)}
+                      className="mobile-auth-primary"
+                    >
+                      <User className="w-5 h-5" />
+                      <span>Créer un compte</span>
+                    </Link>
+                    <Link
+                      to="/auth"
+                      onClick={() => setShowMobileMenu(false)}
+                      className="mobile-auth-secondary"
+                    >
+                      <LogOut className="w-5 h-5" />
+                      <span>Se connecter</span>
+                    </Link>
+                  </div>
                 </>
               )}
             </div>
