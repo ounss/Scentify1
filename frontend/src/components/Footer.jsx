@@ -46,22 +46,22 @@ export default function Footer() {
             <h3 className="footer-heading">Informations</h3>
             <ul className="footer-links">
               <li>
-                <Link className="footer-link" to="/about">
+                <Link className="footer-link" to="/error">
                   À propos
                 </Link>
               </li>
               <li>
-                <Link className="footer-link" to="/faq">
+                <Link className="footer-link" to="/error">
                   FAQ
                 </Link>
               </li>
               <li>
-                <Link className="footer-link" to="/terms">
+                <Link className="footer-link" to="/error">
                   Conditions d'utilisation
                 </Link>
               </li>
               <li>
-                <Link className="footer-link" to="/privacy">
+                <Link className="footer-link" to="/error">
                   Confidentialité
                 </Link>
               </li>

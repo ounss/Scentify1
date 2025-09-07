@@ -116,7 +116,7 @@ function App() {
                 </Layout>
               }
             />
-
+            <Route path="*" element={<Error />} />
             {/* ✅ Routes d'authentification (sans layout) */}
             <Route
               path="/auth"
