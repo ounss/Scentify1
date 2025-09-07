@@ -34,6 +34,7 @@ import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import ContactSection from "../admin/ContactSection";
 import styles from "../styles/AdminPanel.module.css";
+import NoteForm from "../components/NoteForm";
 
 export default function AdminPanel() {
   const { isAdmin, user } = useAuth();
@@ -68,11 +69,6 @@ export default function AdminPanel() {
     username: "",
     email: "",
     password: "",
-  });
-  const [noteForm, setNoteForm] = useState({
-    nom: "",
-    type: "tete",
-    famille: "",
   });
 
   // Vérification des droits admin + chargement initial
@@ -261,38 +257,11 @@ export default function AdminPanel() {
   };
 
   // === GESTION NOTES ===
-  const createNote = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await noteAPI.create(noteForm);
-      const created = response?.data?.note || response?.data || noteForm;
-      setNotes((prev) => [...prev, created]);
-      setShowNoteForm(false);
-      setEditingItem(null);
-      setNoteForm({ nom: "", type: "tete", famille: "" });
-      toast.success("Note créée");
-    } catch (error) {
-      toast.error(error?.response?.data?.message || "Erreur création note");
-    }
-  };
 
-  const updateNote = async (e) => {
-    e.preventDefault();
-    try {
-      const response = await noteAPI.update(editingItem._id, noteForm);
-      const updated = response?.data?.note || response?.data || noteForm;
-      setNotes((prev) =>
-        prev.map((n) => (n._id === editingItem._id ? { ...n, ...updated } : n))
-      );
-      setShowNoteForm(false);
-      setEditingItem(null);
-      setNoteForm({ nom: "", type: "tete", famille: "" });
-      toast.success("Note modifiée");
-    } catch (error) {
-      toast.error("Erreur modification note");
-    }
+  const startEditNote = (n) => {
+    setEditingItem(n);
+    setShowNoteForm(true);
   };
-
   const deleteNote = async (noteId) => {
     if (!window.confirm("Supprimer cette note ?")) return;
     try {
@@ -361,23 +330,6 @@ export default function AdminPanel() {
   };
 
   // ✅ startEditNote mis à jour (compatibilité ancien/nouveau format)
-  const startEditNote = (n) => {
-    setEditingItem(n);
-    setNoteForm({
-      nom: n.nom || "",
-      famille: n.famille || "",
-      description: n.description || "",
-      intensite: n.intensite || 5,
-      popularite: n.popularite || 0,
-      couleur: n.couleur || "#4a90e2",
-      suggestedPositions: n.suggestedPositions || [],
-      // Fallback pour ancien format
-      ...(n.type && !n.suggestedPositions && { suggestedPositions: [n.type] }),
-      // ⚠️ On conserve aussi le champ type pour compat backend actuel
-      type: n.type || "tete",
-    });
-    setShowNoteForm(true);
-  };
 
   // Gestion du chargement
   if (loading) {
@@ -1229,84 +1181,30 @@ export default function AdminPanel() {
 
       {/* ✅ Modale Parfum SUPPRIMÉE — remplacée par des pages dédiées */}
 
-      {/* Modale Note */}
-      {showNoteForm && (
-        <div
-          className={styles.modalOverlay}
-          onClick={() => setShowNoteForm(false)}
-        >
-          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
-            <div className={styles.modalHeader}>
-              <h3 className={styles.modalTitle}>
-                {editingItem ? "Modifier la note" : "Nouvelle note"}
-              </h3>
-              <button
-                onClick={() => setShowNoteForm(false)}
-                className={styles.modalClose}
-              >
-                <X className={styles.icon} />
-              </button>
-            </div>
-            <form
-              onSubmit={editingItem ? updateNote : createNote}
-              className={styles.modalForm}
-            >
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Nom de la note</label>
-                <input
-                  type="text"
-                  value={noteForm.nom}
-                  onChange={(e) =>
-                    setNoteForm({ ...noteForm, nom: e.target.value })
-                  }
-                  className={styles.formInput}
-                  required
-                />
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Type</label>
-                <select
-                  value={noteForm.type}
-                  onChange={(e) =>
-                    setNoteForm({ ...noteForm, type: e.target.value })
-                  }
-                  className={styles.formSelect}
-                  required
-                >
-                  <option value="tete">Tête</option>
-                  <option value="coeur">Cœur</option>
-                  <option value="fond">Fond</option>
-                </select>
-              </div>
-              <div className={styles.formGroup}>
-                <label className={styles.formLabel}>Famille olfactive</label>
-                <input
-                  type="text"
-                  value={noteForm.famille}
-                  onChange={(e) =>
-                    setNoteForm({ ...noteForm, famille: e.target.value })
-                  }
-                  className={styles.formInput}
-                  placeholder="Ex: florale, boisée, orientale..."
-                />
-              </div>
-              <div className={styles.modalActions}>
-                <button
-                  type="button"
-                  onClick={() => setShowNoteForm(false)}
-                  className={styles.secondaryButton}
-                >
-                  Annuler
-                </button>
-                <button type="submit" className={styles.primaryButton}>
-                  <Save className={styles.icon} />
-                  {editingItem ? "Mettre à jour" : "Créer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* NoteForm moderne */}
+      <NoteForm
+        note={editingItem}
+        isOpen={showNoteForm}
+        onClose={() => {
+          setShowNoteForm(false);
+          setEditingItem(null);
+        }}
+        onSubmit={async (formData) => {
+          try {
+            if (editingItem) {
+              await noteAPI.update(editingItem._id, formData);
+              toast.success("Note modifiée");
+            } else {
+              await noteAPI.create(formData);
+              toast.success("Note créée");
+            }
+            await loadData();
+          } catch (error) {
+            throw error;
+          }
+        }}
+        loading={loading}
+      />
     </div>
   );
 }
