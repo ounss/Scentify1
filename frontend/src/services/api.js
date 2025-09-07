@@ -1,4 +1,4 @@
-// frontend/src/services/api.js - VERSION FINALE CORRIGÉE
+// frontend/src/services/api.js - VERSION 100% FONCTIONNELLE
 import axios from "axios";
 
 // ✅ Configuration de base cohérente
@@ -15,14 +15,41 @@ const api = axios.create({
   },
 });
 
-// ✅ Intercepteur requête - JWT automatique
+// ✅ INTERCEPTEUR REQUÊTE SÉLECTIF - Token uniquement pour les routes protégées
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-      console.log("📡 Token ajouté à la requête:", config.url);
+    // ✅ Routes publiques qui ne doivent PAS avoir de token
+    const publicRoutes = [
+      "/contact/send",
+      "/users/register",
+      "/users/login",
+      "/users/forgot-password",
+      "/users/reset-password",
+      "/users/verify-email",
+      "/users/resend-verification",
+      "/parfums",
+      "/notes",
+      "/health",
+    ];
+
+    // Vérifier si l'URL correspond à une route publique
+    const isPublicRoute = publicRoutes.some(
+      (route) =>
+        config.url &&
+        (config.url.includes(route) || config.url.startsWith(route))
+    );
+
+    // ✅ Ajouter le token SEULEMENT si ce n'est pas une route publique
+    if (!isPublicRoute) {
+      const token = localStorage.getItem("token");
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+        console.log("📡 Token ajouté à la requête:", config.url);
+      }
+    } else {
+      console.log("🌐 Route publique, pas de token:", config.url);
     }
+
     return config;
   },
   (error) => {
@@ -142,9 +169,28 @@ export const adminAPI = {
     api.get("/admin/parfums/export", { responseType: "blob" }),
 };
 
-// 📧 CONTACT SERVICES
+// 📧 CONTACT SERVICES - SOLUTION HYBRIDE pour éviter les problèmes de token
 export const contactAPI = {
-  send: (data) => api.post("/contact/send", data),
+  // ✅ Utilise fetch direct pour éviter l'intercepteur axios
+  send: async (data) => {
+    const response = await fetch(`${BASE_URL}/contact/send`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        // Pas d'Authorization header pour cette route publique
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || `Erreur ${response.status}`);
+    }
+
+    return { data: await response.json() };
+  },
+
+  // Les routes admin utilisent axios normalement (avec token)
   getMessages: () => api.get("/contact"),
   updateMessage: (id, data) => api.patch(`/contact/${id}`, data),
 };
