@@ -16,7 +16,9 @@
   --green-500: #22c55e;
   --orange-500: #f97316;
 
-  --font: "Inter", -apple-system, sans-serif;
+  --font-title: "Playfair Display", serif;
+  --font-body: "Nunito Sans", sans-serif;
+  --font: var(--font-body); /* Police par défaut */
   --radius: 1rem;
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --transition: 200ms ease;
@@ -43,8 +45,6 @@ body {
   --scentify-text-secondary: #1f1f1f; /* Texte titres - cercle noir */
   --scentify-button-standard: #b8b8b8; /* Boutons standards - gris doux */
   --scentify-cta-primary: #a44949; /* CTA - rouge profond passion/émotion */
-
-
 
   /* Espacements et rayons cohérents */
   --radius-scentify: 1.25rem;
