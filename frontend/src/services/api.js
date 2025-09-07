@@ -1,6 +1,7 @@
-// frontend/src/services/api.js - INTERCEPTEUR CORRIGÉ
+// frontend/src/services/api.js - VERSION FINALE CORRIGÉE
 import axios from "axios";
 
+// ✅ Configuration de base cohérente
 const BASE_URL =
   process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
 
@@ -58,7 +59,7 @@ api.interceptors.response.use(
   }
 );
 
-// 🔐 AUTH SERVICES - Endpoints corrigés
+// 🔐 AUTH SERVICES - Endpoints cohérents avec le backend
 export const authAPI = {
   register: (userData) => api.post("/users/register", userData),
   login: (credentials) => api.post("/users/login", credentials),
@@ -71,28 +72,45 @@ export const authAPI = {
   resendVerification: (email) =>
     api.post("/users/resend-verification", { email }),
   deleteAccount: () => api.delete("/users/profile"),
+
+  // ✅ FONCTION LOGOUT AJOUTÉE
+  logout: () => {
+    localStorage.removeItem("token");
+    delete api.defaults.headers.common["Authorization"];
+    return Promise.resolve();
+  },
 };
 
-// 🌸 PARFUMS SERVICES
+// 🌸 PARFUMS SERVICES - Noms cohérents avec votre backend
 export const parfumsAPI = {
   getAll: (params) => api.get("/parfums", { params }),
   getById: (id) => api.get(`/parfums/${id}`),
+  getSimilar: (id) => api.get(`/parfums/${id}/similar`),
   create: (data) => api.post("/parfums", data),
   update: (id, data) => api.put(`/parfums/${id}`, data),
   delete: (id) => api.delete(`/parfums/${id}`),
   search: (query) => api.get(`/parfums/search?q=${encodeURIComponent(query)}`),
+
+  // Recherche par notes
+  getByNotes: (noteIds) => {
+    const notesParam = Array.isArray(noteIds) ? noteIds.join(",") : noteIds;
+    return api.get("/parfums", { params: { notes: notesParam } });
+  },
+  getByNote: (noteId) => api.get(`/parfums/note/${noteId}`),
 };
 
 // 🎵 NOTES SERVICES
 export const notesAPI = {
   getAll: (params) => api.get("/notes", { params }),
   getById: (id) => api.get(`/notes/${id}`),
+  getFamilies: () => api.get("/notes/families"),
+  search: (query) => api.get("/notes/search", { params: { q: query } }),
   create: (data) => api.post("/notes", data),
   update: (id, data) => api.put(`/notes/${id}`, data),
   delete: (id) => api.delete(`/notes/${id}`),
 };
 
-// 👥 USER SERVICES
+// 👥 USER SERVICES - Favoris et historique
 export const userAPI = {
   // Favoris
   getFavorites: () => api.get("/users/favorites"),
@@ -116,10 +134,12 @@ export const adminAPI = {
   // Gestion utilisateurs
   getAllUsers: () => api.get("/admin/users"),
   toggleAdminStatus: (id) => api.patch(`/admin/users/${id}/admin`),
-  exportUsersCSV: () => api.get("/admin/users/export"),
+  exportUsersCSV: () =>
+    api.get("/admin/users/export", { responseType: "blob" }),
 
   // Export parfums
-  exportParfumsCSV: () => api.get("/admin/parfums/export"),
+  exportParfumsCSV: () =>
+    api.get("/admin/parfums/export", { responseType: "blob" }),
 };
 
 // 📧 CONTACT SERVICES
@@ -128,5 +148,28 @@ export const contactAPI = {
   getMessages: () => api.get("/contact"),
   updateMessage: (id, data) => api.patch(`/contact/${id}`, data),
 };
+
+// 📷 UPLOAD SERVICES
+export const uploadAPI = {
+  uploadParfumImage: (file) => {
+    const formData = new FormData();
+    formData.append("photo", file);
+    return api.post("/parfums/upload", formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
+};
+
+// ✅ TEST SERVICES
+export const testAPI = {
+  health: () => api.get("/health"),
+  testAuth: () => api.get("/users/profile"),
+};
+
+// ✅ ALIASES pour compatibilité (éviter les erreurs de références)
+export const parfumAPI = parfumsAPI; // Alias
+export const noteAPI = notesAPI; // Alias
+export const favoritesAPI = userAPI; // Alias pour favoris
+export const historyAPI = userAPI; // Alias pour historique
 
 export default api;
