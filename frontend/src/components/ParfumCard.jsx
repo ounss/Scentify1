@@ -122,7 +122,7 @@ export default function ParfumCard({ parfum }) {
       <div className="card-image">
         <picture>
           <OptimizedImage
-            className={styles.photo}
+            className="title-block fade-in"
             src={parfum?.photo}
             alt={parfum.nom}
           />
