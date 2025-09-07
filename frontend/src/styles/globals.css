@@ -44,10 +44,7 @@ body {
   --scentify-button-standard: #b8b8b8; /* Boutons standards - gris doux */
   --scentify-cta-primary: #a44949; /* CTA - rouge profond passion/émotion */
 
-  /* Typographies officielles */
-  --font-title: "The Seasons", Georgia, serif;
-  --font-body: "Glacial Indifference", -apple-system, BlinkMacSystemFont,
-    "Segoe UI", sans-serif;
+
 
   /* Espacements et rayons cohérents */
   --radius-scentify: 1.25rem;
@@ -515,14 +512,14 @@ body {
   }
 
   .contact .card {
-    background: rgba(42, 37, 31, 0.95);
+    background: rgba(218, 192, 161, 0.95);
     border-color: rgba(164, 73, 73, 0.2);
   }
 
   .contact .form-input,
   .contact .form-textarea,
   .contact .form-select {
-    background: rgba(31, 26, 20, 0.8);
+    background: rgba(198, 169, 134, 0.8);
     border-color: rgba(164, 73, 73, 0.2);
     color: var(--scentify-text-primary);
   }
