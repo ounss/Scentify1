@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - VERSION COMPLÈTE
+// frontend/src/contexts/AuthContext.jsx - VERSION CORRIGÉE
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
 import api from "../services/api";
@@ -11,7 +11,9 @@ const authReducer = (state, action) => {
       return { ...state, loading: action.payload };
 
     case "LOGIN_SUCCESS":
+      // Stocker le token dans localStorage
       localStorage.setItem("token", action.payload.token);
+      // Configurer axios pour les futures requêtes
       api.defaults.headers.common[
         "Authorization"
       ] = `Bearer ${action.payload.token}`;
@@ -27,7 +29,9 @@ const authReducer = (state, action) => {
       return { ...state, error: action.payload, loading: false };
 
     case "LOGOUT":
+      // Nettoyer localStorage
       localStorage.removeItem("token");
+      // Supprimer le header Authorization
       delete api.defaults.headers.common["Authorization"];
       return { user: null, token: null, loading: false, error: null };
 
@@ -40,14 +44,13 @@ const authReducer = (state, action) => {
     case "CLEAR_ERROR":
       return { ...state, error: null };
 
-    // ✅ CORRECTION FAVORIS - STRUCTURE CORRIGÉE
     case "UPDATE_FAVORIS_PARFUMS":
       if (!state.user) return state;
       return {
         ...state,
         user: {
           ...state.user,
-          favorisParfums: action.payload, // Remplacer complètement la liste
+          favorisParfums: action.payload,
         },
       };
 
@@ -74,25 +77,37 @@ export function AuthProvider({ children }) {
     error: null,
   });
 
-  // ✅ Initialisation au chargement
+  // ✅ INITIALISATION CORRIGÉE - Gestion propre des erreurs
   useEffect(() => {
     const initAuth = async () => {
       const token = localStorage.getItem("token");
+
       if (token) {
+        // Configurer axios avec le token existant
         api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+
         try {
+          console.log("🔄 Vérification du token existant...");
           const response = await authAPI.getProfile();
+
+          console.log(
+            "✅ Token valide, utilisateur connecté:",
+            response.data.username
+          );
           dispatch({
             type: "LOGIN_SUCCESS",
             payload: { token, user: response.data },
           });
         } catch (error) {
-          console.error("❌ Token invalide, suppression:", error);
+          console.log("❌ Token invalide/expiré lors de l'init, nettoyage...");
+          // Token invalide : nettoyer proprement
           localStorage.removeItem("token");
           delete api.defaults.headers.common["Authorization"];
+          // On ne redirige PAS ici, on laisse l'app décider
           dispatch({ type: "SET_LOADING", payload: false });
         }
       } else {
+        console.log("⚠️ Aucun token trouvé, utilisateur non connecté");
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
@@ -184,6 +199,11 @@ export function AuthProvider({ children }) {
       return response.data;
     } catch (error) {
       console.error("❌ Erreur refresh user:", error);
+      // Si erreur 401, déconnecter automatiquement
+      if (error.response?.status === 401) {
+        console.log("🚪 Token expiré lors du refresh, déconnexion automatique");
+        dispatch({ type: "LOGOUT" });
+      }
       return null;
     }
   };
@@ -193,9 +213,7 @@ export function AuthProvider({ children }) {
     dispatch({ type: "CLEAR_ERROR" });
   };
 
-  // 🔐 ========== NOUVELLES FONCTIONS PASSWORD ==========
-
-  // ✅ FORGOT PASSWORD - Demander la réinitialisation
+  // 🔐 FONCTIONS PASSWORD
   const forgotPassword = async (email) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
@@ -212,16 +230,12 @@ export function AuthProvider({ children }) {
         error.response?.data?.message || "Erreur lors de l'envoi de l'email";
       dispatch({ type: "LOGIN_ERROR", payload: message });
 
-      return {
-        success: false,
-        error: message,
-      };
+      return { success: false, error: message };
     } finally {
       dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
-  // ✅ RESET PASSWORD - Définir le nouveau mot de passe
   const resetPassword = async (token, password) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
@@ -239,16 +253,12 @@ export function AuthProvider({ children }) {
         error.response?.data?.message || "Erreur lors de la réinitialisation";
       dispatch({ type: "LOGIN_ERROR", payload: message });
 
-      return {
-        success: false,
-        error: message,
-      };
+      return { success: false, error: message };
     } finally {
       dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
-  // ✅ RESEND VERIFICATION - Renvoyer l'email de vérification
   const resendVerificationEmail = async (email) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
@@ -265,16 +275,13 @@ export function AuthProvider({ children }) {
         error.response?.data?.message || "Erreur lors du renvoi de l'email";
       dispatch({ type: "LOGIN_ERROR", payload: message });
 
-      return {
-        success: false,
-        error: message,
-      };
+      return { success: false, error: message };
     } finally {
       dispatch({ type: "SET_LOADING", payload: false });
     }
   };
 
-  // ✅ VALEURS EXPOSÉES - TOUTES LES FONCTIONS
+  // ✅ VALEURS EXPOSÉES
   const value = {
     // État
     user: state.user,
@@ -283,7 +290,7 @@ export function AuthProvider({ children }) {
     error: state.error,
     isAuthenticated: !!state.user,
     isAdmin: state.user?.isAdmin || false,
-    needsVerification: state.error?.includes("vérifier"), // Helper pour détecter si verification requise
+    needsVerification: state.error?.includes("vérifier"),
 
     // Actions principales
     login,
@@ -293,10 +300,10 @@ export function AuthProvider({ children }) {
     refreshUser,
     clearError,
 
-    // ✅ NOUVELLES ACTIONS PASSWORD
-    forgotPassword, // Demander reset (depuis /auth)
-    resetPassword, // Définir nouveau mot de passe (depuis /reset-password)
-    resendVerificationEmail, // Renvoyer email de vérification (depuis /auth)
+    // Actions password
+    forgotPassword,
+    resetPassword,
+    resendVerificationEmail,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
