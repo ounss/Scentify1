@@ -1,5 +1,58 @@
 /* ===== HEADER DESKTOP AVEC ONGLETS ===== */
+/* ===== BOUTONS D'AUTHENTIFICATION MOBILE ===== */
 
+/* Container pour les boutons d'auth mobile */
+.mobile-auth-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
+}
+
+/* Bouton primaire mobile (S'inscrire) */
+.mobile-auth-primary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: var(--white);
+  border-radius: 0.75rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 200ms ease;
+  box-shadow: 0 4px 12px rgba(164, 73, 73, 0.3);
+  border: none;
+}
+
+.mobile-auth-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(164, 73, 73, 0.4);
+}
+
+/* Bouton secondaire mobile (Se connecter) */
+.mobile-auth-secondary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.875rem;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  border: 1px solid var(--gray-300);
+  border-radius: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: all 200ms ease;
+}
+
+.mobile-auth-secondary:hover {
+  background: var(--gray-200);
+  border-color: var(--gray-400);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
 /* Header responsive de base */
 .header-responsive {
   padding: 1rem;

@@ -219,32 +219,42 @@ export default function Header() {
               ) : (
                 <>
                   {/* Boutons d'authentification */}
-                  <div className="auth-buttons">
+                  <div className="mobile-auth-buttons">
                     <Link
                       to="/auth"
                       onClick={() => setShowMobileMenu(false)}
-                      className="w-full bg-red-600 text-white text-center py-3 px-4 rounded-xl font-semibold hover:bg-red-700 transition-colors block"
+                      className="mobile-auth-primary"
                     >
-                      Se connecter
+                      <User className="w-5 h-5" />
+                      <span>Créer un compte</span>
                     </Link>
                     <Link
                       to="/auth"
                       onClick={() => setShowMobileMenu(false)}
-                      className="w-full bg-gray-200 text-gray-800 text-center py-3 px-4 rounded-xl font-semibold hover:bg-gray-300 transition-colors block"
+                      className="mobile-auth-secondary"
                     >
-                      Créer un compte
+                      <LogOut className="w-5 h-5" />
+                      <span>Se connecter</span>
                     </Link>
                   </div>
 
                   {/* Navigation publique */}
-                  <nav className="mt-8 space-y-2">
+                  <nav className="space-y-2">
                     <Link
                       to="/"
                       onClick={() => setShowMobileMenu(false)}
-                      className="flex items-center space-x-3 p-3 text-gray-700 hover:bg-gray-100 rounded-xl transition-colors"
+                      className="mobile-nav-item"
                     >
                       <Home className="w-5 h-5" />
                       <span className="font-medium">Accueil</span>
+                    </Link>
+                    <Link
+                      to="/contact"
+                      onClick={() => setShowMobileMenu(false)}
+                      className="mobile-nav-item"
+                    >
+                      <Mail className="w-5 h-5" />
+                      <span className="font-medium">Contact</span>
                     </Link>
                   </nav>
                 </>
