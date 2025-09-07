@@ -22,7 +22,223 @@
   --transition: 200ms ease;
 }
 /* frontend/src/styles/globals.css - AJOUTS POUR HEADER RESPONSIVE */
+/* ===== CORRECTIONS CSS ===== */
 
+/* 1. Réduction de la taille des cartes parfum */
+.card-content {
+  padding: 0.75rem; /* Réduction de 1rem à 0.75rem */
+}
+
+.card-title {
+  font-size: 0.9rem; /* Réduction de 1rem à 0.9rem */
+  font-weight: 600;
+  color: var(--gray-900);
+  margin-bottom: 0.2rem; /* Réduction de 0.25rem à 0.2rem */
+}
+
+.card-subtitle {
+  font-size: 0.8rem; /* Réduction de 0.875rem à 0.8rem */
+  color: var(--gray-600);
+  margin-bottom: 0.6rem; /* Réduction de 0.75rem à 0.6rem */
+}
+
+.card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.2rem; /* Réduction de 0.25rem à 0.2rem */
+  margin-bottom: 0.75rem; /* Réduction de 1rem à 0.75rem */
+}
+
+.tag {
+  background: var(--gray-100);
+  color: var(--gray-700);
+  padding: 0.2rem 0.4rem; /* Réduction de 0.25rem 0.5rem à 0.2rem 0.4rem */
+  border-radius: 0.3rem; /* Réduction de 0.375rem à 0.3rem */
+  font-size: 0.7rem; /* Réduction de 0.75rem à 0.7rem */
+  font-weight: 500;
+}
+
+/* Réduction du bouton primaire dans les cartes */
+.parfum-card .btn.btn-primary {
+  padding: 0.5rem 0.9rem; /* Réduction de 0.6rem 1.1rem à 0.5rem 0.9rem */
+  font-size: 0.85rem; /* Ajout d'une taille de police plus petite */
+}
+
+/* Réduction de l'image pour équilibrer la carte */
+.card-image {
+  aspect-ratio: 3/4; /* Légère réduction de la hauteur */
+  position: relative;
+  overflow: hidden;
+}
+
+/* 2. Suppression de l'espace entre header et section recherche */
+body {
+  font-family: var(--font);
+  background: linear-gradient(180deg, var(--bg) 0%, var(--bg-light) 100%);
+  color: var(--gray-900);
+  line-height: 1.6;
+  padding-top: 60px; /* Réduction de 80px à 60px pour mobile */
+  padding-bottom: 70px;
+}
+
+/* Suppression du padding top du conteneur principal */
+.container {
+  min-height: 100vh;
+  background-color: #f9fafb;
+  padding-bottom: 3rem;
+  /* Suppression de tout padding-top éventuel */
+}
+
+/* Hero section collée au header */
+.hero {
+  background: #b9a48d;
+  color: white;
+  padding: 2rem 0 6rem 0; /* Réduction du padding top de 4rem à 2rem */
+  position: relative;
+  overflow: hidden;
+  margin-top: 0; /* S'assurer qu'il n'y a pas de marge */
+}
+
+/* Desktop: ajustement pour le header plus grand en responsive */
+@media (min-width: 1024px) {
+  body {
+    padding-top: 70px; /* Ajustement pour desktop */
+    padding-bottom: 0;
+  }
+}
+
+@media (min-width: 768px) {
+  body {
+    padding-top: 65px; /* Ajustement pour tablette */
+    padding-bottom: 0;
+  }
+
+  .hero {
+    padding: 1.5rem 0 6rem 0; /* Encore moins d'espace en desktop */
+  }
+}
+
+/* Mobile - réajustement */
+@media (max-width: 767px) {
+  body {
+    padding-top: 60px;
+    padding-bottom: 80px;
+  }
+
+  .hero {
+    padding: 1rem 0 4rem 0; /* Moins d'espace en mobile */
+  }
+}
+
+/* 3. Optimisation de la grille pour des cartes plus petites */
+.parfumsGrid {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(250px, 1fr)
+  ); /* Réduction de 300px à 250px */
+  gap: 1.5rem; /* Réduction de 2rem à 1.5rem */
+  margin-top: 2rem;
+}
+
+@media (max-width: 640px) {
+  .parfumsGrid {
+    grid-template-columns: repeat(
+      2,
+      1fr
+    ); /* 2 colonnes en mobile au lieu de 1 */
+    gap: 1rem; /* Réduction de 1.5rem à 1rem */
+  }
+
+  /* Cartes encore plus compactes en mobile */
+  .card-content {
+    padding: 0.6rem;
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+  }
+
+  .card-subtitle {
+    font-size: 0.75rem;
+  }
+
+  .parfum-card .btn.btn-primary {
+    padding: 0.4rem 0.7rem;
+    font-size: 0.8rem;
+  }
+}
+
+/* 4. Ajustements pour les badges et favoris (proportionnels à la carte plus petite) */
+.badge-genre {
+  position: absolute;
+  top: 0.5rem; /* Réduction de 0.6rem à 0.5rem */
+  left: 0.5rem; /* Réduction de 0.6rem à 0.5rem */
+  color: var(--white);
+  padding: 0.2rem 0.5rem; /* Réduction de 0.25rem 0.6rem à 0.2rem 0.5rem */
+  border-radius: 999px;
+  font-size: 0.7rem; /* Réduction de 0.75rem à 0.7rem */
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.2px;
+  box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15); /* Légère réduction de l'ombre */
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.fav-toggle {
+  position: absolute;
+  top: 0.5rem; /* Réduction de 0.6rem à 0.5rem */
+  right: 0.5rem; /* Réduction de 0.6rem à 0.5rem */
+  width: 36px; /* Réduction de 40px à 36px */
+  height: 36px; /* Réduction de 40px à 36px */
+  display: grid;
+  place-items: center;
+  border-radius: 0.7rem; /* Légère réduction de 0.75rem à 0.7rem */
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--gray-600);
+  border: 1px solid var(--gray-100);
+  box-shadow: var(--shadow);
+  transition: transform var(--transition), background var(--transition),
+    color var(--transition);
+}
+
+.fav-icon {
+  width: 18px; /* Réduction de 20px à 18px */
+  height: 18px; /* Réduction de 20px à 18px */
+  transition: transform var(--transition);
+}
+
+/* 5. Correction spécifique pour Home.module.css si nécessaire */
+.heroContent {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* Réduction des marges dans le hero */
+.heroText {
+  text-align: center;
+  margin-bottom: 2rem; /* Réduction de 3rem à 2rem */
+}
+
+.heroTitle {
+  font-size: 2.5rem; /* Légère réduction de 3rem à 2.5rem */
+  font-weight: 800;
+  margin-bottom: 0.75rem; /* Réduction de 1rem à 0.75rem */
+  line-height: 1.1;
+}
+
+@media (max-width: 768px) {
+  .heroTitle {
+    font-size: 1.8rem; /* Réduction de 2rem à 1.8rem */
+  }
+
+  .heroSubtitle {
+    font-size: 0.95rem; /* Réduction de 1rem à 0.95rem */
+  }
+}
 /* Ajuster le padding du body pour le nouveau header */
 body {
   font-family: var(--font);
