@@ -21,7 +21,13 @@
   background: #8a3d3d;
   border-radius: 2px;
 }
-
+.brand-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  margin-bottom: 40px;
+}
 .brand-name {
   font-family: "Playfair Display", serif;
   font-size: 1.8rem;

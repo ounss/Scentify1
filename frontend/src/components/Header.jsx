@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
-import "../styles/Header.css"; // Import du CSS spécifique au header
+import "../styles/Header.css"; 
 
 export default function Header() {
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
@@ -56,13 +56,14 @@ export default function Header() {
     <>
       {/* Header Desktop/Mobile */}
       <header className="header-responsive">
-        <div className="container mx-auto px-4">
-          <div className="flex items-center justify-between h-16">
+        <div className="container mx-auto px-6">
+          <div className="flex items-center justify-between h-20">
             {/* Logo */}
-            <Link to="/" className="perfume-icon">
-              <div className="brand-name">SCENTIFY</div>
-            </Link>
-
+            <div className="brand-header">
+              <Link to="/" className="perfume-icon">
+                <div className="brand-name">SCENTIFY</div>
+              </Link>
+            </div>
             {/* Navigation Desktop - Onglets */}
             <nav className="hidden md:flex items-center">
               <div className="desktop-tabs">
