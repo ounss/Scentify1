@@ -24,10 +24,25 @@
 .brand-header {
   align-items: center;
   display: flex;
-  /* gap: 12px; */
   justify-content: center;
   margin: 1rem;
   flex-direction: column;
+  /* Ajout pour mobile */
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  margin: 0;
+}
+
+/* Desktop : remettre en position normale */
+@media (min-width: 768px) {
+  .brand-header {
+    position: static;
+    transform: none;
+    flex-direction: row;
+    gap: 12px;
+    margin: 0;
+  }
 }
 .brand-name {
   font-family: "Playfair Display", serif;
@@ -551,7 +566,7 @@
 /* Mobile - ajustement du padding */
 @media (max-width: 767px) {
   body {
-    padding-top: 50px;
+    padding-top: 70px;
     padding-bottom: 70px;
   }
 
