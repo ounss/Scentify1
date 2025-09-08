@@ -1,5 +1,5 @@
 /* ===== HEADER DESKTOP AVEC ONGLETS ===== */
-/* ===== BOUTONS D'AUTHENTIFICATION MOBILE ===== */
+/* ===== BOUTONS D'AUTHENTIFICATION MOBILE ===== 
 .perfume-icon {
   width: 40px;
   height: 50px;
@@ -21,6 +21,7 @@
   background: #8a3d3d;
   border-radius: 2px;
 }
+  */
 .brand-header {
   align-items: center;
   display: flex;
@@ -200,7 +201,7 @@
   border-radius: 0.75rem;
   opacity: 0;
   transition: opacity 300ms ease;
-  z-index: -1;
+  z-index: 1;
 }
 
 .desktop-tab.active::after {
@@ -543,7 +544,7 @@
   }
 
   body {
-    padding-top: 150px; /* Augmenté pour le nouveau header */
+    padding-top: 100px; /* Augmenté pour le nouveau header */
     padding-bottom: 0;
   }
 }
