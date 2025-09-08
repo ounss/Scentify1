@@ -1,0 +1,230 @@
+/* ===== OVERRIDES POLICES - À appliquer après tous les autres CSS ===== */
+
+/* Force l'application des nouvelles polices sur TOUS les éléments */
+
+/* ✅ TITRES - Playfair Display partout */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.title,
+.heading,
+.hero-title,
+.page-title,
+.section-title,
+.footer-title,
+.footer-heading,
+.logo-text,
+.admin-title,
+.admin-section-title,
+.note-name,
+.review-title,
+.parfum-title,
+[class*="title"],
+[class*="heading"],
+[class*="Title"],
+[class*="Heading"] {
+  font-family: "Playfair Display", serif !important;
+}
+
+/* ✅ TEXTES - Nunito Sans partout */
+*,
+body,
+p,
+span,
+div,
+a,
+button,
+input,
+textarea,
+select,
+label,
+.text,
+.subtitle,
+.description,
+.content,
+.footer-subtitle,
+.footer-link,
+.footer-small,
+.nav-link,
+.admin-text,
+.admin-label,
+.admin-description,
+.note-description,
+.review-text,
+.parfum-description,
+.parfum-brand,
+.parfum-type,
+.form-label,
+.form-input,
+.form-textarea,
+.form-select,
+.hero-subtitle,
+.page-subtitle,
+.section-description,
+[class*="text"],
+[class*="description"],
+[class*="subtitle"] {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* ✅ ÉLÉMENTS SPÉCIFIQUES PAR MODULE */
+
+/* Home.module.css */
+.heroTitle {
+  font-family: "Playfair Display", serif !important;
+}
+
+.heroSubtitle,
+.searchForm,
+.searchForm * {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* AdminPanel.module.css */
+.primaryButton,
+.secondaryButton,
+.iconButton,
+.searchInput,
+.filterSelect {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* NoteForm.module.css */
+.previewTitle,
+.previewName {
+  font-family: "Playfair Display", serif !important;
+}
+
+.formGroup,
+.formGroup *,
+.previewCard,
+.previewCard * {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* auth.css */
+.auth-page,
+.auth-page *,
+.auth-card,
+.auth-card * {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+.auth-title,
+.logo-text {
+  font-family: "Playfair Display", serif !important;
+}
+
+/* footer.css */
+.footer-title,
+.footer-heading {
+  font-family: "Playfair Display", serif !important;
+}
+
+.footer-subtitle,
+.footer-link,
+.footer-small,
+.footer * {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* ✅ FORCE POUR LES ÉLÉMENTS DYNAMIQUES */
+[data-component] *,
+[role="button"],
+[role="link"],
+.card,
+.card *,
+.modal,
+.modal *,
+.tooltip,
+.tooltip *,
+.dropdown,
+.dropdown * {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* Titres dans les composants dynamiques */
+[data-component] h1,
+[data-component] h2,
+[data-component] h3,
+[data-component] h4,
+[data-component] h5,
+[data-component] h6,
+.card-title,
+.modal-title,
+.section-header {
+  font-family: "Playfair Display", serif !important;
+}
+
+/* ✅ OVERRIDES POUR LES BIBLIOTHÈQUES EXTERNES */
+.react-select,
+.react-select *,
+.react-datepicker,
+.react-datepicker *,
+.toast,
+.toast * {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* ✅ MEDIA QUERIES - MAINTIEN DES POLICES SUR TOUS ÉCRANS */
+@media (max-width: 768px) {
+  *,
+  *::before,
+  *::after {
+    font-family: "Nunito Sans", sans-serif !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .title,
+  .heading,
+  [class*="title"],
+  [class*="heading"] {
+    font-family: "Playfair Display", serif !important;
+  }
+}
+
+@media (min-width: 769px) {
+  *,
+  *::before,
+  *::after {
+    font-family: "Nunito Sans", sans-serif !important;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6,
+  .title,
+  .heading,
+  [class*="title"],
+  [class*="heading"] {
+    font-family: "Playfair Display", serif !important;
+  }
+}
+
+/* ✅ OVERRIDE FINAL - ULTRA PRIORITAIRE */
+.font-title-override,
+.use-playfair {
+  font-family: "Playfair Display", serif !important;
+}
+
+.font-body-override,
+.use-nunito {
+  font-family: "Nunito Sans", sans-serif !important;
+}
+
+/* ✅ LOGS CSS - POUR VÉRIFICATION */
+body::before {
+  content: "Polices appliquées: Playfair Display (titres) + Nunito Sans (textes)";
+  display: none; /* Caché mais présent pour debug */
+}
