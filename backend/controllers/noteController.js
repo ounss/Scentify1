@@ -181,7 +181,6 @@ export const getNotesWithSuggestions = async (req, res) => {
   }
 };
 
-// ✅ SUPPRIMÉ : Plus de getNotesByType car plus de types fixes
 
 // ✅ Obtenir une note par ID avec statistiques détaillées
 export const getNoteById = async (req, res) => {

@@ -37,7 +37,7 @@ export default function Home() {
       const response = await parfumAPI.getAll({
         search,
         genre,
-        limit: 20,
+        limit: 30,
       });
       setParfums(response.data.parfums || []);
     } catch (error) {

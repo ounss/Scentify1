@@ -23,7 +23,7 @@ const AuthPage = () => {
     password: "",
   });
 
-  // ✅ NOUVEAUX ÉTATS (correctement placés DANS le composant)
+ 
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [emailForReset, setEmailForReset] = useState("");
   const [successMessage, setSuccessMessage] = useState("");

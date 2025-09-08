@@ -59,9 +59,8 @@ export default function Header() {
         <div className="container mx-auto px-4">
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
-            <Link to="/" className="logo flex items-center space-x-3">
-              <div className="logo-icon">S</div>
-              <span className="text-xl font-bold text-gray-800">Scentify</span>
+            <Link to="/" className="perfume-icon">
+              <div className="brand-name">SCENTIFY</div>
             </Link>
 
             {/* Navigation Desktop - Onglets */}
