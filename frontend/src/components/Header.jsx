@@ -302,6 +302,7 @@ export default function Header() {
             <User className="nav-icon" />
             <span className="nav-label">Profil</span>
           </Link>
+          {/* Bottom Navigation Mobile 
           <Link
             to="/contact"
             className={`nav-item ${
@@ -310,7 +311,7 @@ export default function Header() {
           >
             <Mail className="nav-icon" />
             <span className="nav-label">Contact</span>
-          </Link>
+          </Link>*/}
         </div>
       </nav>
     </>
