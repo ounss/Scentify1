@@ -29,9 +29,8 @@
   gap: 12px;
   margin: 2rem;
 }
-.brand-name {
+.brand-name a {
   font-family: "Playfair Display", serif;
-  font-size: 1.8rem;
   font-weight: 400;
   color: #2c2c2c;
   letter-spacing: 2px;
