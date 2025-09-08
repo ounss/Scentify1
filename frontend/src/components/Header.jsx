@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
-import "../styles/Header.css"; 
+import "../styles/Header.css"; // Import du CSS spécifique au header
 
 export default function Header() {
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
@@ -39,7 +39,7 @@ export default function Header() {
     ...(isAuthenticated
       ? [
           { to: "/history", label: "Historique", icon: Clock },
-          { to: "/history?tab=favorites", label: "Favoris", icon: Heart }, // ✅ MODIFICATION
+          { to: "/history?tab=favorites", label: "Favoris", icon: Heart },
           { to: "/profile", label: "Profil", icon: User },
         ]
       : []),
@@ -57,11 +57,16 @@ export default function Header() {
       {/* Header Desktop/Mobile */}
       <header className="header-responsive">
         <div className="container mx-auto px-6">
+          {" "}
+          {/* Augmenté le padding horizontal */}
           <div className="flex items-center justify-between h-20">
+            {" "}
+            {/* Augmenté la hauteur */}
             {/* Logo */}
             <div className="brand-header">
-              <Link to="/" className="perfume-icon">
-                <div className="brand-name">SCENTIFY</div>
+              <div className="perfume-icon"></div>
+              <Link to="/" className="brand-name">
+                SCENTIFY
               </Link>
             </div>
             {/* Navigation Desktop - Onglets */}
@@ -75,13 +80,13 @@ export default function Header() {
                       isActiveTab(item.to) ? "active" : ""
                     }`}
                   >
-                    <item.icon className="w-4 h-4" />
+                    <item.icon className="w-5 h-5" />{" "}
+                    {/* Augmenté la taille des icônes */}
                     <span>{item.label}</span>
                   </Link>
                 ))}
               </div>
             </nav>
-
             {/* Actions Desktop */}
             <div className="hidden md:flex items-center space-x-4">
               {isAuthenticated ? (
@@ -92,13 +97,15 @@ export default function Header() {
                       to="/admin"
                       className="admin-badge flex items-center space-x-2"
                     >
-                      <Crown className="w-4 h-4" />
+                      <Crown className="w-5 h-5" /> {/* Augmenté la taille */}
                       <span className="font-semibold">Admin</span>
                     </Link>
                   )}
 
                   {/* Profil utilisateur */}
-                  <div className="flex items-center space-x-3">
+                  <div className="flex items-center space-x-4">
+                    {" "}
+                    {/* Augmenté l'espacement */}
                     <Link to="/profile" className="user-avatar">
                       {user?.firstName?.charAt(0)?.toUpperCase() ||
                         user?.email?.charAt(0)?.toUpperCase() ||
@@ -108,7 +115,7 @@ export default function Header() {
                       onClick={handleLogout}
                       className="logout-btn flex items-center space-x-2"
                     >
-                      <LogOut className="w-4 h-4" />
+                      <LogOut className="w-5 h-5" /> {/* Augmenté la taille */}
                       <span>Déconnexion</span>
                     </button>
                   </div>
@@ -116,19 +123,20 @@ export default function Header() {
               ) : (
                 <div className="auth-buttons">
                   <Link to="/auth" className="btn-secondary">
+                    <User className="w-5 h-5" /> {/* Ajouté une icône */}
                     Se connecter
                   </Link>
                   <Link to="/auth" className="btn-primary">
+                    <User className="w-5 h-5" /> {/* Ajouté une icône */}
                     Créer un compte
                   </Link>
                 </div>
               )}
             </div>
-
             {/* Burger Menu Mobile */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              className="md:hidden p-3 hover:bg-gray-100 rounded-lg transition-colors" // Augmenté le padding
             >
               {showMobileMenu ? (
                 <X className="w-6 h-6" />
@@ -274,7 +282,7 @@ export default function Header() {
             <span className="nav-label">Accueil</span>
           </Link>
           <Link
-            to={isAuthenticated ? "/history?tab=favorites" : "/auth"} // ✅ MODIFICATION
+            to={isAuthenticated ? "/history?tab=favorites" : "/auth"}
             className={`nav-item ${
               location.pathname.startsWith("/history") &&
               location.search.includes("favorites")
@@ -294,16 +302,16 @@ export default function Header() {
             <User className="nav-icon" />
             <span className="nav-label">Profil</span>
           </Link>
+          <Link
+            to="/contact"
+            className={`nav-item ${
+              location.pathname === "/contact" ? "active" : ""
+            }`}
+          >
+            <Mail className="nav-icon" />
+            <span className="nav-label">Contact</span>
+          </Link>
         </div>
-        <Link
-          to="/contact"
-          className={`nav-item ${
-            location.pathname === "/contact" ? "active" : ""
-          }`}
-        >
-          <Mail className="nav-icon" />
-          <span className="nav-label">Contact</span>
-        </Link>
       </nav>
     </>
   );
