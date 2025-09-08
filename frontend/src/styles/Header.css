@@ -531,8 +531,8 @@
 
 /* Ajuster le padding du body */
 body {
-  padding-top: 80px; /* Augmenté pour le nouveau header */
-  padding-bottom: 70px;
+  padding-top: 100px; /* Augmenté pour le nouveau header */
+  padding-bottom: 0;
 }
 
 /* Desktop: pas de bottom nav */
