@@ -1,5 +1,5 @@
 /* ===== HEADER DESKTOP AVEC ONGLETS ===== */
-/* ===== BOUTONS D'AUTHENTIFICATION MOBILE ===== 
+/* ===== BOUTONS D'AUTHENTIFICATION MOBILE ===== */
 .perfume-icon {
   width: 40px;
   height: 50px;
@@ -21,7 +21,6 @@
   background: #8a3d3d;
   border-radius: 2px;
 }
-  */
 .brand-header {
   align-items: center;
   display: flex;
