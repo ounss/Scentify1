@@ -22,14 +22,14 @@
   border-radius: 2px;
 }
 .brand-header {
-  font-family: "Playfair Display", serif;
-  display: flex;
   align-items: center;
+  display: flex;
+  /* gap: 12px; */
   justify-content: center;
-  gap: 12px;
-  margin: 2rem;
+  margin: 1rem;
+  flex-direction: column;
 }
-.brand-name a {
+.brand-name {
   font-family: "Playfair Display", serif;
   font-weight: 400;
   color: #2c2c2c;
@@ -535,10 +535,6 @@
 /* ===== RESPONSIVE ===== */
 
 /* Ajuster le padding du body */
-body {
-  padding-top: 100px; /* Augmenté pour le nouveau header */
-  padding-bottom: 0;
-}
 
 /* Desktop: pas de bottom nav */
 @media (min-width: 768px) {
@@ -547,6 +543,7 @@ body {
   }
 
   body {
+    padding-top: 150px; /* Augmenté pour le nouveau header */
     padding-bottom: 0;
   }
 }
@@ -554,8 +551,8 @@ body {
 /* Mobile - ajustement du padding */
 @media (max-width: 767px) {
   body {
-    padding-top: 70px;
-    padding-bottom: 80px;
+    padding-top: 50px;
+    padding-bottom: 70px;
   }
 
   .desktop-tabs {
