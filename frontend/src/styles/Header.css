@@ -27,7 +27,7 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  /*margin-bottom: 40px;*/
+  margin: 2rem;
 }
 .brand-name {
   font-family: "Playfair Display", serif;
