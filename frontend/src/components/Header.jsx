@@ -136,7 +136,7 @@ export default function Header() {
             {/* Burger Menu Mobile */}
             <button
               onClick={() => setShowMobileMenu(!showMobileMenu)}
-              className="md:hidden p-3 hover:bg-gray-100 rounded-lg transition-colors" // Augmenté le padding
+              className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors" // Augmenté le padding
             >
               {showMobileMenu ? (
                 <X className="w-6 h-6" />
