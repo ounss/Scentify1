@@ -2433,8 +2433,8 @@ ul {
 .card-image img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  display: block; /* Évite les espaces en bas */
+  object-fit: contain; /* Montre l'image complète sans zoom */
+  display: block;
 }
 
 .card-badge {
