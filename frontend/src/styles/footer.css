@@ -41,25 +41,40 @@
   gap: 0.75rem;
 }
 
-.footer-logo {
+.perfume-icon {
   width: 40px;
-  height: 40px;
-  border-radius: 0.75rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: var(--white);
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  box-shadow: 0 6px 16px rgba(164, 73, 73, 0.35);
+  height: 50px;
+  background: linear-gradient(135deg, #a44949, #8a3d3d);
+  border-radius: 8px 8px 12px 12px;
+  position: relative;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 
-.footer-title {
-  font-family: var(--font-title);
-  font-size: 1.125rem;
-  font-weight: 700;
-  color: #f9fafb;
-  font-optical-sizing: auto;
+.perfume-icon::before {
+  content: "";
+  position: absolute;
+  top: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 12px;
+  height: 12px;
+  background: #8a3d3d;
+  border-radius: 2px;
+}
+.brand-header {
+  align-items: center;
+  display: flex;
+  /* gap: 12px; */
+  justify-content: center;
+  margin: 1rem;
+  flex-direction: column;
+}
+.brand-name {
+  font-family: "Playfair Display", serif;
+  font-weight: 400;
+  color: #f8f8f8;
+  letter-spacing: 2px;
 }
 
 .footer-subtitle {

@@ -12,9 +12,13 @@ export default function Footer() {
       <div className="container">
         <div className="footer-content">
           <section className="footer-section footer-brand">
-            <div className="footer-logo">S</div>
+            <div className="brand-header">
+              <div className="perfume-icon"></div>
+              <Link to="/" className="brand-name">
+                SCENTIFY
+              </Link>
+            </div>
             <div>
-              <h3 className="footer-title">Scentify</h3>
               <p className="footer-subtitle">
                 Votre guide personnalisé dans l'univers des parfums.
               </p>

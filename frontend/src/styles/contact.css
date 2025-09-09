@@ -33,7 +33,7 @@
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 30% 20%, #a4494949 0%, transparent 50%);
+  background: rgba(255, 255, 255, 0.8);
 }
 
 .hero-decorations {
