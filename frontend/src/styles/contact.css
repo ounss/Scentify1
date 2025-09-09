@@ -81,7 +81,7 @@
   font-weight: 700;
   letter-spacing: -0.02em;
   margin-bottom: 1rem;
-  background: linear-gradient(135deg, #1c1917, #d97706, #1c1917);
+  background: #a44949;
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -91,7 +91,7 @@
 .title-accent-line {
   height: 0.25rem;
   width: 6rem;
-  background: linear-gradient(90deg, #f59e0b, #d97706);
+  background: #a44949;
   margin: 0 auto 2rem;
   border-radius: 0.125rem;
 }
@@ -179,7 +179,7 @@
 .info-icon-modern {
   width: 3rem;
   height: 3rem;
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: #a44949;
   border-radius: 1rem;
   display: flex;
   align-items: center;
@@ -299,7 +299,7 @@
 .faq-icon-modern {
   width: 2.5rem;
   height: 2.5rem;
-  background: linear-gradient(135deg, #ea580c, #c2410c);
+  background: #a44949;
   border-radius: 0.75rem;
   display: flex;
   align-items: center;
@@ -436,7 +436,7 @@
 
 /* Bouton modernisé */
 .modern-submit {
-  background: linear-gradient(135deg, #f59e0b, #d97706);
+  background: #a44949;
   color: white;
   border: none;
   padding: 1rem 2rem;
@@ -471,8 +471,8 @@
 
 .modern-submit:hover:not(:disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 12px 24px rgba(245, 158, 11, 0.4);
-  background: linear-gradient(135deg, #d97706, #f59e0b);
+  box-shadow: 0 12px 24px #a44949;
+  background: #a44949;
 }
 
 .modern-submit:disabled {
@@ -509,13 +509,13 @@
 
 /* Liens harmonisés */
 .contact .footer-link {
-  color: #f59e0b;
+  color: #a44949;
   text-decoration: none;
   transition: var(--transition-modern);
 }
 
 .contact .footer-link:hover {
-  color: #d97706;
+  color: #a44949;
   text-decoration: underline;
 }
 
@@ -529,7 +529,7 @@
     rgba(245, 245, 244, 0.1) 100%
   );
   border-radius: 2rem;
-  border: 1px solid rgba(251, 191, 36, 0.1);
+  border: 1px solid #a44949;
 }
 
 .values-header {
