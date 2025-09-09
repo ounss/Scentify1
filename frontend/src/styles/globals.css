@@ -2417,6 +2417,8 @@ ul {
   box-shadow: var(--shadow);
   transition: var(--transition);
   border: 1px solid var(--gray-100);
+  max-width: 280px; /* Limite la largeur des cartes */
+  margin: 0 auto; /* Centre les cartes */
 }
 
 .card:hover {
@@ -2428,6 +2430,7 @@ ul {
   aspect-ratio: 1;
   position: relative;
   overflow: hidden;
+  max-height: 280px; /* Limite la hauteur de l'image */
 }
 
 .card-image img {
