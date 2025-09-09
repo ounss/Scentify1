@@ -26,18 +26,14 @@
 .contact-hero-modern {
   position: relative;
   overflow: hidden;
-  padding: 3rem 0 2rem;
+  padding: 1rem 0 1rem;
 }
 
 .contact-hero-modern::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: radial-gradient(
-    circle at 30% 20%,
-    rgba(251, 191, 36, 0.05) 0%,
-    transparent 50%
-  );
+  background: radial-gradient(circle at 30% 20%, #a4494949 0%, transparent 50%);
 }
 
 .hero-decorations {
@@ -53,7 +49,7 @@
   right: 2rem;
   width: 3rem;
   height: 3rem;
-  color: rgba(251, 191, 36, 0.2);
+  color: #a4494949;
   animation: pulse 2s ease-in-out infinite;
 }
 
@@ -63,7 +59,7 @@
   left: 2rem;
   width: 2.5rem;
   height: 2.5rem;
-  color: rgba(251, 191, 36, 0.2);
+  color: #a4494949;
   animation: pulse 2s ease-in-out infinite;
   animation-delay: 1s;
 }
@@ -125,7 +121,7 @@
 .contact .card {
   background: rgba(255, 255, 255, 0.8);
   backdrop-filter: var(--backdrop-blur);
-  border: 1px solid rgba(217, 119, 6, 0.1);
+  border: 1px solid #a4494949;
   border-radius: 1.5rem;
   box-shadow: var(--shadow-modern);
   transition: var(--transition-modern);
@@ -136,18 +132,14 @@
 .contact .card:hover {
   transform: translateY(-8px);
   box-shadow: var(--shadow-hover);
-  border-color: rgba(217, 119, 6, 0.2);
+  border-color: #a4494949;
 }
 
 /* Overlay pour effet glassmorphisme */
 .card-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    135deg,
-    rgba(251, 191, 36, 0.03) 0%,
-    transparent 50%
-  );
+  background: linear-gradient(135deg, #a4494949 0%, transparent 50%);
   opacity: 0;
   transition: opacity 0.4s ease;
   pointer-events: none;
@@ -185,7 +177,7 @@
   align-items: center;
   justify-content: center;
   color: white;
-  box-shadow: 0 8px 16px rgba(245, 158, 11, 0.3);
+  box-shadow: 0 8px 16px #a4494949;
 }
 
 .info-title {
@@ -326,7 +318,7 @@
 
 .faq-item-modern {
   background: rgba(255, 255, 255, 0.6);
-  border: 1px solid rgba(251, 191, 36, 0.1);
+  border: 1px solid #a4494949;
   border-radius: 1rem;
   padding: 1.5rem;
   transition: all 0.3s ease;
@@ -334,7 +326,7 @@
 
 .faq-item-modern:hover {
   background: rgba(255, 255, 255, 0.8);
-  border-color: rgba(251, 191, 36, 0.2);
+  border-color: #a4494949;
   transform: translateX(4px);
 }
 
@@ -400,9 +392,9 @@
 
 .modern-input:focus {
   outline: none;
-  border-color: #f59e0b;
+  border-color: #a4494949;
   background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 0 0 4px  #a4494949;
+  box-shadow: 0 0 0 4px #a4494949;
   transform: translateY(-1px);
 }
 
@@ -450,7 +442,7 @@
   gap: 0.75rem;
   cursor: pointer;
   transition: var(--transition-modern);
-  box-shadow: 0 8px 16px  #a4494949;
+  box-shadow: 0 8px 16px #a4494949;
   width: 100%;
   position: relative;
   overflow: hidden;
@@ -525,7 +517,7 @@
   padding: 3rem 0;
   background: linear-gradient(
     135deg,
-    rgba(251, 191, 36, 0.05) 0%,
+    #a4494949 0%,
     rgba(245, 245, 244, 0.1) 100%
   );
   border-radius: 2rem;
@@ -562,15 +554,15 @@
   padding: 1.5rem;
   background: rgba(255, 255, 255, 0.7);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(251, 191, 36, 0.1);
+  border: 1px solid #a4494949;
   border-radius: 1.5rem;
   transition: var(--transition-modern);
 }
 
 .value-item:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px  #a4494949;
-  border-color: rgba(251, 191, 36, 0.2);
+  box-shadow: 0 12px 24px #a4494949;
+  border-color: #a4494949;
 }
 
 .value-emoji {
