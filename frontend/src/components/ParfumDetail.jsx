@@ -369,8 +369,6 @@ export default function ParfumDetail() {
                 src={parfum.photo}
                 alt={parfum.nom}
                 className={styles.photo}
-                width={400}
-                height={600}
               loading="eager"
               fallbackSrc="https://res.cloudinary.com/dyxmkgpgp/image/upload/v1756928420/parfum-en-bouteille-noire-sur-la-table_ixbh79.jpg"
               />
