@@ -16,7 +16,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { favoritesAPI, historyAPI } from "../services/api";
+import { favoritesAPI, historyAPI, authAPI } from "../services/api";
 import ParfumCard from "../components/ParfumCard";
 import { toast } from "react-hot-toast";
 import styles from "../styles/Profile.module.css";
@@ -27,7 +27,7 @@ export default function Profile() {
     user,
     isAdmin,
     logout,
-    updateUserProfile,
+    updateUser,
     loading: authLoading,
   } = useAuth();
 
@@ -111,7 +111,12 @@ export default function Profile() {
     }
 
     try {
-      const response = await updateUserProfile(editForm);
+      // Appel API pour mettre à jour le profil
+      const response = await authAPI.updateProfile(editForm);
+
+      // Mettre à jour le contexte avec les nouvelles données
+      updateUser(response.data);
+
       setIsEditing(false);
       toast.success("Profil mis à jour avec succès");
 
