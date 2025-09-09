@@ -15,7 +15,7 @@ export default function Footer() {
           <section className="footer-section footer-brand">
             <div className="brand-header">
               <div className="perfume-icon"></div>
-              <Link to="/" className="brand-name">
+              <Link to="/" className="brand-name-footer">
                 SCENTIFY
               </Link>
             </div>
