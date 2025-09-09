@@ -305,9 +305,15 @@ export const getParfumById = async (req, res) => {
     }
 
     // Incrémenter popularité de façon asynchrone (non bloquant)
-    Parfum.findByIdAndUpdate(id, { $inc: { popularite: 1 } }).catch((err) =>
-      console.warn("Erreur incrémentation popularité:", err)
-    );
+    Parfum.findByIdAndUpdate(id, [
+      {
+        $set: {
+          popularite: {
+            $min: [{ $add: ["$popularite", 1] }, 100], // Limite à 100
+          },
+        },
+      },
+    ]).catch((err) => console.warn("Erreur incrémentation popularité:", err));
 
     res.json(parfum);
   } catch (error) {

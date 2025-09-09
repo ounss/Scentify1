@@ -152,7 +152,12 @@ const ParfumSchema = new Schema(
     ],
 
     photo: { type: String, default: null },
-    popularite: { type: Number, default: 0 },
+    popularite: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100,
+    },
 
     // Liens marchands
     liensMarchands: [LienMarchandSchema],
