@@ -295,14 +295,50 @@ export const getUserProfile = async (req, res) => {
 };
 
 // ✅ Mise à jour profil
+// backend/controllers/userController.js - CORRECTION MINIMALE
+// Remplacer uniquement la fonction updateUserProfile existante
+
 export const updateUserProfile = async (req, res) => {
   try {
+    console.log("🔄 Tentative mise à jour profil pour:", req.user._id);
+    console.log("📝 Données reçues:", req.body);
+
     const user = await User.findById(req.user._id);
 
     if (!user) {
+      console.log("❌ Utilisateur non trouvé:", req.user._id);
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
 
+    // ✅ AJOUT : Vérification d'unicité du username si modifié
+    if (req.body.username && req.body.username !== user.username) {
+      const existingUser = await User.findOne({
+        username: req.body.username,
+        _id: { $ne: user._id },
+      });
+
+      if (existingUser) {
+        console.log("❌ Username déjà pris:", req.body.username);
+        return res
+          .status(400)
+          .json({ message: "Ce nom d'utilisateur est déjà pris" });
+      }
+    }
+
+    // ✅ AJOUT : Vérification d'unicité de l'email si modifié
+    if (req.body.email && req.body.email !== user.email) {
+      const existingEmail = await User.findOne({
+        email: req.body.email,
+        _id: { $ne: user._id },
+      });
+
+      if (existingEmail) {
+        console.log("❌ Email déjà pris:", req.body.email);
+        return res.status(400).json({ message: "Cet email est déjà utilisé" });
+      }
+    }
+
+    // Mise à jour des champs
     user.username = req.body.username || user.username;
     user.email = req.body.email || user.email;
 
@@ -320,6 +356,8 @@ export const updateUserProfile = async (req, res) => {
 
     const updatedUser = await user.save();
 
+    console.log("✅ Profil mis à jour avec succès:", updatedUser.username);
+
     res.json({
       _id: updatedUser._id,
       username: updatedUser.username,
@@ -328,10 +366,32 @@ export const updateUserProfile = async (req, res) => {
       isAdmin: updatedUser.isAdmin,
       preferences: updatedUser.preferences,
       createdAt: updatedUser.createdAt,
+      isVerified: updatedUser.isVerified, // ✅ AJOUT pour compatibilité
     });
   } catch (error) {
-    console.error("Erreur updateUserProfile:", error);
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    console.error("❌ Erreur updateUserProfile:", error);
+
+    // ✅ AMÉLIORATION : Gestion spécifique des erreurs Mongoose
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      const message =
+        field === "username"
+          ? "Ce nom d'utilisateur est déjà pris"
+          : "Cet email est déjà utilisé";
+      console.log("❌ Erreur unicité:", message);
+      return res.status(400).json({ message });
+    }
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((err) => err.message);
+      console.log("❌ Erreur validation:", messages);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+
+    res.status(500).json({
+      message: "Erreur serveur lors de la mise à jour du profil",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
   }
 };
 
