@@ -382,7 +382,7 @@ export default function Contact() {
               <div className="value-emoji">🧪</div>
               <h4 className="value-title">Expertise olfactive</h4>
               <p className="value-description">
-                Nos algorithmes analysent plus de 3000 notes pour des
+                Nos algorithmes analysent plus de 50 notes pour des
                 recommandations précises.
               </p>
             </div>
@@ -390,7 +390,7 @@ export default function Contact() {
               <div className="value-emoji">❤️</div>
               <h4 className="value-title">Communauté passionnée</h4>
               <p className="value-description">
-                Rejoignez des milliers d'amateurs de parfums qui partagent leurs
+                Rejoignez d'auteres amateurs de parfums qui partagent leurs
                 découvertes.
               </p>
             </div>
