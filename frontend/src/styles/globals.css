@@ -88,7 +88,6 @@ select,
   font-family: var(--font-body);
 }
 
-
 /* Desktop: pas de bottom nav */
 @media (min-width: 1024px) {
   body {
@@ -2426,7 +2425,7 @@ ul {
 }
 
 .card-image {
-  aspect-ratio: 3/4; /* Change de 1 à 3/4 pour les bouteilles */
+  aspect-ratio: 1;
   position: relative;
   overflow: hidden;
 }

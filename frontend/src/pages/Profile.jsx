@@ -23,13 +23,7 @@ import styles from "../styles/Profile.module.css";
 
 export default function Profile() {
   const navigate = useNavigate();
-  const {
-    user,
-    isAdmin,
-    logout,
-    updateUser,
-    loading: authLoading,
-  } = useAuth();
+  const { user, isAdmin, logout, updateUser, loading: authLoading } = useAuth();
 
   // États locaux
   const [loading, setLoading] = useState(true);
@@ -592,8 +586,11 @@ export default function Profile() {
                   </div>
 
                   <div className={styles.dangerZone}>
-                    <h3>Zone de danger</h3>
-                    <p>Actions irréversibles sur votre compte</p>
+                    <h3>Déconnexion</h3>
+                    <p>
+                      En cliquant, vous décidez de vous déconnecter de la
+                      plateforme
+                    </p>
                     <button
                       onClick={handleLogout}
                       className={styles.logoutButton}
