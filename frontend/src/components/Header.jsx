@@ -15,7 +15,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import toast from "react-hot-toast";
-import "../styles/Header.css"; // Import du CSS spécifique au header
+import "../styles/Header.css"; 
 
 export default function Header() {
   const { isAuthenticated, isAdmin, user, logout } = useAuth();
