@@ -159,8 +159,6 @@ export default function Header() {
             {/* Header du menu mobile */}
             <div className="mobile-menu-header">
               <div className="flex items-center space-x-3">
-                <div className="logo-icon">S</div>
-                <span className="text-lg font-bold">Scentify</span>
               </div>
               <button
                 onClick={() => setShowMobileMenu(false)}
