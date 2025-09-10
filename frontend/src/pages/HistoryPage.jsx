@@ -12,7 +12,6 @@ import {
 } from "lucide-react";
 import { historyAPI, favoritesAPI } from "../services/api";
 import { useAuth } from "../contexts/AuthContext";
-import ScentifyLogo from "../components/ScentifyLogo";
 import toast from "react-hot-toast";
 import styles from "../styles/HistoryPage.module.css";
 
@@ -36,11 +35,11 @@ export default function HistoryFavoritesPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filteredData, setFilteredData] = useState([]);
 
-  // ✅ CORRECTION : Historique — helper utilisable quand on "voit" un parfum
+  //  Historique — helper utilisable quand on "voit" un parfum
   const addToHistory = async (parfumId) => {
     try {
       if (!parfumId) return;
-      await historyAPI.addToHistory(parfumId); // ✅ CORRIGÉ
+      await historyAPI.addToHistory(parfumId); // 
     } catch (error) {
       console.warn("Erreur ajout historique:", error);
     }
@@ -185,8 +184,6 @@ export default function HistoryFavoritesPage() {
           >
             <ArrowLeft className={styles.icon} />
           </button>
-
-          <ScentifyLogo size={28} className={styles.logo} />
 
           {activeTab === "history" && history.length > 0 && (
             <button

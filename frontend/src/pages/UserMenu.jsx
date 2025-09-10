@@ -3,7 +3,6 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { User, Clock, Heart, LogOut, X, Settings, Crown } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import ScentifyLogo from "../components/ScentifyLogo";
 import toast from "react-hot-toast";
 
 export default function UserMenu() {
@@ -41,7 +40,6 @@ export default function UserMenu() {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center p-8">
-          <ScentifyLogo size={64} className="text-red-500 mb-4" />
           <h2 className="text-2xl font-bold text-gray-800 mb-4">
             Connectez-vous
           </h2>

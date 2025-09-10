@@ -118,12 +118,14 @@ function App() {
               }
             />
             <Route path="*" element={<Error />} />
-            {/* ✅ Routes d'authentification (sans layout) */}
+            {/* ✅ Route d'authentification */}
             <Route
               path="/auth"
               element={
                 <PublicRoute>
-                  <Auth />
+                  <Layout>
+                    <Auth />
+                  </Layout>
                 </PublicRoute>
               }
             />
