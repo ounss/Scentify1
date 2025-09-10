@@ -123,11 +123,11 @@ export default function Header() {
               ) : (
                 <div className="auth-buttons">
                   <Link to="/auth" className="btn-secondary">
-                    <User className="w-5 h-5" /> {/* Ajouté une icône */}
+                    <User className="w-5 h-5" />
                     Se connecter
                   </Link>
-                  <Link to="/auth" className="btn-primary">
-                    <User className="w-5 h-5" /> {/* Ajouté une icône */}
+                  <Link to="/auth?mode=register" className="btn-primary">
+                    <User className="w-5 h-5" />
                     Créer un compte
                   </Link>
                 </div>
@@ -248,7 +248,7 @@ export default function Header() {
                   {/* Boutons d'authentification */}
                   <div className="mobile-auth-buttons">
                     <Link
-                      to="/auth"
+                      to="/auth?mode=register"
                       onClick={() => setShowMobileMenu(false)}
                       className="mobile-auth-primary"
                     >
@@ -282,7 +282,9 @@ export default function Header() {
             <span className="nav-label">Accueil</span>
           </Link>
           <Link
-            to={isAuthenticated ? "/history?tab=favorites" : "/auth"}
+            to={
+              isAuthenticated ? "/history?tab=favorites" : "/auth?mode=register"
+            }
             className={`nav-item ${
               location.pathname.startsWith("/history") &&
               location.search.includes("favorites")
@@ -294,7 +296,7 @@ export default function Header() {
             <span className="nav-label">Favoris</span>
           </Link>
           <Link
-            to={isAuthenticated ? "/profile" : "/auth"}
+            to={isAuthenticated ? "/profile" : "/auth?mode=register"}
             className={`nav-item ${
               location.pathname.startsWith("/profile") ? "active" : ""
             }`}

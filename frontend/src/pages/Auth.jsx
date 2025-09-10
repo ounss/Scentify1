@@ -11,11 +11,14 @@ import {
   CheckCircle, // ✅ AJOUT manquant
 } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import styles from "../styles/auth.css";
 
 const AuthPage = () => {
-  const [isLogin, setIsLogin] = useState(true);
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+  const isRegisterMode = searchParams.get("mode") === "register";
+  const [isLogin, setIsLogin] = useState(!isRegisterMode);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     username: "",
@@ -23,7 +26,6 @@ const AuthPage = () => {
     password: "",
   });
 
- 
   const [forgotPasswordMode, setForgotPasswordMode] = useState(false);
   const [emailForReset, setEmailForReset] = useState("");
   const [successMessage, setSuccessMessage] = useState("");

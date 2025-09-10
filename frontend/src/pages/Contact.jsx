@@ -146,7 +146,7 @@ export default function Contact() {
                     <p className="info-item-text">
                       <a
                         className="footer-link"
-                        href="mailto:contact@scentify.app"
+                        href="mailto:ouns.bnhl@gmail.com"
                         aria-label="Nous envoyer un email"
                       >
                         contact@scentify.app

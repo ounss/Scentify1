@@ -4,7 +4,7 @@ import {
   registerUser,
   loginUser,
   verifyEmail,
-  resendVerificationEmail, // ✅ NOUVEAU
+  resendVerificationEmail, 
   forgotPassword,
   resetPassword,
   getUserProfile,
@@ -27,7 +27,6 @@ import {
 // ✅ IMPORT CORRECT: authMiddleware.js
 import { protect, admin } from "../middleware/authMiddleware.js";
 
-// ✅ IMPORT CORRECT: validation.js (fonction existante)
 import {
   validateRegister,
   validateLogin,

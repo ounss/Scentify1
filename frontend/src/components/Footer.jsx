@@ -77,7 +77,7 @@ export default function Footer() {
             <h3 className="footer-heading">Contact</h3>
             <ul className="footer-links">
               <li>
-                <a className="footer-link" href="mailto:contact@scentify.app">
+                <a className="footer-link" href="mailto:ouns.bnhl@gmail.com">
                   contact@scentify.app
                 </a>
               </li>
