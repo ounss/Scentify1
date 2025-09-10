@@ -259,14 +259,8 @@ const AuthPage = () => {
       <div className="auth-header">
         <div className="auth-header-content">
           <button className="back-button" onClick={handleBackClick}>
-            <ArrowLeft className="w-5 h-5" />
+            <ArrowLeft className="w-5 h-5" /> Retour
           </button>
-          <div className="auth-logo">
-            <div className="logo-icon">
-              <div className="perfume-bottle"></div>
-            </div>
-            <span className="logo-text">SCENTIFY</span>
-          </div>
           <div className="spacer"></div>
         </div>
       </div>

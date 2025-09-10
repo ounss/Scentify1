@@ -39,7 +39,7 @@ export default function HistoryFavoritesPage() {
   const addToHistory = async (parfumId) => {
     try {
       if (!parfumId) return;
-      await historyAPI.addToHistory(parfumId); // 
+      await historyAPI.addToHistory(parfumId); //
     } catch (error) {
       console.warn("Erreur ajout historique:", error);
     }
@@ -182,7 +182,7 @@ export default function HistoryFavoritesPage() {
             className={styles.backButton}
             aria-label="Retour"
           >
-            <ArrowLeft className={styles.icon} />
+            <ArrowLeft className={styles.icon} /> Retour
           </button>
 
           {activeTab === "history" && history.length > 0 && (

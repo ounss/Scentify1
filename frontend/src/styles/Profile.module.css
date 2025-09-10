@@ -65,12 +65,12 @@
 }
 
 .headerInner {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 1rem 1.5rem;
-  display: flex;
   align-items: center;
-  justify-content: space-between;
+  display: flex;
+  margin: 0 auto;
+  max-width: 1200px;
+  padding: 1.5rem;
+  justify-content: flex-start;
 }
 
 .back {
