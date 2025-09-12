@@ -28,6 +28,7 @@ import {
   TrendingUp,
   Layers,
 } from "lucide-react";
+import api from "../services/api.js";
 import { adminAPI } from "../services/adminAPI.js";
 import { parfumAPI, noteAPI, authAPI } from "../services/api.js";
 import { useAuth } from "../contexts/AuthContext";
