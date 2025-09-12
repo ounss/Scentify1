@@ -3,8 +3,10 @@ import express from "express";
 import {
   registerUser,
   loginUser,
+  logoutUser,
+  checkAuth,
   verifyEmail,
-  resendVerificationEmail, 
+  resendVerificationEmail,
   forgotPassword,
   resetPassword,
   getUserProfile,
@@ -23,8 +25,6 @@ import {
   exportUsersCSV,
   toggleAdminStatus,
 } from "../controllers/userController.js";
-
-// ✅ IMPORT CORRECT: authMiddleware.js
 import { protect, admin } from "../middleware/authMiddleware.js";
 
 import {
@@ -43,6 +43,7 @@ router.post(
   handleValidationErrors,
   registerUser
 );
+router.post("/logout", logoutUser);
 router.post("/login", validateLogin, handleValidationErrors, loginUser);
 router.get("/verify-email/:token", verifyEmail); // Token dans l'URL
 router.post("/resend-verification", resendVerificationEmail);
@@ -59,6 +60,7 @@ router.post(
 router.use(protect);
 
 // Profil utilisateur
+router.get("/check-auth", checkAuth);
 router.get("/profile", getUserProfile);
 router.put("/profile", updateUserProfile);
 

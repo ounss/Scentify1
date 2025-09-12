@@ -1,6 +1,4 @@
-// controllers/userController.js (ou chemin équivalent)
-// ✅ Version complète avec historique corrigé
-
+// controllers/userController.js - VERSION SÉCURISÉE AVEC COOKIES
 import User from "../models/User.js";
 import Parfum from "../models/Parfum.js";
 import jwt from "jsonwebtoken";
@@ -14,12 +12,19 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
-// ✅ Inscription simplifiée (auto-vérifiée en phase 1)
-// backend/controllers/userController.js - MODIFIER registerUser
-// ✅ CORRECTIONS POUR L'AUTHENTIFICATION
+// ✅ NOUVELLE FONCTION : Configuration cookies sécurisés
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === "production";
 
-// Remplacer la fonction registerUser existante par ceci :
+  return {
+    expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
+    httpOnly: true, // 🛡️ PROTECTION XSS : Token inaccessible via JavaScript
+    secure: isProduction, // 🔒 HTTPS obligatoire en production
+    sameSite: isProduction ? "none" : "lax", // 🌐 Cross-origin pour Render
+  };
+};
 
+// ✅ Inscription (inchangée)
 export const registerUser = async (req, res) => {
   try {
     const { email, password, username } = req.body;
@@ -73,7 +78,7 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// ✅ NOUVEAU: Route de vérification email
+// ✅ NOUVEAU: Route de vérification email avec cookie
 export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params; // Token dans l'URL
@@ -100,9 +105,11 @@ export const verifyEmail = async (req, res) => {
     // Générer token JWT pour connexion automatique
     const jwtToken = generateToken(user._id);
 
+    // 🍪 SÉCURITÉ : Définir cookie httpOnly au lieu de renvoyer le token
+    res.cookie("authToken", jwtToken, getCookieOptions());
+
     res.json({
       message: "Email vérifié avec succès !",
-      token: jwtToken,
       user: {
         id: user._id,
         username: user.username,
@@ -117,7 +124,7 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-// ✅ MODIFICATION: Bloquer connexion si email non vérifié
+// ✅ MODIFICATION: Connexion avec cookie sécurisé
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -148,8 +155,11 @@ export const loginUser = async (req, res) => {
 
     const token = generateToken(user._id);
 
+    // 🍪 SÉCURITÉ : Définir cookie httpOnly au lieu de renvoyer le token
+    res.cookie("authToken", token, getCookieOptions());
+
     res.json({
-      token,
+      message: "Connexion réussie",
       user: {
         id: user._id,
         username: user.username,
@@ -165,7 +175,56 @@ export const loginUser = async (req, res) => {
   }
 };
 
-// ✅ NOUVEAU: Renvoyer email de vérification
+// ✅ NOUVELLE FONCTION : Déconnexion sécurisée
+export const logoutUser = async (req, res) => {
+  try {
+    // 🗑️ SÉCURITÉ : Supprimer le cookie httpOnly
+    res.cookie("authToken", "", {
+      ...getCookieOptions(),
+      expires: new Date(0), // Expiration immédiate
+    });
+
+    res.json({ message: "Déconnexion réussie" });
+  } catch (error) {
+    console.error("❌ Erreur logout:", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// ✅ NOUVELLE FONCTION : Vérification auth pour refresh
+export const checkAuth = async (req, res) => {
+  try {
+    // Le middleware protect s'occupe déjà de vérifier le cookie
+    // Si on arrive ici, c'est que l'utilisateur est authentifié
+    const user = await User.findById(req.user._id)
+      .populate("favorisParfums", "nom marque photo genre")
+      .populate("favorisNotes", "nom type")
+      .select("-password");
+
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.json({
+      message: "Utilisateur authentifié",
+      user: {
+        id: user._id,
+        username: user.username,
+        email: user.email,
+        isAdmin: user.isAdmin,
+        isVerified: user.isVerified,
+        createdAt: user.createdAt,
+        favorisParfums: user.favorisParfums,
+        favorisNotes: user.favorisNotes,
+      },
+    });
+  } catch (error) {
+    console.error("❌ Erreur checkAuth:", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+
+// ✅ NOUVEAU: Renvoyer email de vérification (inchangé)
 export const resendVerificationEmail = async (req, res) => {
   try {
     const { email } = req.body;
@@ -197,7 +256,7 @@ export const resendVerificationEmail = async (req, res) => {
   }
 };
 
-// ✅ Mot de passe oublié
+// ✅ Mot de passe oublié (inchangé - ne connecte pas)
 export const forgotPassword = async (req, res) => {
   try {
     const { email } = req.body;
@@ -224,7 +283,7 @@ export const forgotPassword = async (req, res) => {
   }
 };
 
-// ✅ Reset mot de passe
+// ✅ Reset mot de passe (inchangé - ne connecte pas automatiquement)
 export const resetPassword = async (req, res) => {
   try {
     const { token, password } = req.body;
@@ -256,7 +315,7 @@ export const resetPassword = async (req, res) => {
   }
 };
 
-// ✅ Profil utilisateur
+// ✅ Profil utilisateur (inchangé)
 export const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -294,10 +353,7 @@ export const getUserProfile = async (req, res) => {
   }
 };
 
-// ✅ Mise à jour profil
-// backend/controllers/userController.js - CORRECTION MINIMALE
-// Remplacer uniquement la fonction updateUserProfile existante
-
+// ✅ Mise à jour profil (inchangé)
 export const updateUserProfile = async (req, res) => {
   try {
     console.log("🔄 Tentative mise à jour profil pour:", req.user._id);
@@ -397,7 +453,7 @@ export const updateUserProfile = async (req, res) => {
 
 /* ------------------------------ FAVORIS ------------------------------ */
 
-// ✅ Ajouter un parfum aux favoris
+// ✅ Ajouter un parfum aux favoris (inchangé)
 export const addFavoriteParfum = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -440,7 +496,7 @@ export const addFavoriteParfum = async (req, res) => {
   }
 };
 
-// ✅ Retirer un parfum des favoris
+// ✅ Retirer un parfum des favoris (inchangé)
 export const removeFavoriteParfum = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -481,7 +537,7 @@ export const removeFavoriteParfum = async (req, res) => {
   }
 };
 
-// ✅ Ajouter une note en favoris
+// ✅ Ajouter une note en favoris (inchangé)
 export const addFavoriteNote = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -519,7 +575,7 @@ export const addFavoriteNote = async (req, res) => {
   }
 };
 
-// ✅ Retirer une note des favoris
+// ✅ Retirer une note des favoris (inchangé)
 export const removeFavoriteNote = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -558,7 +614,7 @@ export const removeFavoriteNote = async (req, res) => {
   }
 };
 
-// ✅ Récupérer tous les favoris (parfums + notes)
+// ✅ Récupérer tous les favoris (parfums + notes) (inchangé)
 export const getUserFavorites = async (req, res) => {
   try {
     const user = await User.findById(req.user._id)
@@ -588,7 +644,7 @@ export const getUserFavorites = async (req, res) => {
 
 /* ----------------------------- HISTORIQUE ----------------------------- */
 
-// ✅ Ajout à l'historique (compat params/body, déduplication, dateVisite)
+// ✅ Ajout à l'historique (inchangé)
 export const addToHistory = async (req, res) => {
   try {
     const userId = req.user?._id || req.user?.id;
@@ -647,7 +703,7 @@ export const addToHistory = async (req, res) => {
   }
 };
 
-// ✅ Lecture de l'historique (tolère dateVisite || consultedAt)
+// ✅ Lecture de l'historique (inchangé)
 export const getUserHistory = async (req, res) => {
   try {
     const { page = 1, limit = 20 } = req.query;
@@ -684,7 +740,7 @@ export const getUserHistory = async (req, res) => {
   }
 };
 
-// ✅ Vider l'historique
+// ✅ Vider l'historique (inchangé)
 export const clearHistory = async (req, res) => {
   try {
     const user = await User.findById(req.user._id);
@@ -710,7 +766,7 @@ export const clearHistory = async (req, res) => {
 
 /* ------------------------------- ADMIN ------------------------------- */
 
-// ✅ Suppression du compte utilisateur
+// ✅ Suppression du compte utilisateur (modification pour supprimer le cookie)
 export const deleteUser = async (req, res) => {
   try {
     const me = await User.findById(req.user._id);
@@ -719,6 +775,13 @@ export const deleteUser = async (req, res) => {
     }
 
     await User.findByIdAndDelete(req.user._id);
+
+    // Supprimer le cookie lors de la suppression du compte
+    res.cookie("authToken", "", {
+      ...getCookieOptions(),
+      expires: new Date(0),
+    });
+
     res.json({ message: "Compte utilisateur supprimé" });
   } catch (error) {
     console.error("❌ Erreur deleteUser:", error);
@@ -726,7 +789,7 @@ export const deleteUser = async (req, res) => {
   }
 };
 
-// ✅ Statistiques utilisateurs (simples)
+// ✅ Statistiques utilisateurs (inchangé)
 export const getUserStats = async (req, res) => {
   try {
     const totalUsers = await User.countDocuments();
@@ -749,7 +812,7 @@ export const getUserStats = async (req, res) => {
   }
 };
 
-// ✅ Liste des utilisateurs (pagination + recherche)
+// ✅ Liste des utilisateurs (pagination + recherche) (inchangé)
 export const getAllUsers = async (req, res) => {
   try {
     const { page = 1, limit = 20, search } = req.query;
@@ -791,7 +854,7 @@ export const getAllUsers = async (req, res) => {
   }
 };
 
-// ✅ Export CSV
+// ✅ Export CSV (inchangé)
 export const exportUsersCSV = async (req, res) => {
   try {
     const users = await User.find().select("-password").lean();
@@ -806,7 +869,7 @@ export const exportUsersCSV = async (req, res) => {
   }
 };
 
-// ✅ Toggle admin
+// ✅ Toggle admin (inchangé)
 export const toggleAdminStatus = async (req, res) => {
   try {
     const { id } = req.params;

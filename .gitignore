@@ -8,4 +8,6 @@ node_modules/
 .env.*
 **/.env.*
 **/scripts/migratesNotes.js
-**/test/
+**/tests/
+**/coverage/
+.txt

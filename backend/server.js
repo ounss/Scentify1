@@ -2,6 +2,7 @@
 import express from "express";
 import mongoose from "mongoose";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import dotenv from "dotenv";
 import { errorHandler } from "./middleware/errorHandler.js";
 import {
@@ -9,6 +10,7 @@ import {
   getRequiredEnvVars,
 } from "./services/emailService.js";
 
+app.use(cookieParser());
 // Routes
 import userRoutes from "./routes/userRoutes.js";
 import parfumRoutes from "./routes/parfumRoutes.js";

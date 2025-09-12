@@ -1,7 +1,6 @@
-// frontend/src/contexts/AuthContext.jsx - VERSION CORRIGÉE
+// frontend/src/contexts/AuthContext.jsx - VERSION COOKIES SÉCURISÉE
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
-import api from "../services/api";
 
 const AuthContext = createContext();
 
@@ -11,16 +10,11 @@ const authReducer = (state, action) => {
       return { ...state, loading: action.payload };
 
     case "LOGIN_SUCCESS":
-      // Stocker le token dans localStorage
-      localStorage.setItem("token", action.payload.token);
-      // Configurer axios pour les futures requêtes
-      api.defaults.headers.common[
-        "Authorization"
-      ] = `Bearer ${action.payload.token}`;
+      // ✅ SÉCURISÉ : Plus de localStorage, seulement l'état React
       return {
         ...state,
         user: action.payload.user,
-        token: action.payload.token,
+        token: null, // Plus de token côté client
         loading: false,
         error: null,
       };
@@ -29,10 +23,7 @@ const authReducer = (state, action) => {
       return { ...state, error: action.payload, loading: false };
 
     case "LOGOUT":
-      // Nettoyer localStorage
-      localStorage.removeItem("token");
-      // Supprimer le header Authorization
-      delete api.defaults.headers.common["Authorization"];
+      // ✅ SÉCURISÉ : Plus de localStorage à nettoyer
       return { user: null, token: null, loading: false, error: null };
 
     case "UPDATE_USER":
@@ -77,37 +68,28 @@ export function AuthProvider({ children }) {
     error: null,
   });
 
-  // ✅ INITIALISATION CORRIGÉE - Gestion propre des erreurs
+  // ✅ INITIALISATION SÉCURISÉE - Vérification via cookie
   useEffect(() => {
     const initAuth = async () => {
-      const token = localStorage.getItem("token");
+      try {
+        console.log("🔄 Vérification de l'authentification via cookie...");
+        // ✅ CORRECTION CRITIQUE : Utiliser checkAuth au lieu de getProfile
+        const response = await authAPI.checkAuth();
 
-      if (token) {
-        // Configurer axios avec le token existant
-        api.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-        try {
-          console.log("🔄 Vérification du token existant...");
-          const response = await authAPI.getProfile();
-
-          console.log(
-            "✅ Token valide, utilisateur connecté:",
-            response.data.username
-          );
-          dispatch({
-            type: "LOGIN_SUCCESS",
-            payload: { token, user: response.data },
-          });
-        } catch (error) {
-          console.log("❌ Token invalide/expiré lors de l'init, nettoyage...");
-          // Token invalide : nettoyer proprement
-          localStorage.removeItem("token");
-          delete api.defaults.headers.common["Authorization"];
-          // On ne redirige PAS ici, on laisse l'app décider
-          dispatch({ type: "SET_LOADING", payload: false });
-        }
-      } else {
-        console.log("⚠️ Aucun token trouvé, utilisateur non connecté");
+        console.log(
+          "✅ Utilisateur connecté via cookie:",
+          response.data.user.username
+        );
+        dispatch({
+          type: "LOGIN_SUCCESS",
+          payload: { user: response.data.user },
+        });
+      } catch (error) {
+        console.log(
+          "❌ Pas d'authentification active (normal au premier chargement)"
+        );
+        // Ne pas logger l'erreur complète car c'est normal si pas connecté
+      } finally {
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
@@ -115,7 +97,7 @@ export function AuthProvider({ children }) {
     initAuth();
   }, []);
 
-  // ✅ FONCTION LOGIN
+  // ✅ FONCTION LOGIN (inchangée)
   const login = async (credentials) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
@@ -148,7 +130,7 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ✅ FONCTION REGISTER
+  // ✅ FONCTION REGISTER (inchangée)
   const register = async (userData) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
@@ -176,27 +158,36 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ✅ FONCTION LOGOUT
-  const logout = () => {
-    console.log("🚪 Déconnexion");
+  // ✅ FONCTION LOGOUT SÉCURISÉE
+  const logout = async () => {
+    try {
+      // ✅ SÉCURISÉ : Appel API pour supprimer le cookie httpOnly
+      await authAPI.logout();
+      console.log("✅ Déconnexion réussie");
+    } catch (error) {
+      console.error("❌ Erreur lors du logout:", error);
+      // Continuer même si l'appel API échoue
+    }
+
+    // ✅ SÉCURISÉ : Plus de localStorage à nettoyer
     dispatch({ type: "LOGOUT" });
   };
 
-  // ✅ FONCTION UPDATE USER
+  // ✅ FONCTION UPDATE USER (inchangée)
   const updateUser = (userData) => {
     console.log("🔄 Mise à jour utilisateur:", userData.username);
     dispatch({ type: "UPDATE_USER", payload: userData });
   };
 
-  // ✅ FONCTION REFRESH USER
+  // ✅ FONCTION REFRESH USER (inchangée)
   const refreshUser = async () => {
     if (!state.user) return null;
 
     try {
       const response = await authAPI.getProfile();
-      console.log("🔄 Profil rechargé:", response.data.username);
-      dispatch({ type: "REFRESH_USER_COMPLETE", payload: response.data });
-      return response.data;
+      console.log("🔄 Profil rechargé:", response.data.user.username);
+      dispatch({ type: "REFRESH_USER_COMPLETE", payload: response.data.user });
+      return response.data.user;
     } catch (error) {
       console.error("❌ Erreur refresh user:", error);
       // Si erreur 401, déconnecter automatiquement
@@ -208,12 +199,12 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ✅ FONCTION CLEAR ERROR
+  // ✅ FONCTION CLEAR ERROR (inchangée)
   const clearError = () => {
     dispatch({ type: "CLEAR_ERROR" });
   };
 
-  // 🔐 FONCTIONS PASSWORD
+  // ✅ FONCTIONS PASSWORD (inchangées)
   const forgotPassword = async (email) => {
     try {
       dispatch({ type: "SET_LOADING", payload: true });
@@ -242,10 +233,20 @@ export function AuthProvider({ children }) {
       const response = await authAPI.resetPassword(token, password);
 
       console.log("✅ Mot de passe réinitialisé avec succès");
+
+      // ✅ Si la réponse contient un utilisateur, on le connecte automatiquement
+      if (response.data.user) {
+        dispatch({
+          type: "LOGIN_SUCCESS",
+          payload: { user: response.data.user },
+        });
+      }
+
       return {
         success: true,
         message:
           response.data.message || "Mot de passe réinitialisé avec succès !",
+        autoLogin: !!response.data.user, // Indique si l'utilisateur a été connecté automatiquement
       };
     } catch (error) {
       console.error("❌ Erreur resetPassword:", error);
