@@ -19,6 +19,7 @@ export const adminAPI = {
   // Utilisateurs
   getUsers: (params = {}) => api.get("/admin/users", { params }),
   toggleAdmin: (userId) => api.patch(`/admin/users/${userId}/admin`),
+  updateUser: (userId, data) => api.put(`/users/${userId}`, data), 
   deleteUser: (userId) => api.delete(`/users/${userId}`),
 
   // ✅ Export CSV (réponse en blob + header CSV)

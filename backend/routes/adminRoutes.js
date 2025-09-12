@@ -7,6 +7,7 @@ import {
   exportUsersCSV,
   toggleAdminStatus,
   deleteUserById,
+  updateUserProfile,
   //  updateUserById,
 } from "../controllers/userController.js";
 import {
@@ -31,14 +32,14 @@ router.get("/stats/parfums", getParfumsStats);
 // ✅ Utilisateurs
 router.get("/users", getAllUsers);
 router.patch("/users/:id/admin", toggleAdminStatus);
-router.delete("/users/:id", deleteUserById); // 🔥 MANQUANT !
-//router.put("/users/:id", updateUserById); // 🔥 MANQUANT !
+router.delete("/users/:id", deleteUserById);
+router.put("/users/:id", updateUserProfileAdmin);
 router.get("/users/export", exportUsersCSV);
+
 
 // ❌ MANQUANT : Parfums admin
 router.delete("/parfums/:id", deleteParfum); // 🔥 MANQUANT !
 router.put("/parfums/:id", updateParfum); // 🔥 MANQUANT !
-router.delete("/users/:id", deleteUserById);
 
 // ❌ MANQUANT : Notes admin
 router.delete("/notes/:id", deleteNote); // 🔥 MANQUANT !

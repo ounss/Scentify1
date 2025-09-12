@@ -780,7 +780,97 @@ export const clearHistory = async (req, res) => {
 };
 
 /* ------------------------------- ADMIN ------------------------------- */
+// backend/controllers/userController.js - AJOUTER cette fonction
+export const updateUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
 
+    console.log("🔄 Admin mise à jour utilisateur:", id);
+    console.log("📝 Données reçues:", req.body);
+
+    // Empêcher l'admin de se modifier lui-même via cette route
+    if (id === req.user._id.toString()) {
+      return res.status(400).json({
+        message: "Utilisez votre profil personnel pour vous modifier",
+      });
+    }
+
+    const user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    // ✅ Vérification d'unicité du username si modifié
+    if (req.body.username && req.body.username !== user.username) {
+      const existingUser = await User.findOne({
+        username: req.body.username,
+        _id: { $ne: id },
+      });
+      if (existingUser) {
+        return res.status(400).json({
+          message: "Ce nom d'utilisateur est déjà pris",
+        });
+      }
+    }
+
+    // ✅ Vérification d'unicité de l'email si modifié
+    if (req.body.email && req.body.email !== user.email) {
+      const existingEmail = await User.findOne({
+        email: req.body.email,
+        _id: { $ne: id },
+      });
+      if (existingEmail) {
+        return res.status(400).json({
+          message: "Cet email est déjà utilisé",
+        });
+      }
+    }
+
+    // ✅ Mise à jour des champs autorisés
+    user.username = req.body.username || user.username;
+    user.email = req.body.email || user.email;
+
+    // Mot de passe optionnel
+    if (req.body.password && req.body.password.trim()) {
+      user.password = req.body.password;
+    }
+
+    const updatedUser = await user.save();
+
+    console.log("✅ Utilisateur mis à jour par admin:", updatedUser.username);
+
+    res.json({
+      _id: updatedUser._id,
+      username: updatedUser.username,
+      email: updatedUser.email,
+      isAdmin: updatedUser.isAdmin,
+      isVerified: updatedUser.isVerified,
+      createdAt: updatedUser.createdAt,
+    });
+  } catch (error) {
+    console.error("❌ Erreur updateUserById:", error);
+
+    // Gestion erreurs spécifiques
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern)[0];
+      const message =
+        field === "username"
+          ? "Ce nom d'utilisateur est déjà pris"
+          : "Cet email est déjà utilisé";
+      return res.status(400).json({ message });
+    }
+
+    if (error.name === "ValidationError") {
+      const messages = Object.values(error.errors).map((err) => err.message);
+      return res.status(400).json({ message: messages.join(", ") });
+    }
+
+    res.status(500).json({
+      message: "Erreur serveur lors de la mise à jour",
+      error: process.env.NODE_ENV === "development" ? error.message : undefined,
+    });
+  }
+};
 // ✅ Suppression du compte utilisateur (modification pour supprimer le cookie)
 export const deleteUser = async (req, res) => {
   try {
@@ -803,7 +893,7 @@ export const deleteUser = async (req, res) => {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };
-// backend/controllers/userController.js - AJOUTER cette fonction
+
 export const deleteUserById = async (req, res) => {
   try {
     const { id } = req.params;
