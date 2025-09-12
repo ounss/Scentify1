@@ -6,8 +6,8 @@ import {
   getAllUsers,
   exportUsersCSV,
   toggleAdminStatus,
-  deleteUserById, // 🔥 MANQUANT dans controller
-  updateUserById, // 🔥 MANQUANT dans controller
+  deleteUserById,
+  //  updateUserById,
 } from "../controllers/userController.js";
 import {
   getParfumsStats,
@@ -32,12 +32,13 @@ router.get("/stats/parfums", getParfumsStats);
 router.get("/users", getAllUsers);
 router.patch("/users/:id/admin", toggleAdminStatus);
 router.delete("/users/:id", deleteUserById); // 🔥 MANQUANT !
-router.put("/users/:id", updateUserById); // 🔥 MANQUANT !
+//router.put("/users/:id", updateUserById); // 🔥 MANQUANT !
 router.get("/users/export", exportUsersCSV);
 
 // ❌ MANQUANT : Parfums admin
 router.delete("/parfums/:id", deleteParfum); // 🔥 MANQUANT !
 router.put("/parfums/:id", updateParfum); // 🔥 MANQUANT !
+router.delete("/users/:id", deleteUserById);
 
 // ❌ MANQUANT : Notes admin
 router.delete("/notes/:id", deleteNote); // 🔥 MANQUANT !
