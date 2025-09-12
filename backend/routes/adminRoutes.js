@@ -1,4 +1,4 @@
-// backend/routes/adminRoutes.js - CORRECTION ROUTES ADMIN
+// backend/routes/adminRoutes.js - À COMPLÉTER
 import express from "express";
 import { protect, admin } from "../middleware/authMiddleware.js";
 import {
@@ -6,29 +6,45 @@ import {
   getAllUsers,
   exportUsersCSV,
   toggleAdminStatus,
+  deleteUserById, // 🔥 MANQUANT dans controller
+  updateUserById, // 🔥 MANQUANT dans controller
 } from "../controllers/userController.js";
 import {
   getParfumsStats,
   exportParfumsCSV,
+  deleteParfum,
+  updateParfum,
 } from "../controllers/parfumController.js";
-//import { //getNotesStats } from "../controllers/noteController.js";
+import {
+  deleteNote,
+  updateNote,
+  createNote,
+} from "../controllers/noteController.js";
 
 const router = express.Router();
-
-// ✅ PROTECTION: Appliquer middleware à toutes les routes
 router.use(protect, admin);
 
-// ✅ ROUTES STATS - URLs cohérentes avec le frontend
+// ✅ Stats
 router.get("/stats/users", getUserStats);
 router.get("/stats/parfums", getParfumsStats);
-// router.get("/stats/notes", getNotesStats);
 
-// ✅ ROUTES GESTION UTILISATEURS
+// ✅ Utilisateurs
 router.get("/users", getAllUsers);
 router.patch("/users/:id/admin", toggleAdminStatus);
+router.delete("/users/:id", deleteUserById); // 🔥 MANQUANT !
+router.put("/users/:id", updateUserById); // 🔥 MANQUANT !
 router.get("/users/export", exportUsersCSV);
 
-// ✅ ROUTES PARFUMS
+// ❌ MANQUANT : Parfums admin
+router.delete("/parfums/:id", deleteParfum); // 🔥 MANQUANT !
+router.put("/parfums/:id", updateParfum); // 🔥 MANQUANT !
+
+// ❌ MANQUANT : Notes admin
+router.delete("/notes/:id", deleteNote); // 🔥 MANQUANT !
+router.put("/notes/:id", updateNote); // 🔥 MANQUANT !
+router.post("/notes", createNote); // 🔥 MANQUANT !
+
+// ✅ Export
 router.get("/parfums/export", exportParfumsCSV);
 
 export default router;

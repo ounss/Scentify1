@@ -2,7 +2,6 @@
 import User from "../models/User.js";
 import Parfum from "../models/Parfum.js";
 import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
 import emailService from "../services/emailService.js";
 import csvService from "../services/csvService.js";
 import crypto from "crypto";
@@ -196,7 +195,7 @@ export const logoutUser = async (req, res) => {
 export const checkAuth = async (req, res) => {
   try {
     let token;
-    
+
     // Lire le token depuis les cookies
     if (req.cookies?.authToken) {
       token = req.cookies.authToken;
@@ -210,7 +209,7 @@ export const checkAuth = async (req, res) => {
 
     // Vérifier le token
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
+
     // Chercher l'utilisateur
     const user = await User.findById(decoded.id)
       .populate("favorisParfums", "nom marque photo genre")
@@ -801,6 +800,28 @@ export const deleteUser = async (req, res) => {
     res.json({ message: "Compte utilisateur supprimé" });
   } catch (error) {
     console.error("❌ Erreur deleteUser:", error);
+    res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+// backend/controllers/userController.js - AJOUTER cette fonction
+export const deleteUserById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // Empêcher l'admin de se supprimer lui-même
+    if (id === req.user._id.toString()) {
+      return res
+        .status(400)
+        .json({ message: "Vous ne pouvez pas supprimer votre propre compte" });
+    }
+
+    const user = await User.findByIdAndDelete(id);
+    if (!user) {
+      return res.status(404).json({ message: "Utilisateur non trouvé" });
+    }
+
+    res.json({ message: "Utilisateur supprimé avec succès" });
+  } catch (error) {
     res.status(500).json({ message: "Erreur serveur", error: error.message });
   }
 };

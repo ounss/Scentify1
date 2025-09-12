@@ -20,6 +20,7 @@ import {
   getUserHistory,
   clearHistory,
   deleteUser,
+  deleteUserById,
   getUserStats,
   getAllUsers,
   exportUsersCSV,
@@ -80,5 +81,6 @@ router.get("/all", admin, getAllUsers);
 router.get("/stats", admin, getUserStats);
 router.get("/export", admin, exportUsersCSV);
 router.patch("/:id/admin", admin, toggleAdminStatus);
+router.delete("/:id", admin, deleteUserById);
 
 export default router;
