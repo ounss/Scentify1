@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import api from "../services/api.js";
 import { adminAPI } from "../services/adminAPI.js";
-import { parfumAPI, noteAPI, authAPI } from "../services/api.js";
+import { parfumAPI, notesAPI, authAPI } from "../services/api.js";
 import { useAuth } from "../contexts/AuthContext";
 import { toast } from "react-hot-toast";
 import ContactSection from "../admin/ContactSection";
@@ -94,7 +94,7 @@ export default function AdminPanel() {
           parfumAPI
             .getAll({ limit: 100 })
             .catch(() => ({ data: { parfums: [] } })),
-          noteAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
+          notesAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
           api.get("/contact").catch(() => ({ data: [] })),
         ]);
 
@@ -270,7 +270,7 @@ export default function AdminPanel() {
   const deleteNote = async (noteId) => {
     if (!window.confirm("Supprimer cette note ?")) return;
     try {
-      await noteAPI.delete(noteId);
+      await notesAPI.delete(noteId);
       setNotes((prev) => prev.filter((n) => n._id !== noteId));
       toast.success("Note supprimée");
     } catch (error) {
@@ -1202,10 +1202,10 @@ export default function AdminPanel() {
         onSubmit={async (formData) => {
           try {
             if (editingItem) {
-              await noteAPI.update(editingItem._id, formData);
+              await notesAPI.update(editingItem._id, formData);
               toast.success("Note modifiée");
             } else {
-              await noteAPI.create(formData);
+              await notesAPI.create(formData);
               toast.success("Note créée");
             }
             await loadData();
