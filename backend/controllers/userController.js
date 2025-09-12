@@ -192,11 +192,27 @@ export const logoutUser = async (req, res) => {
 };
 
 // ✅ NOUVELLE FONCTION : Vérification auth pour refresh
+// backend/controllers/userController.js - CORRECTION checkAuth
 export const checkAuth = async (req, res) => {
   try {
-    // Le middleware protect s'occupe déjà de vérifier le cookie
-    // Si on arrive ici, c'est que l'utilisateur est authentifié
-    const user = await User.findById(req.user._id)
+    let token;
+    
+    // Lire le token depuis les cookies
+    if (req.cookies?.authToken) {
+      token = req.cookies.authToken;
+    } else if (req.headers.authorization?.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+
+    if (!token) {
+      return res.status(401).json({ message: "Pas de token" });
+    }
+
+    // Vérifier le token
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    
+    // Chercher l'utilisateur
+    const user = await User.findById(decoded.id)
       .populate("favorisParfums", "nom marque photo genre")
       .populate("favorisNotes", "nom type")
       .select("-password");
@@ -220,7 +236,7 @@ export const checkAuth = async (req, res) => {
     });
   } catch (error) {
     console.error("❌ Erreur checkAuth:", error);
-    res.status(500).json({ message: "Erreur serveur", error: error.message });
+    res.status(401).json({ message: "Token invalide ou expiré" });
   }
 };
 
