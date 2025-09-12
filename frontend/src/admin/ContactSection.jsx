@@ -52,31 +52,32 @@ const ContactSection = () => {
     }
   };
 
+  // ✅ CORRECTION PRINCIPALE : Utiliser l'instance api au lieu de fetch
   const updateMessageStatus = async (messageId, status, note = null) => {
     try {
-      const response = await fetch(`/api/contact/${messageId}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${localStorage.getItem("token")}`,
-        },
-        body: JSON.stringify({
-          status,
-          ...(note !== null && { adminNote: note }),
-        }),
-      });
-
-      if (response.ok) {
-        const updatedMessage = await response.json();
-        setMessages(
-          messages.map((m) => (m._id === messageId ? updatedMessage : m))
-        );
-        if (selectedMessage?._id === messageId) {
-          setSelectedMessage(updatedMessage);
-        }
-        toast.success("Message mis à jour");
+      const updateData = { status };
+      if (note !== null) {
+        updateData.adminNote = note;
       }
+
+      // ✅ Utiliser api.patch au lieu de fetch
+      const response = await api.patch(`/contact/${messageId}`, updateData);
+
+      const updatedMessage = response.data;
+
+      // Mettre à jour l'état local
+      setMessages((prevMessages) =>
+        prevMessages.map((m) => (m._id === messageId ? updatedMessage : m))
+      );
+
+      // Mettre à jour le message sélectionné si c'est le même
+      if (selectedMessage?._id === messageId) {
+        setSelectedMessage(updatedMessage);
+      }
+
+      toast.success("Message mis à jour");
     } catch (error) {
+      console.error("Erreur mise à jour message:", error);
       toast.error("Erreur lors de la mise à jour");
     }
   };
@@ -439,12 +440,10 @@ const ContactSection = () => {
 
                 {/* Actions */}
                 <div className="flex flex-col sm:flex-row justify-between items-center gap-4 pt-6 border-t border-gray-200">
-                  href=
-                  {`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}
-                  className="inline-flex items-center gap-2 px-6 py-3
-                  bg-green-600 text-white font-medium rounded-lg
-                  hover:bg-green-700 transition-colors shadow-md"
-                  <a>
+                  <a
+                    href={`mailto:${selectedMessage.email}?subject=Re: ${selectedMessage.subject}`}
+                    className="inline-flex items-center gap-2 px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors shadow-md"
+                  >
                     <Mail className="w-4 h-4" />
                     Répondre par email
                   </a>
