@@ -10,13 +10,6 @@ import {
   getRequiredEnvVars,
 } from "./services/emailService.js";
 
-// Routes
-import userRoutes from "./routes/userRoutes.js";
-import parfumRoutes from "./routes/parfumRoutes.js";
-import noteRoutes from "./routes/noteRoutes.js";
-import adminRoutes from "./routes/adminRoutes.js";
-import contactRoutes from "./routes/contactRoutes.js";
-
 dotenv.config();
 
 const app = express();
@@ -78,7 +71,9 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
-app.use(cookieParser()); 
+
+// ✅ CRITIQUE: cookieParser AVANT tout le reste
+app.use(cookieParser());
 
 // Sécurité production
 if (isProduction) {
@@ -103,6 +98,13 @@ app.use((req, res, next) => {
   );
   next();
 });
+
+// Routes
+import userRoutes from "./routes/userRoutes.js";
+import parfumRoutes from "./routes/parfumRoutes.js";
+import noteRoutes from "./routes/noteRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import contactRoutes from "./routes/contactRoutes.js";
 
 // Health check
 app.get("/api/health", (req, res) => {
