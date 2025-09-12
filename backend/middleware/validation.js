@@ -1,7 +1,7 @@
-// backend/middleware/validation.js - VALIDATION REFACTORISÉE
+// backend/middleware/validation.js - VERSION COMPLÈTE CORRIGÉE
 import Joi from "joi";
 
-// ✅ SCHÉMA DE VALIDATION POUR LES NOTES REFACTORISÉ
+// ✅ SCHÉMA DE VALIDATION POUR LES NOTES CORRIGÉ
 const noteSchema = Joi.object({
   nom: Joi.string().min(2).max(100).required().messages({
     "string.empty": "Le nom de la note est requis",
@@ -36,16 +36,19 @@ const noteSchema = Joi.object({
       "any.required": "La famille olfactive est requise",
     }),
 
-  description: Joi.string().max(500).allow("").messages({
+  description: Joi.string().max(500).allow("").optional().messages({
     "string.max": "La description ne peut pas dépasser 500 caractères",
   }),
 
-  // ✅ NOUVEAU : Positions suggérées au lieu d'un type fixe
+  // ✅ CORRIGÉ: Positions suggérées (au moins une requise)
   suggestedPositions: Joi.array()
     .items(Joi.string().valid("tête", "cœur", "fond"))
-    .default([])
+    .min(1) // Au moins une position requise
+    .required()
     .messages({
       "array.includes": "Position suggérée invalide (tête, cœur ou fond)",
+      "array.min": "Au moins une position suggérée est requise",
+      "any.required": "Au moins une position suggérée est requise",
     }),
 
   intensite: Joi.number().integer().min(1).max(10).default(5).messages({
@@ -68,55 +71,32 @@ const noteSchema = Joi.object({
         "La couleur doit être un code hexadécimal valide (#RRGGBB)",
     }),
 
-  synonymes: Joi.array().items(Joi.string().max(50)).default([]).messages({
-    "array.includes":
-      "Les synonymes doivent être des chaînes de caractères de moins de 50 caractères",
-  }),
+  synonymes: Joi.array()
+    .items(Joi.string().max(50))
+    .default([])
+    .optional()
+    .messages({
+      "array.includes":
+        "Les synonymes doivent être des chaînes de moins de 50 caractères",
+    }),
 
-  // ❌ SUPPRIMÉ : Plus de validation pour le champ "type"
-  // type: Joi.string().valid('tête', 'cœur', 'fond').required(),
-
-  // ✅ Les champs de statistiques ne sont pas validés car ils sont gérés automatiquement
-  // usages, stats sont exclus de la validation manuelle
+  // ✅ IMPORTANT: Permettre les champs auto-gérés mais les ignorer
+  usages: Joi.any().optional(),
+  stats: Joi.any().optional(),
+  _id: Joi.any().optional(),
+  createdAt: Joi.any().optional(),
+  updatedAt: Joi.any().optional(),
+  __v: Joi.any().optional(),
 });
 
-export const handleValidationErrors = (req, res, next) => {
-  next();
-};
-
-// Middleware de validation pour les notes
-export const validateNote = (req, res, next) => {
-  const { error, value } = noteSchema.validate(req.body, {
-    abortEarly: false,
-    allowUnknown: false, // Rejeter les champs non définis
-    stripUnknown: true, // Supprimer les champs non définis
-  });
-
-  if (error) {
-    const errors = error.details.map((detail) => ({
-      field: detail.path.join("."),
-      message: detail.message,
-    }));
-
-    return res.status(422).json({
-      message: "Données de validation invalides",
-      errors,
-    });
-  }
-
-  // Remplacer le body par les données validées
-  req.body = value;
-  next();
-};
-
-// ✅ SCHÉMA PARFUM AUSSI MIS À JOUR (si nécessaire)
+// ✅ SCHÉMA PARFUM CORRIGÉ
 const parfumSchema = Joi.object({
   nom: Joi.string().min(2).max(100).required(),
   marque: Joi.string().min(2).max(50).required(),
   genre: Joi.string().valid("femme", "homme", "mixte").required(),
   description: Joi.string().max(1000).allow(""),
 
-  // ✅ Validation des notes par position
+  // Validation des notes par position
   notes_tete: Joi.array()
     .items(Joi.string().pattern(/^[0-9a-fA-F]{24}$/))
     .default([]),
@@ -128,7 +108,7 @@ const parfumSchema = Joi.object({
     .default([]),
 
   prix: Joi.number().min(0).allow(null),
-  anneSortie: Joi.number()
+  anneeSortie: Joi.number()
     .integer()
     .min(1900)
     .max(new Date().getFullYear() + 1),
@@ -152,8 +132,53 @@ const parfumSchema = Joi.object({
   imageUrl: Joi.string().uri().allow(""),
 });
 
-// ✅ CORRECTION dans backend/middleware/validation.js
+// ✅ SCHÉMAS AUTH
+const registerSchema = Joi.object({
+  username: Joi.string().min(3).max(30).required(),
+  email: Joi.string().email().required(),
+  password: Joi.string().min(6).required(),
+});
 
+const loginSchema = Joi.object({
+  email: Joi.string().email().required(),
+  password: Joi.string().required(),
+});
+
+// ===== MIDDLEWARES DE VALIDATION =====
+
+// ✅ CORRIGÉ: Middleware de validation notes
+export const validateNote = (req, res, next) => {
+  console.log("🔍 Validation note - données reçues:", req.body);
+
+  const { error, value } = noteSchema.validate(req.body, {
+    abortEarly: false,
+    allowUnknown: true, // ✅ CHANGÉ: Permettre les champs inconnus
+    stripUnknown: true, // Les retirer silencieusement
+  });
+
+  if (error) {
+    console.error("❌ Erreur validation note:", error.details);
+
+    const errors = error.details.map((detail) => ({
+      field: detail.path.join("."),
+      message: detail.message,
+    }));
+
+    return res.status(422).json({
+      message: "Données de validation invalides",
+      errors,
+      received: req.body, // DEBUG: montrer ce qui a été reçu
+    });
+  }
+
+  // Stocker les données validées
+  req.body = value;
+  console.log("✅ Validation note réussie:", value);
+
+  next();
+};
+
+// ✅ Middleware de validation parfums
 export const validateParfum = (req, res, next) => {
   // Traitement spécial pour multipart/form-data
   const data = { ...req.body };
@@ -161,7 +186,7 @@ export const validateParfum = (req, res, next) => {
   console.log("🔍 DEBUG validation - req.body reçu:", Object.keys(req.body));
   console.log("🔍 DEBUG validation - req.body complet:", req.body);
 
-  // ✅ CORRECTION: Conversion des arrays depuis les form-data
+  // Conversion des arrays depuis les form-data
   ["notes_tete", "notes_coeur", "notes_fond"].forEach((field) => {
     // Cas 1: Array indexé depuis FormData notes_tete[0], notes_tete[1], etc.
     const indexedNotes = [];
@@ -186,7 +211,7 @@ export const validateParfum = (req, res, next) => {
     console.log(`✅ ${field} traité:`, data[field]);
   });
 
-  // ✅ CORRECTION: Reconstruction des liens marchands (déjà correcte)
+  // Reconstruction des liens marchands
   if (req.body) {
     const liens = [];
     let i = 0;
@@ -203,7 +228,7 @@ export const validateParfum = (req, res, next) => {
     }
   }
 
-  // ✅ CORRECTION: Conversion des champs numériques depuis FormData
+  // Conversion des champs numériques depuis FormData
   if (data.anneeSortie && typeof data.anneeSortie === "string") {
     data.anneeSortie = parseInt(data.anneeSortie);
   }
@@ -235,24 +260,14 @@ export const validateParfum = (req, res, next) => {
     });
   }
 
-  // ✅ Stocker les données validées
+  // Stocker les données validées
   req.validatedData = value;
   console.log("✅ Validation réussie, données validées:", value);
 
   next();
 };
-// Ajouter à la fin de validation.js :
-const registerSchema = Joi.object({
-  username: Joi.string().min(3).max(30).required(),
-  email: Joi.string().email().required(),
-  password: Joi.string().min(6).required(),
-});
 
-const loginSchema = Joi.object({
-  email: Joi.string().email().required(),
-  password: Joi.string().required(),
-});
-
+// ✅ Middleware de validation register
 export const validateRegister = (req, res, next) => {
   const { error, value } = registerSchema.validate(req.body);
   if (error) {
@@ -268,6 +283,7 @@ export const validateRegister = (req, res, next) => {
   next();
 };
 
+// ✅ Middleware de validation login
 export const validateLogin = (req, res, next) => {
   const { error, value } = loginSchema.validate(req.body);
   if (error) {
@@ -280,5 +296,10 @@ export const validateLogin = (req, res, next) => {
     });
   }
   req.body = value;
+  next();
+};
+
+// ✅ Middleware générique pour gestion d'erreurs
+export const handleValidationErrors = (req, res, next) => {
   next();
 };

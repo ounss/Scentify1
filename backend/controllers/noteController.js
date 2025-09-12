@@ -181,7 +181,6 @@ export const getNotesWithSuggestions = async (req, res) => {
   }
 };
 
-
 // ✅ Obtenir une note par ID avec statistiques détaillées
 export const getNoteById = async (req, res) => {
   try {
@@ -406,5 +405,52 @@ export const deleteNote = async (req, res) => {
   } catch (error) {
     console.error("❌ Erreur deleteNote:", error);
     res.status(500).json({ message: "Erreur serveur", error: error.message });
+  }
+};
+export const getNotesStats = async (req, res) => {
+  try {
+    console.log("📊 Génération des statistiques des notes...");
+
+    const totalNotes = await NoteOlfactive.countDocuments();
+
+    const notesByFamily = await NoteOlfactive.aggregate([
+      { $group: { _id: "$famille", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]);
+
+    const popularNotes = await NoteOlfactive.find({
+      popularite: { $gte: 50 },
+    }).countDocuments();
+
+    const notesByPosition = await NoteOlfactive.aggregate([
+      { $unwind: "$suggestedPositions" },
+      { $group: { _id: "$suggestedPositions", count: { $sum: 1 } } },
+      { $sort: { count: -1 } },
+    ]);
+
+    const mostUsedNotes = await NoteOlfactive.find()
+      .sort({ "stats.nombreParfums": -1 })
+      .limit(10)
+      .select("nom famille stats.nombreParfums");
+
+    const stats = {
+      total: totalNotes,
+      byFamily: notesByFamily,
+      byPosition: notesByPosition,
+      popular: popularNotes,
+      mostUsed: mostUsedNotes,
+      averageIntensity: await NoteOlfactive.aggregate([
+        { $group: { _id: null, avg: { $avg: "$intensite" } } },
+      ]).then((result) => result[0]?.avg || 0),
+    };
+
+    console.log(`✅ Statistiques générées: ${totalNotes} notes total`);
+    res.json(stats);
+  } catch (error) {
+    console.error("❌ Erreur getNotesStats:", error);
+    res.status(500).json({
+      message: "Erreur lors de la génération des statistiques des notes",
+      error: error.message,
+    });
   }
 };
