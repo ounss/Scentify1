@@ -12,6 +12,7 @@ export const exportUsers = async (users) => {
       "email",
       "createdAt",
       "isAdmin",
+      "isVerified",
       "favoriCount",
       "historiqueCount",
     ];
@@ -24,6 +25,7 @@ export const exportUsers = async (users) => {
       email: user.email,
       createdAt: user.createdAt.toISOString().split("T")[0],
       isAdmin: user.isAdmin ? "Oui" : "Non",
+      isVerified: user.isVerified ? "Oui" : "Non",
       favoriCount: user.favorisParfums.length + user.favorisNotes.length,
       historiqueCount: user.historique.length,
     }));
