@@ -43,12 +43,6 @@ router.post(
   handleValidationErrors,
   registerUser
 );
-router.post(
-  "/register",
-  validateRegister,
-  handleValidationErrors,
-  registerUser
-);
 router.post("/login", validateLogin, handleValidationErrors, loginUser);
 router.post("/logout", logoutUser);
 router.get("/check-auth", checkAuth);
