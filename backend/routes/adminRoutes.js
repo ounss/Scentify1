@@ -7,8 +7,6 @@ import {
   exportUsersCSV,
   toggleAdminStatus,
   deleteUserById,
-  updateUserProfile,
-  //  updateUserById,
 } from "../controllers/userController.js";
 import {
   getParfumsStats,
@@ -33,7 +31,6 @@ router.get("/stats/parfums", getParfumsStats);
 router.get("/users", getAllUsers);
 router.patch("/users/:id/admin", toggleAdminStatus);
 router.delete("/users/:id", deleteUserById);
-router.put("/users/:id", updateUserProfileAdmin);
 router.get("/users/export", exportUsersCSV);
 
 
