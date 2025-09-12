@@ -48,6 +48,7 @@ export default function AdminPanel() {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [messages, setMessages] = useState([]);
 
   // Recherches & filtres
   const [searchUsers, setSearchUsers] = useState("");
@@ -85,19 +86,22 @@ export default function AdminPanel() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [statsData, usersData, parfumsData, notesData] = await Promise.all([
-        adminAPI.getStats().catch(() => ({})),
-        adminAPI.getUsers().catch(() => ({ data: { users: [] } })),
-        parfumAPI
-          .getAll({ limit: 100 })
-          .catch(() => ({ data: { parfums: [] } })),
-        noteAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
-      ]);
+      const [statsData, usersData, parfumsData, notesData, messagesData] =
+        await Promise.all([
+          adminAPI.getStats().catch(() => ({})),
+          adminAPI.getUsers().catch(() => ({ data: { users: [] } })),
+          parfumAPI
+            .getAll({ limit: 100 })
+            .catch(() => ({ data: { parfums: [] } })),
+          noteAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
+          api.get("/contact").catch(() => ({ data: [] })),
+        ]);
 
       setStats(statsData || {});
       setUsers(usersData?.data?.users || []);
       setParfums(parfumsData?.data?.parfums || parfumsData?.data || []);
       setNotes(notesData?.data?.notes || notesData?.data || []);
+      setMessages(messagesData?.data || []);
 
       toast.success("Données admin chargées");
     } catch (err) {
@@ -319,6 +323,7 @@ export default function AdminPanel() {
       id: "contact",
       label: "Messages",
       icon: MessageSquare,
+      count: messages.length,
     },
   ];
 
