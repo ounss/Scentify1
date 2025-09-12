@@ -47,5 +47,5 @@ router.put("/:id", protect, admin, validateNote, updateNote);
 // Supprimer une note (admin uniquement)
 router.delete("/:id", protect, admin, deleteNote);
 // Ajoutez cette route
-router.post("/recalculate", recalculateAllStats);
+router.post("/recalculate", protect, admin, recalculateAllStats);
 export default router;

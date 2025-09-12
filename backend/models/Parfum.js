@@ -231,15 +231,8 @@ ParfumSchema.pre("save", function (next) {
 import NoteOlfactive from "./NoteOlfactive.js";
 
 // Hook après sauvegarde d'un parfum (création ou modification)
-ParfumSchema.post("save", async function (doc, next) {
-  try {
-    console.log(`🔄 Mise à jour des stats pour parfum: ${doc.nom}`);
-    await updateNoteStatistics(doc);
-    next();
-  } catch (error) {
-    console.error("❌ Erreur mise à jour stats:", error);
-    next(); // Continue même en cas d'erreur pour ne pas bloquer la sauvegarde
-  }
+ParfumSchema.post("save", async function (doc) {
+  await updateNoteStatistics(doc);
 });
 
 // Hook après suppression d'un parfum
@@ -257,16 +250,9 @@ ParfumSchema.post("findOneAndDelete", async function (doc, next) {
 });
 
 // Hook après mise à jour d'un parfum
-ParfumSchema.post("findOneAndUpdate", async function (doc, next) {
-  try {
-    if (doc) {
-      console.log(`📝 Recalcul des stats après modification: ${doc.nom}`);
-      await updateNoteStatistics(doc);
-    }
-    next();
-  } catch (error) {
-    console.error("❌ Erreur recalcul stats après modification:", error);
-    next();
+ParfumSchema.post("findOneAndUpdate", async function (doc) {
+  if (doc) {
+    await updateNoteStatistics(doc);
   }
 });
 

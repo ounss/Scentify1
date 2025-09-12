@@ -1189,7 +1189,6 @@ export default function AdminPanel() {
       )}
       {/* ✅ Modale Parfum SUPPRIMÉE — remplacée par des pages dédiées */}
       {/* NoteForm moderne */}
-      // Dans AdminPanel.jsx - Corriger la prop onSubmit du NoteForm
       <NoteForm
         note={editingItem}
         isOpen={showNoteForm}
