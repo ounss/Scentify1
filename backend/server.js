@@ -20,8 +20,6 @@ import contactRoutes from "./routes/contactRoutes.js";
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(cookieParser());
 const PORT = process.env.PORT || 10000;
 
 const isProduction = process.env.NODE_ENV === "production";
@@ -80,6 +78,7 @@ const corsOptions = {
 };
 
 app.use(cors(corsOptions));
+app.use(cookieParser()); 
 
 // Sécurité production
 if (isProduction) {
