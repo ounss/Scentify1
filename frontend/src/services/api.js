@@ -1,6 +1,10 @@
 // frontend/src/services/api.js - VERSION COOKIES SÉCURISÉE
 import axios from "axios";
 
+const BASE_URL =
+  process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
+
+console.log("🔗 Base URL configurée:", BASE_URL);
 // ✅ SÉCURISÉ : Configuration pour les cookies httpOnly
 const api = axios.create({
   baseURL: process.env.REACT_APP_API_URL,
@@ -12,23 +16,23 @@ const api = axios.create({
 // L'ancien interceptor qui ajoutait Authorization header est supprimé
 
 // ✅ Interceptor pour les erreurs 401 (garder celui-ci)
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Cookie expiré ou invalide - rediriger vers login
-      if (
-        window.location.pathname !== "/auth" &&
-        window.location.pathname !== "/verify-email" &&
-        window.location.pathname !== "/reset-password"
-      ) {
-        console.log("🚪 Token cookie expiré, redirection vers /auth");
-        window.location.href = "/auth";
-      }
-    }
-    return Promise.reject(error);
-  }
-);
+// //api.interceptors.response.use(
+//   (response) => response,
+//   (error) => {
+//     if (error.response?.status === 401) {
+//       // Cookie expiré ou invalide - rediriger vers login
+//       if (
+//         window.location.pathname !== "/auth" &&
+//         window.location.pathname !== "/verify-email" &&
+//         window.location.pathname !== "/reset-password"
+//       ) {
+//         console.log("🚪 Token cookie expiré, redirection vers /auth");
+//         window.location.href = "/auth";
+//       }
+//     }
+//     return Promise.reject(error);
+//   }
+//);
 
 // ✅ AUTH SERVICES SÉCURISÉS (adaptés de votre version)
 export const authAPI = {
