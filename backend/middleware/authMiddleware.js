@@ -1,4 +1,4 @@
-// backend/middleware/authMiddleware.js - VERSION COOKIES
+// backend/middleware/authMiddleware.js - VERSION COOKIES CORRIGÉE
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 
@@ -7,18 +7,19 @@ export const protect = async (req, res, next) => {
 
   try {
     // ✅ PRIORITÉ 1: Lire le token depuis les cookies
-    if (req.cookies.authToken) {
+    if (req.cookies?.authToken) {
       token = req.cookies.authToken;
-      console.log("🍪 Token cookie reçu:", token.substring(0, 20) + "...");
+      console.log("🍪 Token cookie reçu");
     }
-    // ✅ FALLBACK: Header Authorization pour compatibilité temporaire
+    // ✅ FALLBACK: Header Authorization pour compatibilité
     else if (req.headers.authorization?.startsWith("Bearer")) {
       token = req.headers.authorization.split(" ")[1];
-      console.log("🔑 Token header reçu:", token.substring(0, 20) + "...");
+      console.log("🔑 Token header reçu");
     }
 
     if (!token) {
       console.log("❌ Aucun token trouvé (ni cookie ni header)");
+      console.log("Cookies disponibles:", Object.keys(req.cookies || {}));
       return res.status(401).json({ message: "Pas de token, accès refusé" });
     }
 

@@ -43,24 +43,25 @@ router.post(
   handleValidationErrors,
   registerUser
 );
-router.post("/logout", logoutUser);
+router.post(
+  "/register",
+  validateRegister,
+  handleValidationErrors,
+  registerUser
+);
 router.post("/login", validateLogin, handleValidationErrors, loginUser);
-router.get("/verify-email/:token", verifyEmail); // Token dans l'URL
+router.post("/logout", logoutUser);
+router.get("/check-auth", checkAuth);
+router.get("/verify-email/:token", verifyEmail);
 router.post("/resend-verification", resendVerificationEmail);
 router.post("/forgot-password", forgotPassword);
-router.post(
-  "/reset-password",
-  //validateResetPassword,
-  handleValidationErrors,
-  resetPassword
-);
+router.post("/reset-password", handleValidationErrors, resetPassword);
 
 // ===== ROUTES PROTÉGÉES =====
 // Middleware protect appliqué à toutes les routes suivantes
 router.use(protect);
 
 // Profil utilisateur
-router.get("/check-auth", checkAuth);
 router.get("/profile", getUserProfile);
 router.put("/profile", updateUserProfile);
 
