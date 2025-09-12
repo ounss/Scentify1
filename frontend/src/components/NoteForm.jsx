@@ -170,32 +170,66 @@ export default function NoteForm({
     }));
   };
 
+  // Dans NoteForm.jsx - Remplacer la fonction validateForm
+
   const validateForm = () => {
     const newErrors = {};
 
-    if (!formData.nom.trim()) {
+    // ✅ Validation nom (correspondant au backend)
+    if (!formData.nom || !formData.nom.trim()) {
       newErrors.nom = "Le nom est requis";
-    } else if (formData.nom.length < 2) {
+    } else if (formData.nom.trim().length < 2) {
       newErrors.nom = "Le nom doit contenir au moins 2 caractères";
+    } else if (formData.nom.trim().length > 100) {
+      newErrors.nom = "Le nom ne peut pas dépasser 100 caractères";
     }
 
-    if (!formData.famille) {
+    // ✅ Validation famille (obligatoire)
+    if (!formData.famille || formData.famille.trim() === "") {
       newErrors.famille = "La famille olfactive est requise";
     }
 
+    // ✅ Validation description (optionnelle mais limitée)
     if (formData.description && formData.description.length > 500) {
       newErrors.description =
         "La description ne peut pas dépasser 500 caractères";
     }
 
-    if (formData.suggestedPositions.length === 0) {
+    // ✅ Validation positions suggérées (au moins une requise)
+    if (
+      !formData.suggestedPositions ||
+      formData.suggestedPositions.length === 0
+    ) {
       newErrors.suggestedPositions =
         "Au moins une position suggérée est requise";
+    }
+
+    // ✅ Validation intensité (entre 1 et 10)
+    if (formData.intensite < 1 || formData.intensite > 10) {
+      newErrors.intensite = "L'intensité doit être entre 1 et 10";
+    }
+
+    // ✅ Validation popularité (entre 0 et 100)
+    if (formData.popularite < 0 || formData.popularite > 100) {
+      newErrors.popularite = "La popularité doit être entre 0 et 100";
+    }
+
+    // ✅ Validation couleur (format hexadécimal)
+    const hexColorRegex = /^#[0-9A-Fa-f]{6}$/;
+    if (!formData.couleur || !hexColorRegex.test(formData.couleur)) {
+      newErrors.couleur = "La couleur doit être un code hexadécimal valide";
+    }
+
+    // ✅ DÉBOGAGE: Logger les erreurs trouvées
+    if (Object.keys(newErrors).length > 0) {
+      console.log("❌ Erreurs de validation frontend:", newErrors);
+      console.log("🔍 Données du formulaire:", formData);
     }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+  // - Remplacer la fonction handleSubmit
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -206,14 +240,45 @@ export default function NoteForm({
     }
 
     try {
-      await onSubmit(formData);
+      // ✅ DÉBOGAGE: Nettoyer et logger les données avant envoi
+      const cleanData = {
+        nom: formData.nom.trim(),
+        famille: formData.famille,
+        description: formData.description || "",
+        intensite: parseInt(formData.intensite),
+        popularite: parseInt(formData.popularite),
+        couleur: formData.couleur,
+        suggestedPositions: formData.suggestedPositions,
+        synonymes: formData.synonymes || [],
+      };
+
+      // ✅ DÉBOGAGE: Logger les données envoyées
+      console.log("🔍 Données envoyées au backend:", cleanData);
+      console.log("🔍 Mode édition:", !!note);
+      console.log("🔍 ID note:", note?._id);
+
+      await onSubmit(cleanData);
       onClose();
       toast.success(
         note ? "Note modifiée avec succès" : "Note créée avec succès"
       );
     } catch (error) {
-      toast.error("Erreur lors de la sauvegarde");
-      console.error("Erreur formulaire note:", error);
+      // ✅ DÉBOGAGE: Logger l'erreur complète
+      console.error("❌ Erreur complète:", error);
+      console.error("❌ Réponse backend:", error.response?.data);
+      console.error("❌ Status:", error.response?.status);
+
+      // Message d'erreur plus détaillé
+      if (error.response?.data?.errors) {
+        const errorMessages = error.response.data.errors
+          .map((err) => err.message)
+          .join(", ");
+        toast.error(`Erreur validation: ${errorMessages}`);
+      } else if (error.response?.data?.message) {
+        toast.error(`Erreur: ${error.response.data.message}`);
+      } else {
+        toast.error("Erreur lors de la sauvegarde");
+      }
     }
   };
 

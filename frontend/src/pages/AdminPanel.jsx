@@ -94,7 +94,9 @@ export default function AdminPanel() {
           parfumAPI
             .getAll({ limit: 100 })
             .catch(() => ({ data: { parfums: [] } })),
-          notesAPI.getAll({ limit: 100 }).catch(() => ({ data: { notes: [] } })),
+          notesAPI
+            .getAll({ limit: 100 })
+            .catch(() => ({ data: { notes: [] } })),
           api.get("/contact").catch(() => ({ data: [] })),
         ]);
 
@@ -384,7 +386,6 @@ export default function AdminPanel() {
           </div>
         </div>
       </header>
-
       <main className={styles.main}>
         {/* Navigation par onglets */}
         <nav className={styles.navigation}>
@@ -1106,9 +1107,7 @@ export default function AdminPanel() {
           )}
         </div>
       </main>
-
       {/* === MODALES === */}
-
       {/* Modale Utilisateur */}
       {showUserForm && (
         <div
@@ -1188,10 +1187,9 @@ export default function AdminPanel() {
           </div>
         </div>
       )}
-
       {/* ✅ Modale Parfum SUPPRIMÉE — remplacée par des pages dédiées */}
-
       {/* NoteForm moderne */}
+      // Dans AdminPanel.jsx - Corriger la prop onSubmit du NoteForm
       <NoteForm
         note={editingItem}
         isOpen={showNoteForm}
@@ -1201,15 +1199,30 @@ export default function AdminPanel() {
         }}
         onSubmit={async (formData) => {
           try {
+            console.log(
+              "🔍 AdminPanel - données reçues du formulaire:",
+              formData
+            );
+
             if (editingItem) {
-              await notesAPI.update(editingItem._id, formData);
+              console.log("🔄 Mise à jour note ID:", editingItem._id);
+              const response = await notesAPI.update(editingItem._id, formData);
+              console.log("✅ Réponse update:", response);
               toast.success("Note modifiée");
             } else {
-              await notesAPI.create(formData);
+              console.log("➕ Création nouvelle note");
+              const response = await notesAPI.create(formData);
+              console.log("✅ Réponse create:", response);
               toast.success("Note créée");
             }
+
+            // Recharger les données
             await loadData();
           } catch (error) {
+            console.error("❌ Erreur dans AdminPanel onSubmit:", error);
+            console.error("❌ Détails erreur:", error.response?.data);
+
+            // Re-lancer l'erreur pour que NoteForm puisse l'afficher
             throw error;
           }
         }}
