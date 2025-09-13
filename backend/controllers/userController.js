@@ -11,7 +11,7 @@ const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: "30d" });
 };
 
-// ✅ NOUVELLE FONCTION : Configuration cookies sécurisés
+// Configuration cookies sécurisés
 const getCookieOptions = () => {
   const isProduction = process.env.NODE_ENV === "production";
 
@@ -23,7 +23,7 @@ const getCookieOptions = () => {
   };
 };
 
-// ✅ Inscription (inchangée)
+//  Inscription
 export const registerUser = async (req, res) => {
   try {
     const { email, password, username } = req.body;
@@ -41,7 +41,7 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message });
     }
 
-    // ✅ CHANGEMENT: Créer utilisateur avec vérification email
+    //  Créer utilisateur avec vérification email
     const user = await User.create({
       email,
       password,
@@ -50,7 +50,7 @@ export const registerUser = async (req, res) => {
       emailVerificationToken: crypto.randomBytes(32).toString("hex"),
     });
 
-    // ✅ Envoyer email de vérification
+    // Envoyer email de vérification
     try {
       await emailService.sendVerificationEmail(
         user,
@@ -77,7 +77,7 @@ export const registerUser = async (req, res) => {
   }
 };
 
-// ✅ NOUVEAU: Route de vérification email avec cookie
+//  NOUVEAU: Route de vérification email avec cookie
 export const verifyEmail = async (req, res) => {
   try {
     const { token } = req.params; // Token dans l'URL
@@ -123,7 +123,7 @@ export const verifyEmail = async (req, res) => {
   }
 };
 
-// ✅ MODIFICATION: Connexion avec cookie sécurisé
+// Connexion avec cookie sécurisé
 export const loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -144,7 +144,7 @@ export const loginUser = async (req, res) => {
       return res.status(401).json({ message: "Identifiants invalides" });
     }
 
-    // ✅ VÉRIFICATION: Email doit être vérifié
+    // Email doit être vérifié
     if (!user.isVerified) {
       return res.status(401).json({
         message: "Veuillez vérifier votre email avant de vous connecter.",

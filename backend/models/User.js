@@ -111,7 +111,7 @@ UserSchema.methods.matchPassword = async function (enteredPassword) {
   return await bcrypt.compare(enteredPassword, this.password);
 };
 
-// ✅ MÉTHODES POUR FAVORIS PARFUMS - CORRIGÉES
+// MÉTHODES POUR FAVORIS PARFUMS
 UserSchema.methods.addFavoriParfum = async function (parfumId) {
   // Initialiser le tableau s'il n'existe pas
   if (!this.favorisParfums) {

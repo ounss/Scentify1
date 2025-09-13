@@ -11,3 +11,7 @@ node_modules/
 **/tests/
 **/coverage/
 .txt
+/tests/
+**/jest.config.js
+**/jest.setup.js
+**/tests/
