@@ -8,13 +8,8 @@
 
 /* Hero Section */
 .hero {
-  background: linear-gradient(
-    135deg,
-    var(--hf-bg) 0%,
-    var(--hf-white) 50%,
-    var(--hf-gray-50) 100%
-  );
-  color: rgb(0, 0, 0);
+  background: #b9a48d;
+  color: white;
   padding: 4rem 0 6rem 0;
   position: relative;
   overflow: hidden;
