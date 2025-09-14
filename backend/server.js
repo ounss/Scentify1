@@ -54,12 +54,13 @@ const corsOptions = {
   origin: [
     "https://scentify.be",
     "https://www.scentify.be",
-    "https://scentify-perfume.onrender.com",
     "https://scentify-perfumes.onrender.com",
+    "https://scentify-perfume.onrender.com",
   ],
-  credentials: true, // CRITIQUE pour les cookies cross-domain
+  credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
 
