@@ -43,7 +43,7 @@ const baseUrl = isProduction
 // CORS Configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    const allowedOrigins = ["https://scentify.be", "https://www.scentify.be"];
+   // const allowedOrigins = ["https://scentify.be", "https://www.scentify.be"];
 
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
@@ -51,12 +51,13 @@ const corsOptions = {
       callback(new Error("Not allowed by CORS"));
     }
   },
-  credentials: true,
+  origin: ["https://scentify.be", "https://www.scentify.be"],
+  credentials: true, // CRITIQUE pour les cookies cross-domain
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
 };
 app.use(cors(corsOptions));
-  
+
 // ✅ CRITIQUE: cookieParser AVANT tout le reste
 app.use(cookieParser());
 

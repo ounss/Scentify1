@@ -8,8 +8,8 @@ console.log("🔗 Base URL configurée:", BASE_URL);
 
 // ✅ SÉCURISÉ : Configuration pour les cookies httpOnly
 const api = axios.create({
-  baseURL: BASE_URL,
-  withCredentials: true, // ESSENTIEL pour envoyer les cookies httpOnly
+  baseURL: "https://scentify-perfume.onrender.com/api",
+  withCredentials: true, // CRITIQUE pour envoyer les cookies
   timeout: 15000,
 });
 
