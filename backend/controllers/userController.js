@@ -21,6 +21,7 @@ const getCookieOptions = () => {
     secure: isProduction, // 🔒 HTTPS obligatoire en production
     sameSite: "none", // 🛡️ CSRF : Cookies envoyés uniquement pour le même site
     path: "/",
+    domain: undefined,
   };
 };
 

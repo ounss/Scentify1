@@ -69,9 +69,32 @@ const corsOptions = {
   exposedHeaders: ["X-Total-Count"],
   optionsSuccessStatus: 200,
 };
-
 app.use(cors(corsOptions));
+app.use((req, res, next) => {
+  // Headers CORS explicites pour cookies
+  const origin = req.headers.origin;
+  const allowedOrigins = [
+    "https://www.scentify.be",
+    "https://scentify.be",
+    "https://scentify-perfumes.onrender.com",
+  ];
 
+  if (allowedOrigins.includes(origin)) {
+    res.setHeader("Access-Control-Allow-Origin", origin);
+  }
+
+  res.setHeader("Access-Control-Allow-Credentials", "true");
+  res.setHeader(
+    "Access-Control-Allow-Methods",
+    "GET,PUT,POST,DELETE,PATCH,OPTIONS"
+  );
+  res.setHeader(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control"
+  );
+
+  next();
+});
 // ✅ CRITIQUE: cookieParser AVANT tout le reste
 app.use(cookieParser());
 
