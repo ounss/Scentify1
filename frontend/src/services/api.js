@@ -1,4 +1,4 @@
-// frontend/src/services/api.js - VERSION CORRIGÉE SANS DOUBLE REDIRECTION
+// frontend/src/services/api.js - VERSION SANS REDIRECTION AUTOMATIQUE INTEMPESTIVE
 import axios from "axios";
 
 const BASE_URL =
@@ -13,30 +13,36 @@ const api = axios.create({
   timeout: 15000,
 });
 
-// 🚫 SUPPRESSION DE L'INTERCEPTOR RESPONSE PROBLÉMATIQUE
-// Le problème : l'interceptor redirige automatiquement vers /auth sur 401
-// Mais le logout() génère volontairement un 401, ce qui créait une double redirection
-
-// ✅ NOUVEAU : Interceptor intelligent qui évite la redirection lors du logout
+// 🔧 VARIABLES DE CONTRÔLE POUR ÉVITER LES REDIRECTIONS INTEMPESTIVES
 let isLoggingOut = false;
+let isInitializing = true; // Nouvelle variable pour l'initialisation
 
+// ✅ INTERCEPTOR INTELLIGENT - Évite les redirections lors de l'initialisation
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // 🛡️ PROTECTION : Ne pas rediriger si on est en train de se déconnecter
-    if (error.response?.status === 401 && !isLoggingOut) {
-      const currentPath = window.location.pathname;
-      const excludedPaths = ["/auth", "/verify-email", "/reset-password"];
+    // 🛡️ PROTECTION MULTIPLE : Ne pas rediriger si :
+    // 1. On est en train de se déconnecter
+    // 2. On est en phase d'initialisation (checkAuth au démarrage)
+    // 3. On est déjà sur une page d'auth
+    const currentPath = window.location.pathname;
+    const excludedPaths = ["/auth", "/verify-email", "/reset-password", "/"];
+    const isCheckAuthCall = error.config?.url?.includes("/users/check-auth");
 
-      if (!excludedPaths.includes(currentPath)) {
-        console.log("🚪 Token cookie expiré, redirection vers /auth");
+    if (
+      error.response?.status === 401 &&
+      !isLoggingOut &&
+      !isInitializing &&
+      !isCheckAuthCall &&
+      !excludedPaths.includes(currentPath)
+    ) {
+      console.log("🚪 Token cookie expiré, redirection vers /auth");
 
-        // Redirection douce pour mobile
-        if (window.location.replace) {
-          window.location.replace("/auth");
-        } else {
-          window.location.href = "/auth";
-        }
+      // Redirection douce pour mobile
+      if (window.location.replace) {
+        window.location.replace("/auth");
+      } else {
+        window.location.href = "/auth";
       }
     }
 
@@ -44,7 +50,7 @@ api.interceptors.response.use(
   }
 );
 
-// ✅ AUTH SERVICES SÉCURISÉS avec protection logout
+// ✅ AUTH SERVICES SÉCURISÉS avec protection logout ET initialisation
 export const authAPI = {
   register: (userData) => api.post("/users/register", userData),
   login: (credentials) => api.post("/users/login", credentials),
@@ -60,7 +66,18 @@ export const authAPI = {
     }
   },
 
-  checkAuth: () => api.get("/users/check-auth"),
+  // 🔧 CHECK AUTH PROTÉGÉ : pour l'initialisation
+  checkAuth: async () => {
+    try {
+      const result = await api.get("/users/check-auth");
+      isInitializing = false; // ✅ Fin de l'initialisation si succès
+      return result;
+    } catch (error) {
+      isInitializing = false; // ✅ Fin de l'initialisation même si échec
+      throw error;
+    }
+  },
+
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data) => api.put("/users/profile", data),
   forgotPassword: (email) => api.post("/users/forgot-password", { email }),
@@ -70,6 +87,12 @@ export const authAPI = {
   resendVerification: (email) =>
     api.post("/users/resend-verification", { email }),
   deleteAccount: () => api.delete("/users/profile"),
+};
+
+// ✅ FONCTION PUBLIQUE pour réinitialiser l'état d'initialisation si nécessaire
+export const resetInitializationState = () => {
+  isInitializing = false;
+  console.log("🔄 État d'initialisation réinitialisé");
 };
 
 // ✅ PARFUMS SERVICES (exactement votre version)

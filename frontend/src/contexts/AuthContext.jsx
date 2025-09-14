@@ -1,6 +1,6 @@
-// frontend/src/contexts/AuthContext.jsx - VERSION SANS REDIRECTION AUTO
+// frontend/src/contexts/AuthContext.jsx - VERSION AVEC GESTION D'INITIALISATION AMÉLIORÉE
 import React, { createContext, useContext, useReducer, useEffect } from "react";
-import { authAPI } from "../services/api";
+import { authAPI, resetInitializationState } from "../services/api";
 
 const AuthContext = createContext();
 
@@ -66,23 +66,30 @@ export function AuthProvider({ children }) {
     error: null,
   });
 
-  // ✅ INITIALISATION SANS REDIRECTION AUTOMATIQUE
+  // ✅ INITIALISATION AVEC TIMEOUT ET GESTION D'ERREURS AMÉLIORÉE
   useEffect(() => {
     let isMounted = true;
+    let initTimeout;
 
     const initAuth = async () => {
       try {
-        console.log("🔄 Vérification de l'authentification via cookie...");
+        console.log("🔄 Initialisation authentification...");
 
-        // ⏱️ Timeout plus court pour éviter les blocages
-        const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 5000)
-        );
+        // ⏱️ Timeout de sécurité pour éviter les blocages (plus court)
+        const timeoutPromise = new Promise((_, reject) => {
+          initTimeout = setTimeout(() => {
+            console.log("⏱️ Timeout d'initialisation atteint");
+            reject(new Error("Timeout"));
+          }, 3000); // 3 secondes seulement
+        });
 
         const authPromise = authAPI.checkAuth();
         const response = await Promise.race([authPromise, timeoutPromise]);
 
         if (!isMounted) return;
+
+        // ✅ Nettoyage du timeout si la requête aboutit
+        if (initTimeout) clearTimeout(initTimeout);
 
         console.log(
           "✅ Utilisateur connecté via cookie:",
@@ -95,13 +102,18 @@ export function AuthProvider({ children }) {
       } catch (error) {
         if (!isMounted) return;
 
+        // ✅ Nettoyage du timeout en cas d'erreur
+        if (initTimeout) clearTimeout(initTimeout);
+
         // 🔇 Logging silencieux pour les erreurs normales
         if (error.response?.status === 401) {
           console.log("ℹ️ Utilisateur non connecté (normal)");
         } else if (error.message === "Timeout") {
-          console.log("⏱️ Timeout de vérification auth (normal sur mobile)");
+          console.log("⏱️ Timeout de vérification auth (normal)");
+          // ✅ Réinitialiser l'état d'initialisation dans l'API
+          resetInitializationState();
         } else {
-          console.error("❌ Erreur initAuth:", error.message);
+          console.log("ℹ️ Erreur initAuth (normal):", error.message);
         }
 
         // ✅ IMPORTANT : Toujours définir loading à false
@@ -114,6 +126,8 @@ export function AuthProvider({ children }) {
 
     return () => {
       isMounted = false;
+      // ✅ Nettoyage du timeout si le composant est démonté
+      if (initTimeout) clearTimeout(initTimeout);
     };
   }, []);
 
