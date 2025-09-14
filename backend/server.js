@@ -51,12 +51,11 @@ const corsOptions = {
     const allowedOrigins = [
       process.env.CLIENT_URL,
       process.env.FRONTEND_URL,
+      "https://www.scentify.be",
+      "https://scentify.be", // ← Assurer la cohérence
       "https://scentify-perfumes.onrender.com",
       "https://scentify-perfume.onrender.com",
-      "https://www.scentify.be",
-      "https://scentify.be",
     ].filter(Boolean);
-
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -76,23 +75,17 @@ app.use((req, res, next) => {
   const allowedOrigins = [
     "https://www.scentify.be",
     "https://scentify.be",
-    "https://scentify-perfumes.onrender.com",
+    "https://scentify-perfumes.onrender.com"
   ];
-
+  
   if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
+    res.setHeader('Access-Control-Allow-Origin', origin);
   }
-
-  res.setHeader("Access-Control-Allow-Credentials", "true");
-  res.setHeader(
-    "Access-Control-Allow-Methods",
-    "GET,PUT,POST,DELETE,PATCH,OPTIONS"
-  );
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control"
-  );
-
+  
+  res.setHeader('Access-Control-Allow-Credentials', 'true');
+  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
+  
   next();
 });
 // ✅ CRITIQUE: cookieParser AVANT tout le reste
