@@ -158,6 +158,7 @@ export const loginUser = async (req, res) => {
     }
 
     const token = generateToken(user._id);
+    const cookieOptions = getCookieOptions();
 
     // 🍪 SÉCURITÉ : Définir cookie httpOnly au lieu de renvoyer le token
     res.cookie("authToken", token, getCookieOptions());
