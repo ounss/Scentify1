@@ -1,5 +1,11 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import { Toaster } from "react-hot-toast";
 import { AuthProvider, useAuth } from "./contexts/AuthContext";
 import Header from "./components/Header";
@@ -35,6 +41,7 @@ const LoadingSpinner = () => (
 // Route protégée pour les utilisateurs connectés
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   // ⏱️ Timeout plus long pour mobile
   if (loading) return <LoadingSpinner />;
@@ -123,7 +130,6 @@ function App() {
                 </Layout>
               }
             />
-            <Route path="*" element={<Error />} />
             {/* ✅ Route d'authentification */}
             <Route
               path="/auth"
