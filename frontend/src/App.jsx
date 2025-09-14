@@ -1,3 +1,4 @@
+// frontend/src/App.jsx - CORRECTION MINIMALE : seulement PublicRoute
 import React from "react";
 import {
   BrowserRouter,
@@ -66,13 +67,21 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// Route publique (redirige si connecté)
+// ✅ CORRECTION : PublicRoute complète (était incomplète)
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) return <LoadingSpinner />;
 
-  return !isAuthenticated ? children : <Navigate to="/" replace />;
+  // Si connecté et sur /auth, rediriger vers la page d'origine ou accueil
+  if (isAuthenticated) {
+    const from = location.state?.from?.pathname || "/";
+    return <Navigate to={from} replace />;
+  }
+
+  // Si pas connecté, afficher la page demandée
+  return children;
 };
 
 // Layout principal avec header
@@ -130,7 +139,8 @@ function App() {
                 </Layout>
               }
             />
-            {/* ✅ Route d'authentification */}
+
+            {/* ✅ Route d'authentification - CORRIGÉE */}
             <Route
               path="/auth"
               element={
