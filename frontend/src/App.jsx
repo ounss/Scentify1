@@ -1,4 +1,4 @@
-// frontend/src/App.jsx - VERSION CORRIGÉE ROUTING
+// frontend/src/App.jsx - VERSION CORRIGÉE AVEC ROUTE /error
 import React from "react";
 import {
   BrowserRouter,
@@ -149,6 +149,16 @@ function App() {
               }
             />
 
+            {/* ✅ ROUTE ERROR - PUBLIQUE ACCESSIBLE (pour les liens footer) */}
+            <Route
+              path="/error"
+              element={
+                <Layout>
+                  <Error />
+                </Layout>
+              }
+            />
+
             {/* ✅ ROUTES PUBLIQUES SANS PROTECTION */}
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/reset-password" element={<ResetPassword />} />
@@ -249,8 +259,42 @@ function App() {
               }
             />
 
-            {/* ✅ REDIRECTION POUR ROUTES INCONNUES */}
-            <Route path="*" element={<Navigate to="/" replace />} />
+            {/* ⚠️ ROUTES SPÉCIFIQUES POUR LES LIENS FOOTER */}
+            <Route
+              path="/about"
+              element={
+                <Layout>
+                  <Error />
+                </Layout>
+              }
+            />
+            <Route
+              path="/faq"
+              element={
+                <Layout>
+                  <Error />
+                </Layout>
+              }
+            />
+            <Route
+              path="/terms"
+              element={
+                <Layout>
+                  <Error />
+                </Layout>
+              }
+            />
+            <Route
+              path="/privacy"
+              element={
+                <Layout>
+                  <Error />
+                </Layout>
+              }
+            />
+
+            {/* ✅ REDIRECTION POUR ROUTES INCONNUES - DOIT ÊTRE EN DERNIER */}
+            <Route path="*" element={<Navigate to="/error" replace />} />
           </Routes>
         </div>
       </AuthProvider>
