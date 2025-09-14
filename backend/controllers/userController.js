@@ -13,6 +13,7 @@ const generateToken = (id) => {
 
 // Configuration cookies sécurisés
 const getCookieOptions = () => {
+  console.log("🔧 NODE_ENV:", process.env.NODE_ENV);
   const isProduction = process.env.NODE_ENV === "production";
 
   return {
@@ -23,6 +24,8 @@ const getCookieOptions = () => {
     path: "/",
     domain: undefined,
   };
+  console.log("🍪 Cookie options générées:", options);
+  return options;
 };
 
 //  Inscription
@@ -158,7 +161,13 @@ export const loginUser = async (req, res) => {
 
     // 🍪 SÉCURITÉ : Définir cookie httpOnly au lieu de renvoyer le token
     res.cookie("authToken", token, getCookieOptions());
-
+    console.log("🍪 === DÉFINITION COOKIE ===");
+    console.log("  - Origin requête:", req.get("origin"));
+    console.log("  - User-Agent:", req.get("user-agent"));
+    console.log("  - Options cookie:", JSON.stringify(cookieOptions, null, 2));
+    console.log("  - Token défini (premiers chars):", token.substring(0, 20));
+    console.log("  - Host backend:", req.get("host"));
+    console.log("========================");
     res.json({
       message: "Connexion réussie",
       user: {
