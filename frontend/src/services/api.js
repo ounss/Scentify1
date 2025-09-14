@@ -1,33 +1,37 @@
-// frontend/src/services/api.js - VERSION COOKIES SÉCURISÉE
+// frontend/src/services/api.js - VERSION CORRIGÉE SANS DOUBLE REDIRECTION
 import axios from "axios";
 
 const BASE_URL =
   process.env.REACT_APP_API_URL || "https://scentify-perfume.onrender.com/api";
 
 console.log("🔗 Base URL configurée:", BASE_URL);
+
 // ✅ SÉCURISÉ : Configuration pour les cookies httpOnly
 const api = axios.create({
   baseURL: BASE_URL,
   withCredentials: true, // ESSENTIEL pour envoyer les cookies httpOnly
-  timeout: 15000, // Timeout de 10 secondes
+  timeout: 15000,
 });
 
-// ✅ PLUS BESOIN d'interceptor request (pas de localStorage)
-// L'ancien interceptor qui ajoutait Authorization header est supprimé
+// 🚫 SUPPRESSION DE L'INTERCEPTOR RESPONSE PROBLÉMATIQUE
+// Le problème : l'interceptor redirige automatiquement vers /auth sur 401
+// Mais le logout() génère volontairement un 401, ce qui créait une double redirection
 
-// ✅ Interceptor pour les erreurs 401 (garder celui-ci)
-// ✅ Interceptor amélioré pour mobile
+// ✅ NOUVEAU : Interceptor intelligent qui évite la redirection lors du logout
+let isLoggingOut = false;
+
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
+    // 🛡️ PROTECTION : Ne pas rediriger si on est en train de se déconnecter
+    if (error.response?.status === 401 && !isLoggingOut) {
       const currentPath = window.location.pathname;
       const excludedPaths = ["/auth", "/verify-email", "/reset-password"];
 
       if (!excludedPaths.includes(currentPath)) {
         console.log("🚪 Token cookie expiré, redirection vers /auth");
 
-        // 🆕 Redirection plus douce pour mobile
+        // Redirection douce pour mobile
         if (window.location.replace) {
           window.location.replace("/auth");
         } else {
@@ -40,12 +44,23 @@ api.interceptors.response.use(
   }
 );
 
-// ✅ AUTH SERVICES SÉCURISÉS (adaptés de votre version)
+// ✅ AUTH SERVICES SÉCURISÉS avec protection logout
 export const authAPI = {
   register: (userData) => api.post("/users/register", userData),
   login: (credentials) => api.post("/users/login", credentials),
-  logout: () => api.post("/users/logout"), // ✅ NOUVEAU : Appel backend pour supprimer cookie
-  checkAuth: () => api.get("/users/check-auth"), // ✅ NOUVEAU : Pour refresh page
+
+  // 🔧 LOGOUT PROTÉGÉ : empêche l'interceptor de rediriger
+  logout: async () => {
+    isLoggingOut = true; // 🛡️ Désactive l'interceptor temporairement
+    try {
+      const result = await api.post("/users/logout");
+      return result;
+    } finally {
+      isLoggingOut = false; // 🔄 Réactive l'interceptor après logout
+    }
+  },
+
+  checkAuth: () => api.get("/users/check-auth"),
   getProfile: () => api.get("/users/profile"),
   updateProfile: (data) => api.put("/users/profile", data),
   forgotPassword: (email) => api.post("/users/forgot-password", { email }),
@@ -127,7 +142,6 @@ export const contactAPI = {
       credentials: "include",
       headers: {
         "Content-Type": "application/json",
-        // Pas d'Authorization header pour cette route publique
       },
       body: JSON.stringify(data),
     });

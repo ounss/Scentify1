@@ -1,4 +1,4 @@
-// frontend/src/contexts/AuthContext.jsx - VERSION COOKIES SÉCURISÉE
+// frontend/src/contexts/AuthContext.jsx - VERSION SANS REDIRECTION AUTO
 import React, { createContext, useContext, useReducer, useEffect } from "react";
 import { authAPI } from "../services/api";
 
@@ -10,11 +10,10 @@ const authReducer = (state, action) => {
       return { ...state, loading: action.payload };
 
     case "LOGIN_SUCCESS":
-      // ✅ SÉCURISÉ : Plus de localStorage, seulement l'état React
       return {
         ...state,
         user: action.payload.user,
-        token: null, // Plus de token côté client
+        token: null,
         loading: false,
         error: null,
       };
@@ -23,7 +22,6 @@ const authReducer = (state, action) => {
       return { ...state, error: action.payload, loading: false };
 
     case "LOGOUT":
-      // ✅ SÉCURISÉ : Plus de localStorage à nettoyer
       return { user: null, token: null, loading: false, error: null };
 
     case "UPDATE_USER":
@@ -64,12 +62,11 @@ export function AuthProvider({ children }) {
   const [state, dispatch] = useReducer(authReducer, {
     user: null,
     token: null,
-    loading: true,
+    loading: true, // Commence en loading
     error: null,
   });
 
-  // ✅ INITIALISATION SÉCURISÉE - Vérification via cookie
-  // ✅ INITIALISATION SÉCURISÉE - Version corrigée
+  // ✅ INITIALISATION SANS REDIRECTION AUTOMATIQUE
   useEffect(() => {
     let isMounted = true;
 
@@ -77,9 +74,9 @@ export function AuthProvider({ children }) {
       try {
         console.log("🔄 Vérification de l'authentification via cookie...");
 
-        // ⏱️ TIMEOUT pour éviter les blocages sur mobile
+        // ⏱️ Timeout plus court pour éviter les blocages
         const timeoutPromise = new Promise((_, reject) =>
-          setTimeout(() => reject(new Error("Timeout")), 8000)
+          setTimeout(() => reject(new Error("Timeout")), 5000)
         );
 
         const authPromise = authAPI.checkAuth();
@@ -98,22 +95,27 @@ export function AuthProvider({ children }) {
       } catch (error) {
         if (!isMounted) return;
 
-        // 🔇 Ne pas logger les erreurs 401 comme erreurs critiques
-        if (error.response?.status !== 401) {
+        // 🔇 Logging silencieux pour les erreurs normales
+        if (error.response?.status === 401) {
+          console.log("ℹ️ Utilisateur non connecté (normal)");
+        } else if (error.message === "Timeout") {
+          console.log("⏱️ Timeout de vérification auth (normal sur mobile)");
+        } else {
           console.error("❌ Erreur initAuth:", error.message);
         }
 
-        // 🔄 Définir loading à false même en cas d'erreur
+        // ✅ IMPORTANT : Toujours définir loading à false
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
+    // 🚀 Lancer l'initialisation
     initAuth();
 
     return () => {
       isMounted = false;
     };
-  }, []); // ⚠️ Dépendances vides pour éviter les re-renders
+  }, []);
 
   // ✅ FONCTION LOGIN (inchangée)
   const login = async (credentials) => {
@@ -176,19 +178,21 @@ export function AuthProvider({ children }) {
     }
   };
 
-  // ✅ FONCTION LOGOUT SÉCURISÉE
+  // ✅ FONCTION LOGOUT - AUCUNE REDIRECTION AUTOMATIQUE
   const logout = async () => {
     try {
-      // ✅ SÉCURISÉ : Appel API pour supprimer le cookie httpOnly
       await authAPI.logout();
-      console.log("✅ Déconnexion réussie");
+      console.log("✅ Déconnexion réussie (cookie supprimé)");
     } catch (error) {
       console.error("❌ Erreur lors du logout:", error);
       // Continuer même si l'appel API échoue
     }
 
-    // ✅ SÉCURISÉ : Plus de localStorage à nettoyer
+    // 🔄 Mettre à jour l'état local
     dispatch({ type: "LOGOUT" });
+
+    // ✅ RETOURNER STATUT POUR LE COMPOSANT
+    return { success: true };
   };
 
   // ✅ FONCTION UPDATE USER (inchangée)
@@ -197,7 +201,7 @@ export function AuthProvider({ children }) {
     dispatch({ type: "UPDATE_USER", payload: userData });
   };
 
-  // ✅ FONCTION REFRESH USER (inchangée)
+  // ✅ FONCTION REFRESH USER SANS REDIRECTION AUTO
   const refreshUser = async () => {
     if (!state.user) return null;
 
@@ -208,9 +212,10 @@ export function AuthProvider({ children }) {
       return response.data.user;
     } catch (error) {
       console.error("❌ Erreur refresh user:", error);
-      // Si erreur 401, déconnecter automatiquement
+
+      // ✅ Si erreur 401, déconnecter silencieusement (pas de redirection auto)
       if (error.response?.status === 401) {
-        console.log("🚪 Token expiré lors du refresh, déconnexion automatique");
+        console.log("🚪 Token expiré lors du refresh, déconnexion silencieuse");
         dispatch({ type: "LOGOUT" });
       }
       return null;
@@ -264,7 +269,7 @@ export function AuthProvider({ children }) {
         success: true,
         message:
           response.data.message || "Mot de passe réinitialisé avec succès !",
-        autoLogin: !!response.data.user, // Indique si l'utilisateur a été connecté automatiquement
+        autoLogin: !!response.data.user,
       };
     } catch (error) {
       console.error("❌ Erreur resetPassword:", error);

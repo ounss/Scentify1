@@ -1,4 +1,4 @@
-// frontend/src/App.jsx - CORRECTION MINIMALE : seulement PublicRoute
+// frontend/src/App.jsx - VERSION CORRIGÉE ROUTING
 import React from "react";
 import {
   BrowserRouter,
@@ -29,7 +29,7 @@ import UserMenu from "./pages/UserMenu";
 import FavoritesPage from "./pages/FavoritesPage";
 import HistoryPage from "./pages/HistoryPage";
 
-// Loading Component
+// ✅ LOADING COMPONENT AMÉLIORÉ avec timeout
 const LoadingSpinner = () => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="text-center">
@@ -39,23 +39,25 @@ const LoadingSpinner = () => (
   </div>
 );
 
-// Route protégée pour les utilisateurs connectés
+// ✅ ROUTE PROTÉGÉE OPTIMISÉE
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
   const location = useLocation();
 
-  // ⏱️ Timeout plus long pour mobile
-  if (loading) return <LoadingSpinner />;
+  // 🔄 Pendant le loading, afficher le spinner (pas de redirection)
+  if (loading) {
+    return <LoadingSpinner />;
+  }
 
+  // 🚫 Seulement après loading, rediriger si non authentifié
   if (!isAuthenticated) {
-    // 🆕 Redirection avec état pour éviter les boucles
     return <Navigate to="/auth" state={{ from: location }} replace />;
   }
 
   return children;
 };
 
-// Route protégée pour les admins
+// ✅ ROUTE ADMIN INCHANGÉE
 const AdminRoute = ({ children }) => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
@@ -67,21 +69,17 @@ const AdminRoute = ({ children }) => {
   return children;
 };
 
-// ✅ CORRECTION : PublicRoute complète (était incomplète)
+// ✅ ROUTE PUBLIQUE OPTIMISÉE (pour /auth uniquement)
 const PublicRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
-  const location = useLocation();
 
-  if (loading) return <LoadingSpinner />;
-
-  // Si connecté et sur /auth, rediriger vers la page d'origine ou accueil
-  if (isAuthenticated) {
-    const from = location.state?.from?.pathname || "/";
-    return <Navigate to={from} replace />;
+  // 🔄 Pendant le loading, ne pas rediriger automatiquement
+  if (loading) {
+    return <LoadingSpinner />;
   }
 
-  // Si pas connecté, afficher la page demandée
-  return children;
+  // ✅ Si déjà connecté sur /auth, rediriger vers l'accueil
+  return !isAuthenticated ? children : <Navigate to="/" replace />;
 };
 
 // Layout principal avec header
@@ -128,9 +126,8 @@ function App() {
             }}
           />
 
-          {/* ✅ TOUTES LES ROUTES DANS UN SEUL COMPOSANT <Routes> */}
           <Routes>
-            {/* ✅ Route d'accueil */}
+            {/* ✅ ROUTE D'ACCUEIL - PAS DE PROTECTION, PAS DE REDIRECTION AUTO */}
             <Route
               path="/"
               element={
@@ -140,7 +137,7 @@ function App() {
               }
             />
 
-            {/* ✅ Route d'authentification - CORRIGÉE */}
+            {/* ✅ ROUTE D'AUTHENTIFICATION - PUBLIQUE AVEC REDIRECTION SI CONNECTÉ */}
             <Route
               path="/auth"
               element={
@@ -152,11 +149,11 @@ function App() {
               }
             />
 
-            {/* ✅ Routes de vérification email et reset password (sans layout) */}
+            {/* ✅ ROUTES PUBLIQUES SANS PROTECTION */}
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/reset-password" element={<ResetPassword />} />
 
-            {/* ✅ Routes avec layout standard */}
+            {/* ✅ ROUTE PARFUM DÉTAIL - PUBLIQUE (tout le monde peut voir) */}
             <Route
               path="/parfum/:id"
               element={
@@ -166,6 +163,7 @@ function App() {
               }
             />
 
+            {/* ✅ ROUTE CONTACT - PUBLIQUE */}
             <Route
               path="/contact"
               element={
@@ -175,6 +173,7 @@ function App() {
               }
             />
 
+            {/* ✅ ROUTES PRIVÉES - NÉCESSITENT UNE CONNEXION */}
             <Route
               path="/profile"
               element={
@@ -197,7 +196,27 @@ function App() {
               }
             />
 
-            {/* ✅ Routes mobiles avec layout mobile */}
+            <Route
+              path="/favorites"
+              element={
+                <PrivateRoute>
+                  <MobileLayout>
+                    <FavoritesPage />
+                  </MobileLayout>
+                </PrivateRoute>
+              }
+            />
+
+            <Route
+              path="/menu"
+              element={
+                <MobileLayout>
+                  <UserMenu />
+                </MobileLayout>
+              }
+            />
+
+            {/* ✅ ROUTES PARFUMS - PRIVÉES POUR CRÉER/MODIFIER */}
             <Route
               path="/parfum/new"
               element={
@@ -220,27 +239,7 @@ function App() {
               }
             />
 
-            <Route
-              path="/menu"
-              element={
-                <MobileLayout>
-                  <UserMenu />
-                </MobileLayout>
-              }
-            />
-
-            <Route
-              path="/favorites"
-              element={
-                <PrivateRoute>
-                  <MobileLayout>
-                    <FavoritesPage />
-                  </MobileLayout>
-                </PrivateRoute>
-              }
-            />
-
-            {/* ✅ Route admin */}
+            {/* ✅ ROUTE ADMIN */}
             <Route
               path="/admin"
               element={
@@ -250,7 +249,7 @@ function App() {
               }
             />
 
-            {/* ✅ Redirection pour les routes inconnues */}
+            {/* ✅ REDIRECTION POUR ROUTES INCONNUES */}
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </div>
