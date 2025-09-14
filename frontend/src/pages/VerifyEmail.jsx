@@ -28,28 +28,17 @@ const VerifyEmail = () => {
       try {
         // On appelle l'API qui active le compte
         const res = await authAPI.verifyEmail(token);
-        // Attendus côté backend: { message, token, user }
+        // Le backend renvoie: { message, user } et définit automatiquement le cookie
         const apiMessage = res?.data?.message || "Email vérifié avec succès !";
-        const jwt = res?.data?.token;
-        const user = res?.data?.user;
 
-        // Si un JWT est renvoyé, on le stocke pour connecter l'utilisateur
-        if (jwt) {
-          localStorage.setItem("token", jwt);
-        }
-        if (user) {
-          try {
-            localStorage.setItem("user", JSON.stringify(user));
-          } catch {
-            // ignore JSON errors
-          }
-        }
+        // ✅ PLUS BESOIN de localStorage - le backend a déjà défini le cookie httpOnly !
+        // Le cookie authToken est automatiquement envoyé lors du prochain appel API
 
         if (!isMounted) return;
         setStatus("success");
         setMessage(apiMessage);
 
-        // Redirection douce (on rafraîchit l'app pour que le contexte Auth se mette à jour)
+        // Redirection après 2 secondes pour laisser le cookie se propager
         setTimeout(() => {
           // window.location.replace("/") garantit un refresh complet de la SPA
           window.location.replace("/");
