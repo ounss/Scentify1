@@ -131,6 +131,7 @@ export default function ParfumDetail() {
           setIsFavorite(isInFavorites);
         } catch (favErr) {
           console.warn("Erreur lors de la vérification des favoris:", favErr);
+          setIsFavorite(false);
         }
       }
     } catch (err) {
@@ -140,12 +141,15 @@ export default function ParfumDetail() {
           err.message ||
           "Erreur lors du chargement du parfum"
       );
+
       setLoading(false);
       setSimilarLoading(false);
     }
   };
 
   const addToHistory = async () => {
+    if (!isAuthenticated) return; // Vérification avant l'appel !
+
     try {
       await historyAPI.addToHistory(parfum._id);
     } catch (error) {
@@ -369,8 +373,8 @@ export default function ParfumDetail() {
                 src={parfum.photo}
                 alt={parfum.nom}
                 className={styles.photo}
-              loading="eager"
-              fallbackSrc="https://res.cloudinary.com/dyxmkgpgp/image/upload/v1756928420/parfum-en-bouteille-noire-sur-la-table_ixbh79.jpg"
+                loading="eager"
+                fallbackSrc="https://res.cloudinary.com/dyxmkgpgp/image/upload/v1756928420/parfum-en-bouteille-noire-sur-la-table_ixbh79.jpg"
               />
               <span
                 className={`${styles.badge} ${getGenreClass(parfum.genre)}`}
