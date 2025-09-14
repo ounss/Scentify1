@@ -69,12 +69,23 @@ export function AuthProvider({ children }) {
   });
 
   // ✅ INITIALISATION SÉCURISÉE - Vérification via cookie
+  // ✅ INITIALISATION SÉCURISÉE - Version corrigée
   useEffect(() => {
+    let isMounted = true;
+
     const initAuth = async () => {
       try {
         console.log("🔄 Vérification de l'authentification via cookie...");
-        // ✅ CORRECTION CRITIQUE : Utiliser checkAuth au lieu de getProfile
-        const response = await authAPI.checkAuth();
+
+        // ⏱️ TIMEOUT pour éviter les blocages sur mobile
+        const timeoutPromise = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("Timeout")), 8000)
+        );
+
+        const authPromise = authAPI.checkAuth();
+        const response = await Promise.race([authPromise, timeoutPromise]);
+
+        if (!isMounted) return;
 
         console.log(
           "✅ Utilisateur connecté via cookie:",
@@ -85,17 +96,24 @@ export function AuthProvider({ children }) {
           payload: { user: response.data.user },
         });
       } catch (error) {
-        console.log(
-          "❌ Pas d'authentification active (normal au premier chargement)"
-        );
-        // Ne pas logger l'erreur complète car c'est normal si pas connecté
-      } finally {
+        if (!isMounted) return;
+
+        // 🔇 Ne pas logger les erreurs 401 comme erreurs critiques
+        if (error.response?.status !== 401) {
+          console.error("❌ Erreur initAuth:", error.message);
+        }
+
+        // 🔄 Définir loading à false même en cas d'erreur
         dispatch({ type: "SET_LOADING", payload: false });
       }
     };
 
     initAuth();
-  }, []);
+
+    return () => {
+      isMounted = false;
+    };
+  }, []); // ⚠️ Dépendances vides pour éviter les re-renders
 
   // ✅ FONCTION LOGIN (inchangée)
   const login = async (credentials) => {

@@ -16,20 +16,26 @@ const api = axios.create({
 // L'ancien interceptor qui ajoutait Authorization header est supprimé
 
 // ✅ Interceptor pour les erreurs 401 (garder celui-ci)
+// ✅ Interceptor amélioré pour mobile
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Cookie expiré ou invalide - rediriger vers login
-      if (
-        window.location.pathname !== "/auth" &&
-        window.location.pathname !== "/verify-email" &&
-        window.location.pathname !== "/reset-password"
-      ) {
+      const currentPath = window.location.pathname;
+      const excludedPaths = ["/auth", "/verify-email", "/reset-password"];
+
+      if (!excludedPaths.includes(currentPath)) {
         console.log("🚪 Token cookie expiré, redirection vers /auth");
-        window.location.href = "/auth";
+
+        // 🆕 Redirection plus douce pour mobile
+        if (window.location.replace) {
+          window.location.replace("/auth");
+        } else {
+          window.location.href = "/auth";
+        }
       }
     }
+
     return Promise.reject(error);
   }
 );

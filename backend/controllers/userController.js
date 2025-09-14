@@ -19,8 +19,7 @@ const getCookieOptions = () => {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
     httpOnly: true, // 🛡️ PROTECTION XSS : Token inaccessible via JavaScript
     secure: isProduction, // 🔒 HTTPS obligatoire en production
-    sameSite: "lax", // 🛡️ CSRF : Cookies envoyés uniquement pour le même site
-    secure: true,
+    sameSite: isProduction ? "none" : "lax", // 🛡️ CSRF : Cookies envoyés uniquement pour le même site
     path: "/",
   };
 };
@@ -194,33 +193,50 @@ export const logoutUser = async (req, res) => {
 
 // ✅ NOUVELLE FONCTION : Vérification auth pour refresh
 // backend/controllers/userController.js - CORRECTION checkAuth
+// ✅ NOUVELLE FONCTION : Vérification auth pour refresh - Version mobile-friendly
 export const checkAuth = async (req, res) => {
   try {
     let token;
 
-    // Lire le token depuis les cookies
+    // 🔍 Lecture du token depuis les cookies avec logging amélioré
     if (req.cookies?.authToken) {
       token = req.cookies.authToken;
+      console.log("🍪 Token cookie détecté");
     } else if (req.headers.authorization?.startsWith("Bearer")) {
       token = req.headers.authorization.split(" ")[1];
+      console.log("🔑 Token header détecté");
     }
 
     if (!token) {
-      return res.status(401).json({ message: "Pas de token" });
+      console.log("❌ Aucun token trouvé");
+      console.log("📱 Headers disponibles:", Object.keys(req.headers));
+      console.log("🍪 Cookies disponibles:", Object.keys(req.cookies || {}));
+      return res.status(401).json({
+        message: "Pas de token",
+        debug:
+          process.env.NODE_ENV === "development"
+            ? {
+                cookies: Object.keys(req.cookies || {}),
+                userAgent: req.headers["user-agent"],
+              }
+            : undefined,
+      });
     }
 
-    // Vérifier le token
+    // Vérifier le token JWT avec gestion d'erreur améliorée
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Chercher l'utilisateur
+    // Chercher l'utilisateur avec population optimisée
     const user = await User.findById(decoded.id)
       .populate("favorisParfums", "nom marque photo genre")
       .populate("favorisNotes", "nom type")
-      .select("-password");
+      .select("-password -emailVerificationToken -resetPasswordToken");
 
     if (!user) {
       return res.status(404).json({ message: "Utilisateur non trouvé" });
     }
+
+    console.log("✅ Utilisateur authentifié:", user.username);
 
     res.json({
       message: "Utilisateur authentifié",
@@ -231,13 +247,20 @@ export const checkAuth = async (req, res) => {
         isAdmin: user.isAdmin,
         isVerified: user.isVerified,
         createdAt: user.createdAt,
-        favorisParfums: user.favorisParfums,
-        favorisNotes: user.favorisNotes,
+        favorisParfums: user.favorisParfums || [],
+        favorisNotes: user.favorisNotes || [],
       },
     });
   } catch (error) {
-    console.error("❌ Erreur checkAuth:", error);
-    res.status(401).json({ message: "Token invalide ou expiré" });
+    console.error("❌ Erreur checkAuth:", error.message);
+
+    if (error.name === "JsonWebTokenError") {
+      return res.status(401).json({ message: "Token invalide" });
+    } else if (error.name === "TokenExpiredError") {
+      return res.status(401).json({ message: "Token expiré" });
+    } else {
+      return res.status(401).json({ message: "Erreur d'authentification" });
+    }
   }
 };
 

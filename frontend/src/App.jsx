@@ -36,9 +36,15 @@ const LoadingSpinner = () => (
 const PrivateRoute = ({ children }) => {
   const { isAuthenticated, loading } = useAuth();
 
+  // ⏱️ Timeout plus long pour mobile
   if (loading) return <LoadingSpinner />;
 
-  return isAuthenticated ? children : <Navigate to="/auth" replace />;
+  if (!isAuthenticated) {
+    // 🆕 Redirection avec état pour éviter les boucles
+    return <Navigate to="/auth" state={{ from: location }} replace />;
+  }
+
+  return children;
 };
 
 // Route protégée pour les admins
