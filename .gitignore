@@ -15,3 +15,8 @@ node_modules/
 **/jest.config.js
 **/jest.setup.js
 **/tests/
+backend/tests/
+backend/coverage/
+backend/jest.config.js
+backend/jest.setup.js
+
