@@ -112,6 +112,7 @@ export const verifyEmail = async (req, res) => {
     res.json({
       message: "Email vérifié avec succès !",
       user: {
+        token: token,
         id: user._id,
         username: user.username,
         email: user.email,
@@ -169,6 +170,7 @@ export const loginUser = async (req, res) => {
     res.json({
       message: "Connexion réussie",
       user: {
+        token: token,
         id: user._id,
         username: user.username,
         email: user.email,

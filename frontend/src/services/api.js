@@ -12,6 +12,13 @@ const api = axios.create({
   withCredentials: true, // CRITIQUE pour envoyer les cookies
   timeout: 15000,
 });
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem("token");
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
+});
 
 // 🔧 VARIABLES DE CONTRÔLE POUR ÉVITER LES REDIRECTIONS INTEMPESTIVES
 let isLoggingOut = false;
