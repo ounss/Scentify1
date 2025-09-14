@@ -7,9 +7,9 @@ const BASE_URL =
 console.log("🔗 Base URL configurée:", BASE_URL);
 // ✅ SÉCURISÉ : Configuration pour les cookies httpOnly
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL,
+  baseURL: BASE_URL,
   withCredentials: true, // ESSENTIEL pour envoyer les cookies httpOnly
-  timeout: 10000, // Timeout de 10 secondes
+  timeout: 15000, // Timeout de 10 secondes
 });
 
 // ✅ PLUS BESOIN d'interceptor request (pas de localStorage)

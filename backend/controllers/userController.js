@@ -19,7 +19,9 @@ const getCookieOptions = () => {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
     httpOnly: true, // 🛡️ PROTECTION XSS : Token inaccessible via JavaScript
     secure: isProduction, // 🔒 HTTPS obligatoire en production
-    sameSite: isProduction ? "none" : "lax", // 🌐 Cross-origin pour Render
+    sameSite: "lax", // 🛡️ CSRF : Cookies envoyés uniquement pour le même site
+    secure: true,
+    path: "/",
   };
 };
 

@@ -116,7 +116,6 @@ export default function ParfumForm() {
     }
   };
 
-  // Dans ParfumForm.jsx, remplacez UNIQUEMENT cette fonction :
 
   const loadNotesAndFamilies = async () => {
     try {
@@ -268,7 +267,7 @@ export default function ParfumForm() {
         "marque",
         "genre",
         "description",
-        "anneeSortie", // ✅ CORRIGÉ: était "anneSortie"
+        "anneeSortie", 
         "concentre",
         "prix",
         "longevite",
