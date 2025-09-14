@@ -20,9 +20,8 @@ const getCookieOptions = () => {
     expires: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 jours
     httpOnly: true, // 🛡️ PROTECTION XSS : Token inaccessible via JavaScript
     secure: isProduction, // 🔒 HTTPS obligatoire en production
-    sameSite: isProduction ? "none" : "lax", // 🌐 Cookies cross-site en production
+    sameSite: isProduction ? "none" : "lax", // CRITIQUE pour cross-domain
     path: "/",
-    domain: ".onrender.com",
   };
 };
 

@@ -21,41 +21,30 @@ const baseUrl = isProduction
   : `http://localhost:${PORT}`;
 
 // Route racine
-app.get("/", (req, res) => {
-  res.json({
-    message: "Scentify API est en ligne !",
-    status: "success",
-    version: "1.0.0",
-    environment: process.env.NODE_ENV || "development",
-    baseUrl: baseUrl,
-    endpoints: {
-      health: `${baseUrl}/api/health`,
-      testEmail: `${baseUrl}/api/test-email`,
-      users: `${baseUrl}/api/users`,
-      parfums: `${baseUrl}/api/parfums`,
-      notes: `${baseUrl}/api/notes`,
-      admin: `${baseUrl}/api/admin`,
-      contact: `${baseUrl}/api/contact`,
-    },
-  });
-});
+// app.get("/", (req, res) => {
+//   res.json({
+//     message: "Scentify API est en ligne !",
+//     status: "success",
+//     version: "1.0.0",
+//     environment: process.env.NODE_ENV || "development",
+//     baseUrl: baseUrl,
+//     endpoints: {
+//       health: `${baseUrl}/api/health`,
+//       testEmail: `${baseUrl}/api/test-email`,
+//       users: `${baseUrl}/api/users`,
+//       parfums: `${baseUrl}/api/parfums`,
+//       notes: `${baseUrl}/api/notes`,
+//       admin: `${baseUrl}/api/admin`,
+//       contact: `${baseUrl}/api/contact`,
+//     },
+//   });
+//});
 
 // CORS Configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    if (!isProduction) {
-      callback(null, true);
-      return;
-    }
+    const allowedOrigins = ["https://scentify.be", "https://www.scentify.be"];
 
-    const allowedOrigins = [
-      process.env.CLIENT_URL,
-      process.env.FRONTEND_URL,
-      "https://www.scentify.be",
-      "https://scentify.be", // ← Assurer la cohérence
-      "https://scentify-perfumes.onrender.com",
-      "https://scentify-perfume.onrender.com",
-    ].filter(Boolean);
     if (!origin || allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
@@ -65,29 +54,9 @@ const corsOptions = {
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  exposedHeaders: ["X-Total-Count"],
-  optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
-app.use((req, res, next) => {
-  // Headers CORS explicites pour cookies
-  const origin = req.headers.origin;
-  const allowedOrigins = [
-    "https://www.scentify.be",
-    "https://scentify.be",
-    "https://scentify-perfumes.onrender.com"
-  ];
   
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
-  
-  res.setHeader('Access-Control-Allow-Credentials', 'true');
-  res.setHeader('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE,PATCH,OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, Cache-Control');
-  
-  next();
-});
 // ✅ CRITIQUE: cookieParser AVANT tout le reste
 app.use(cookieParser());
 
